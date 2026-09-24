@@ -1,0 +1,197 @@
+// Shared Unmute design tokens for the responsive reference UI.
+// Bright translucent panes floating over a live 3D scene, with chrome edges, soft refraction and
+// calm, luxurious contrast. Components consume only these tokens.
+
+// Brand palette
+$brand-deep-purple: #4a005b; // logo dark / headings
+$brand-plum: #79006e; // gradient dark
+$brand-magenta: #c00078; // primary brand
+$brand-hot-pink: #f21872; // CTA / highlights
+$brand-coral: #ff5f72; // gradient light
+$brand-blush: #fff0f5; // background accent
+$brand-lavender: #f4eeff; // secondary background
+$brand-white: #ffffff; // main background
+$brand-text: #101052; // body / headings
+$brand-text-muted: #7373ad; // secondary text
+
+@mixin spatial-light {
+  color-scheme: light;
+
+  --unmute-bg: #{$brand-white};
+  --unmute-surface: #{$brand-white};
+  --unmute-surface-raised: #{$brand-blush};
+  --unmute-surface-overlay: #{$brand-lavender};
+  --unmute-surface-active: #ece2fb;
+
+  // Liquid glass: bright, heavily blurred, with a white specular edge
+  --unmute-glass-bg: rgba(255, 255, 255, 0.5);
+  --unmute-glass-surface: rgba(255, 255, 255, 0.62);
+  --unmute-glass-strong: rgba(255, 255, 255, 0.8);
+  --unmute-glass-border: rgba(74, 0, 91, 0.09);
+  --unmute-glass-border-hover: rgba(74, 0, 91, 0.2);
+  --unmute-glass-highlight: rgba(255, 255, 255, 0.95);
+  --unmute-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(74, 0, 91, 0.06);
+
+  --unmute-3d-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  --unmute-3d-bottom-lip: inset 0 -2px 0 0 rgba(74, 0, 91, 0.06);
+  --unmute-3d-card-rim: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+
+  --unmute-text-primary: #{$brand-text};
+  --unmute-text-heading: #080858;
+  --unmute-text-secondary: #565fa4;
+  --unmute-text-muted: #{$brand-text-muted};
+  --unmute-text-dim: #aba2b3;
+  --unmute-success: #0b9d6c;
+  --unmute-danger: #d92d20;
+
+  --unmute-input-bg: rgba(245, 239, 255, 0.7);
+  --unmute-input-border: rgba(74, 0, 91, 0.14);
+  --unmute-border: var(--unmute-glass-border);
+
+  // Soft, wide, plum-tinted shadows: panes float rather than sit
+  --unmute-shadow-sm: 0 2px 8px rgba(36, 21, 45, 0.06);
+  --unmute-shadow-md: 0 6px 24px rgba(117, 48, 170, 0.06);
+  --unmute-shadow-lg: 0 30px 70px -20px rgba(36, 21, 45, 0.28), 0 8px 20px -8px rgba(36, 21, 45, 0.1);
+  --unmute-shadow-3d: 0 40px 80px -30px rgba(36, 21, 45, 0.35), 0 12px 30px -14px rgba(36, 21, 45, 0.18);
+  --unmute-shadow-3d-hover: 0 50px 100px -30px rgba(36, 21, 45, 0.42), 0 18px 40px -16px rgba(36, 21, 45, 0.22);
+
+  --unmute-btn-3d-shadow: 0 10px 24px -10px rgba(36, 21, 45, 0.45);
+  --unmute-btn-3d-shadow-active: 0 4px 10px -4px rgba(36, 21, 45, 0.35);
+
+  // Chrome: polished silver used for edges and metallic accents; the logo text uses the brand purples
+  --unmute-chrome: linear-gradient(135deg, #ffffff 0%, #e9deef 22%, #a596b3 48%, #f7f2fa 64%, #c3b5cf 100%);
+  --unmute-chrome-text: linear-gradient(120deg, #{$brand-deep-purple} 0%, #{$brand-plum} 45%, #{$brand-magenta} 75%, #{$brand-hot-pink} 100%);
+  --unmute-ink: linear-gradient(160deg, #{$brand-plum} 0%, #{$brand-deep-purple} 100%);
+  --unmute-on-ink: #ffffff;
+
+  --unmute-scrim: rgba(74, 0, 91, 0.18);
+  --unmute-modal-bg: rgba(255, 255, 255, 0.86);
+  --unmute-logo-dark: #{$brand-deep-purple};
+  // Page backdrop: blush at the top fading through white to lavender, as in the brand screens
+  --unmute-app-bg: radial-gradient(ellipse at 0% 0%, #fce3f5 0%, transparent 38%),
+    radial-gradient(ellipse at 100% 100%, #f8d9fa 0%, transparent 44%),
+    linear-gradient(145deg, #fcf8ff 0%, #fffaff 55%, #f7edff 100%);
+}
+
+@mixin spatial-dark {
+  color-scheme: dark;
+
+  // Dark mode: the brand's deep purple taken down to near-black
+  --unmute-bg: #0f0714;
+  --unmute-surface: #1a0f21;
+  --unmute-surface-raised: #211429;
+  --unmute-surface-overlay: #291a33;
+  --unmute-surface-active: #342340;
+
+  --unmute-glass-bg: rgba(38, 22, 48, 0.46);
+  --unmute-glass-surface: rgba(52, 32, 64, 0.5);
+  --unmute-glass-strong: rgba(36, 21, 45, 0.8);
+  --unmute-glass-border: rgba(255, 240, 245, 0.1);
+  --unmute-glass-border-hover: rgba(255, 240, 245, 0.24);
+  --unmute-glass-highlight: rgba(255, 255, 255, 0.22);
+  --unmute-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+
+  --unmute-3d-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  --unmute-3d-bottom-lip: inset 0 -2px 0 0 rgba(0, 0, 0, 0.4);
+  --unmute-3d-card-rim: inset 0 1px 0 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+  --unmute-text-primary: #fbf3f8;
+  --unmute-text-heading: #fbf3f8;
+  --unmute-text-secondary: #d6c9de;
+  --unmute-text-muted: #a597b0;
+  --unmute-text-dim: #6e6079;
+  --unmute-success: #3ee0a1;
+  --unmute-danger: #ff6b5e;
+
+  --unmute-input-bg: rgba(15, 7, 20, 0.55);
+  --unmute-input-border: rgba(255, 240, 245, 0.12);
+  --unmute-border: var(--unmute-glass-border);
+
+  --unmute-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --unmute-shadow-md: 0 10px 30px -10px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --unmute-shadow-lg: 0 30px 70px -20px rgba(0, 0, 0, 0.75), 0 8px 20px -8px rgba(0, 0, 0, 0.4);
+  --unmute-shadow-3d: 0 40px 80px -30px rgba(0, 0, 0, 0.85), 0 12px 30px -14px rgba(0, 0, 0, 0.5);
+  --unmute-shadow-3d-hover: 0 50px 100px -30px rgba(0, 0, 0, 0.9), 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+
+  --unmute-btn-3d-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.7);
+  --unmute-btn-3d-shadow-active: 0 4px 10px -4px rgba(0, 0, 0, 0.6);
+
+  --unmute-chrome: linear-gradient(135deg, #ffffff 0%, #d4c6dd 22%, #7d6a8c 48%, #efe6f4 64%, #9d8aac 100%);
+  --unmute-chrome-text: linear-gradient(120deg, #ffffff 0%, #{$brand-blush} 40%, #{$brand-coral} 75%, #{$brand-hot-pink} 100%);
+  --unmute-ink: linear-gradient(160deg, #ffffff 0%, #{$brand-blush} 100%);
+  --unmute-on-ink: #{$brand-deep-purple};
+
+  --unmute-scrim: rgba(8, 3, 11, 0.6);
+  --unmute-modal-bg: rgba(33, 20, 41, 0.86);
+  --unmute-logo-dark: #{$brand-blush};
+  --unmute-app-bg: radial-gradient(90% 40% at 100% 0%, rgba(242, 24, 114, 0.16) 0%, transparent 70%),
+    radial-gradient(80% 45% at 0% 100%, rgba(121, 0, 110, 0.22) 0%, transparent 70%),
+    linear-gradient(180deg, #1a0a22 0%, #0f0714 50%, #150a1f 100%);
+}
+
+:root {
+  @include spatial-light;
+
+  // Raw brand colours, for the rare component that needs a specific one rather than a role token
+  --unmute-brand-deep-purple: #{$brand-deep-purple};
+  --unmute-brand-plum: #{$brand-plum};
+  --unmute-brand-magenta: #{$brand-magenta};
+  --unmute-brand-hot-pink: #{$brand-hot-pink};
+  --unmute-brand-coral: #{$brand-coral};
+  --unmute-brand-blush: #{$brand-blush};
+  --unmute-brand-lavender: #{$brand-lavender};
+
+  // Accent (the theme store overrides per preset): brand magenta, with hot pink for calls to action.
+  --unmute-primary: #{$brand-magenta};
+  --unmute-primary-light: #{$brand-coral};
+  --unmute-primary-dark: #{$brand-plum};
+  --unmute-primary-bevel: #{$brand-deep-purple};
+  --unmute-primary-gradient: linear-gradient(100deg, #{$brand-coral} 0%, #{$brand-hot-pink} 30%, #{$brand-magenta} 70%, #{$brand-plum} 100%);
+  --unmute-primary-surface: rgba(192, 0, 120, 0.1);
+  --unmute-accent-text: #{$brand-magenta};
+  --unmute-glow-primary: 0 12px 30px -12px rgba(192, 0, 120, 0.6);
+  --unmute-cta: #{$brand-hot-pink};
+
+  // Legacy alias kept for components that still reference it.
+  --unmute-holo-rim: var(--unmute-chrome);
+
+  --unmute-radius-xs: 10px;
+  --unmute-radius-sm: 14px;
+  --unmute-radius-md: 18px;
+  --unmute-radius-lg: 28px;
+  --unmute-radius-xl: 36px;
+  --unmute-radius-pill: 9999px;
+
+  --unmute-font-logo: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --unmute-font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --unmute-font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-xs: 0.75rem;
+  --font-sm: 0.8125rem;
+  --font-base: 0.875rem;
+  --font-md: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.375rem;
+  --font-2xl: 1.75rem;
+  --font-display: 2.25rem;
+
+  --unmute-transition-fast: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --unmute-transition-normal: 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --unmute-transition-bounce: 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  // Layout: the web sidebar is an icon rail until there is room for labels
+  --unmute-dock-width: 5rem;
+
+  @media (min-width: 1200px) {
+    --unmute-dock-width: 15rem;
+  }
+}
+
+[data-theme='light'] {
+  @include spatial-light;
+}
+
+[data-theme='dark'] {
+  @include spatial-dark;
+}

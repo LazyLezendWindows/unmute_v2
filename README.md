@@ -1,93 +1,227 @@
-# unmute
+# Unmute
 
+> **Connect without the pressure.**
 
+Unmute is a social connection platform focused on helping people discover and communicate with other people based on shared interests, intentions, and conversation — not simply appearance.
 
-## Getting started
+Built as a **responsive web application + PWA** with Vue 3 and Node.js/Express, powered by a relational **MariaDB** database, and structured to be packaged later as native mobile applications using Capacitor.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 1. Product Philosophy
 
-## Add your files
+* **People first**: Authentic connections over vanity metrics.
+* **Conversation first**: Common interests, thoughtful bios, and shared intentions are front-and-center.
+* **Safety first**: Instant blocking and reporting with zero tolerance for harassment or solicitations.
+* **Privacy first**: Approximate location only (city/area level). No exact coordinates, phone numbers, or private emails are ever exposed.
+* **18+ Age Policy**: Strictly enforced server-side based on date of birth.
+* **Zero pressure for physical meetings**: Users independently decide whether and when they interact outside the app.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+---
 
+## 2. Architecture
+
+```text
+Unmute
+│
+├── Frontend
+│   └── Vue 3 + Vite + TypeScript + Pinia
+│       ├── PWA (Service Worker + Manifest)
+│       ├── Mobile-First Responsive UI
+│       └── Real-time Socket.io Client
+│
+├── Backend
+│   └── Node.js + Express.js + TypeScript
+│       ├── Layered: Routes → Controllers → Services → Models
+│       ├── Real-time Socket.io Server
+│       ├── Zod Input Validation & 18+ Server-side Check
+│       └── Server-side sessions (HttpOnly cookie), Google ID-token verification & Rate Limiting
+│
+├── Database
+│   └── MariaDB (InnoDB, relational schemas, foreign keys)
+│       └── Tables: users, profiles, interests, user_interests, likes,
+│                   passes, matches, conversations, messages, blocks, reports, sessions
+│
+└── Mobile (Future Phase)
+    └── Capacitor (Android & iOS packaging)
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/naveenkumar7544/unmute.git
-git branch -M main
-git push -uf origin main
+
+---
+
+## 3. Core Database Tables (MariaDB)
+
+| Table | Description |
+|---|---|
+| `users` | Account identity (email, active status); no credentials |
+| `profiles` | Display name, date of birth, bio, avatar, interaction preferences (plus a legacy free-text location) |
+| `places` | Location hierarchy shaped like LGD: state → district → sub-district → village, and district → city/town |
+| `pincodes` | 6-digit PIN codes with their district, state and approximate centre |
+| `user_locations` | A member's area: place, optional PIN code, coarsened (~1 km grid) coordinates, and label precision |
+| `institutions` | Universities, colleges and standalone institutions (AISHE-shaped) |
+| `user_education` | A member's institution, course and years |
+| `interests` | Predefined categorized interest topics |
+| `user_interests` | Many-to-many relationship linking users to their interests |
+| `likes` | Recorded likes (authority rests solely on the backend) |
+| `passes` | Recorded passes (excluded from future discovery) |
+| `matches` | Mutual matches created when User A likes User B AND User B likes User A |
+| `conversations` | 1-on-1 chat channels linked to matches |
+| `messages` | Chat messages with timestamps and status (`sent`, `delivered`, `read`) |
+| `blocks` | Immediate mutual suppression across discovery, matches, and messaging |
+| `reports` | Categorized moderation reports (harassment, spam, fake profile, etc.) |
+| `auth_accounts` | Sign-in methods per user: Google (`sub`) or password (bcrypt hash) |
+| `sessions` | Server-side sessions (SHA-256 of the cookie token, expiry, revocation) |
+
+---
+
+## 4. API Design (`/api/v1`)
+
+### Authentication & Profiles
+* `POST /api/v1/auth/register` — Register user (strictly validates age $\ge$ 18 from DOB)
+* `POST /api/v1/auth/login` — Login with email and password
+* `POST /api/v1/auth/google` — Sign in with a Google ID token (verified server-side; new users confirm date of birth)
+* `POST /api/v1/auth/logout` — Revoke the current session and clear the cookie
+* `GET  /api/v1/auth/session` — Restore the session from the cookie (`authenticated: true|false`)
+* `GET  /api/v1/auth/me` — Get authenticated user details
+* `GET  /api/v1/users/me` — Get user profile & interests
+* `PATCH /api/v1/users/me` — Update bio, avatar, interaction preferences & interests
+* `GET  /api/v1/users/interests` — Fetch available interests
+
+### Location & Education
+* `PUT    /api/v1/users/me/location` — Set your area: `{mode: "place", placeId}`, `{mode: "pincode", pincode}` or `{mode: "device", latitude, longitude}`, each with optional `precision` (`locality` | `city` | `state`). Rate-limited per account.
+* `PATCH  /api/v1/users/me/location` — Change how much of your area others see (`{precision}`)
+* `DELETE /api/v1/users/me/location` — Remove your area
+* `PUT    /api/v1/users/me/education` — Set your institution (`{institutionId, course?, startYear?, endYear?}`)
+* `DELETE /api/v1/users/me/education` — Remove it
+* `GET    /api/v1/locations/states` — All states and union territories
+* `GET    /api/v1/locations/:id/children` — Districts of a state, settlements of a district, … (`?q=` narrows)
+* `GET    /api/v1/locations/search?q=&kinds=&stateId=` — Name-prefix search across the hierarchy
+* `GET    /api/v1/locations/pincodes/:pincode` — The area a PIN code covers
+* `GET    /api/v1/education/institutions?q=&stateId=&districtId=&kind=` — Institution search
+* `GET    /api/v1/education/institutions/:id` — One institution
+
+**Location privacy.** Device positions are snapped to a ~1 km grid before they are stored, and no endpoint ever returns coordinates, not even your own. Others see only an area label at the precision you choose, plus a bucketed distance ("within 10 km", "about 45 km away"; never below 2 km). The radius filter accepts only 5, 10, 25, 50, 100 or 200 km, and changing your area is rate-limited, so repeated searches cannot be used to pinpoint anyone. PIN codes are never shown to other members.
+
+### Discovery & Interactions
+* `GET  /api/v1/discover` — Fetch discovery feed (filters out self, liked, passed, and blocked users; sorts by common interests, then distance). Optional filters, all applied in SQL and combined with AND: `radiusKm` (needs your own area), `placeId` (any level: state, district, sub-district, city, town or village), `pincode`, `institutionId` or `sameInstitution=true`, `minAge` / `maxAge`.
+* `POST /api/v1/interactions/like` — Like a user (triggers mutual match and creates conversation if reciprocal)
+* `POST /api/v1/interactions/pass` — Pass on a user
+
+### Matches & Real-Time Chat
+* `GET  /api/v1/matches` — Get active mutual matches
+* `GET  /api/v1/conversations` — Get user conversations with latest message & unread badge
+* `GET  /api/v1/conversations/:id/messages` — Get messages for conversation (auto-marks as read)
+* `POST /api/v1/conversations/:id/messages` — Send message in conversation (broadcasts via Socket.io)
+
+### Safety
+* `POST   /api/v1/safety/block` — Block a user immediately
+* `DELETE /api/v1/safety/block` — Unblock a user
+* `GET    /api/v1/safety/blocked` — List blocked users
+* `POST   /api/v1/safety/reports` — Report a user with category and details
+
+---
+
+## 5. Getting Started
+
+### Prerequisites
+* Node.js $\ge$ 18
+* MariaDB $\ge$ 10.6
+
+### Installation
+
+```bash
+# Install backend dependencies
+cd backend
+npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install
 ```
 
-## Integrate with your tools
+### Starting MariaDB & Backend
 
-* [Set up project integrations](https://gitlab.com/naveenkumar7544/unmute/-/settings/integrations)
+A helper script is provided to ensure MariaDB is running with `unmute_db` initialized:
 
-## Collaborate with your team
+```bash
+cd backend
+npm run dev
+```
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+The backend server starts at `http://localhost:5000`.
 
-## Test and Deploy
+### Starting Frontend
 
-Use the built-in continuous integration in GitLab.
+```bash
+cd frontend
+npm run dev
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+The frontend application opens at `http://localhost:5173`.
 
-***
+### Google Sign-In
 
-# Editing this README
+1. In [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials), configure the OAuth consent screen (External; add your Google account as a test user while in testing), then **Create credentials → OAuth client ID → Web application**.
+2. Under *Authorized JavaScript origins* add `http://localhost:5173` (plus your production origin later). No redirect URIs are needed.
+3. Put the client ID (`…apps.googleusercontent.com`) in `backend/.env` as `GOOGLE_CLIENT_ID` and restart the backend. The frontend reads it from `GET /api/v1/auth/config`, so `VITE_GOOGLE_CLIENT_ID` is optional (it only overrides that at build time).
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+The browser only ever passes Google's signed ID token to the backend, which verifies its signature and audience before creating an Unmute session.
 
-## Suggestions for a good README
+**Troubleshooting:** "Google sign-in is not available right now" means `GOOGLE_CLIENT_ID` is not set (or the backend was not restarted). *"The given origin is not allowed for the given client ID"* in the browser console means the page's origin is missing from *Authorized JavaScript origins* (changes can take a few minutes to apply). *"The given client ID is not found"* means the ID is mistyped. A 401 after choosing an account means the backend's `GOOGLE_CLIENT_ID` differs from the one the button used.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Database Migrations
 
-## Name
-Choose a self-explaining name for your project.
+Schema changes live in `backend/migrations/NNN_name.sql` and are applied in order (tracked in `schema_migrations`) on server start, or explicitly with `npm run migrate` (`npm run migrate:prod` against the compiled build). Never edit an applied migration; add a new one. MariaDB DDL is not transactional, so write migrations that are safe to re-run.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### Location & Education Data
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+A small, real sample (all 36 states and union territories with LGD codes, major cities, a few towns and villages, some PIN codes and 48 well-known institutions) is loaded on every start, so the app works out of the box. For production, import the complete official datasets; imports upsert over the sample and can be re-run with newer releases:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```bash
+cd backend
+# 1. LGD (https://lgdirectory.gov.in → Download Directory): states, districts, sub-districts,
+#    villages and urban local bodies, as CSV. Import each file; order does not matter.
+npm run import:data -- places path/to/villages.csv
+# 2. India Post "All India Pincode Directory" (data.gov.in). Import after places.
+npm run import:data -- pincodes path/to/pincode_directory.csv
+# 3. AISHE (https://aishe.gov.in) university / college / standalone lists. Import after places.
+npm run import:data -- institutions path/to/colleges.csv [--kind college]
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Use `npm run import:data:prod -- …` against the compiled build. Header names are matched loosely (e.g. `State Name (In English)` or `statename`); each importer's accepted columns are documented at the top of `backend/src/importers/`. LGD itself has no coordinates, so an imported village borrows its sub-district's or district's where one is known (the sample districts have them); members whose area has no coordinates at all still appear in area, PIN code and college filters, but not in distance filters. The PIN code import averages post-office coordinates per PIN code, so setting your area by PIN code usually gives accurate distances, and "Near me" always does. Sample districts are named, not coded, so an LGD import adopts matching names; a district whose official name differs (e.g. `Mumbai` vs `Mumbai City`) remains alongside the imported one.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Running Automated Tests & Lint
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+npm run lint        # ESLint, backend + frontend
+npm test            # backend API/integration tests + frontend unit tests (Vitest)
+npm run test:e2e    # Playwright end-to-end smoke tests (needs MariaDB running)
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Backend tests run against a separate `unmute_test_db` database (created automatically) and refuse to run against any database not named `*_test_db`. The end-to-end suite starts its own backend (port 5100, database `unmute_e2e_db`, dropped and recreated each run) and Vite (port 5174), and drives the installed Google Chrome; set `PW_CHANNEL=` after `npx playwright install chromium` to use Playwright's browser instead.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### PWA & Native Apps (Capacitor)
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+The web build is an installable PWA: the app shell is cached for offline start, while `/api` and `/socket.io` always go to the network (personal data is never cached), and an offline banner appears when the connection drops.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Android and iOS apps wrap the same build with Capacitor (`frontend/capacitor.config.ts`):
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+cd frontend
+VITE_API_URL=https://api.example.com/api/v1 npm run cap:sync   # build + copy into native projects
+npx cap add android    # first time only (needs Android Studio); likewise `npx cap add ios` on macOS
+npm run cap:android    # open in Android Studio
+```
 
-## License
-For open source projects, say how it is licensed.
+The native apps run on their own origin, so the backend must be served over HTTPS with `SESSION_COOKIE_SAMESITE=none` and `CORS_ORIGIN` including `https://localhost` (Android) and `capacitor://localhost` (iOS). Google Identity Services does not run inside native WebViews; native Google sign-in needs a Capacitor Google-auth plugin that returns an ID token to `POST /auth/google` (not yet added).
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Production Build
+
+```bash
+npm run build
+```
+
+---
+
+## 6. Demo Accounts (development only)
+
+Demo profiles are no longer seeded automatically. To seed them into an empty development database, set `SEED_DEMO_USERS=true` in `backend/.env` (ignored when `NODE_ENV=production`).

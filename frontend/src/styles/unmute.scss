@@ -1,0 +1,342 @@
+// Unmute global stylesheet: Bootstrap 5 under the "Spatial" liquid-glass tokens.
+
+@use "./tokens";
+@use "./mixins";
+@use "./animations";
+@use "./utilities";
+
+@use "bootstrap/scss/bootstrap.scss" with (
+  $primary: #c00078,
+  $secondary: #81768b,
+  $success: #0b9d6c,
+  $info: #0ea5c6,
+  $warning: #f59e0b,
+  $danger: #d92d20,
+  $light: #fff0f5,
+  $dark: #24152d,
+  $body-bg: #ffffff,
+  $body-color: #24152d,
+  $font-family-sans-serif: ('Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif),
+  $border-radius: 18px,
+  $border-radius-sm: 12px,
+  $border-radius-lg: 28px,
+  $border-radius-pill: 9999px
+);
+
+body {
+  background: var(--unmute-app-bg);
+  background-attachment: fixed;
+  color: var(--unmute-text-primary);
+  font-family: var(--unmute-font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-display, .brand-heading {
+  font-family: var(--unmute-font-display);
+  color: var(--unmute-text-heading);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--unmute-primary-surface);
+  color: var(--unmute-text-primary);
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--unmute-accent-text);
+  outline-offset: 3px;
+}
+
+// ---------------------------------------------------------------------------
+// Cards: the one surface everything sits on. Near-opaque white with a hairline border and a
+// soft plum-tinted shadow (the class name predates the flat brand look).
+// ---------------------------------------------------------------------------
+.glass-pane {
+  position: relative;
+  background: var(--unmute-glass-strong);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--unmute-glass-border);
+  box-shadow: var(--unmute-shadow-md);
+}
+
+.glass-pane-strong {
+  background: var(--unmute-surface);
+}
+
+// People who ask the system for less transparency get solid panes (also the cheapest to draw).
+@media (prefers-reduced-transparency: reduce) {
+  .glass-pane,
+  .surface-glass {
+    background: var(--unmute-surface-raised);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+// Chrome text (logo, hero headings)
+.text-chrome {
+  background: var(--unmute-chrome-text);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.surface-3d {
+  background: var(--unmute-glass-surface);
+  box-shadow: var(--unmute-glass-edge), var(--unmute-shadow-md);
+}
+
+.btn {
+  font-family: var(--unmute-font-body);
+  font-weight: 600;
+  border-radius: var(--unmute-radius-pill);
+}
+
+.card {
+  background: var(--unmute-glass-bg);
+  border: 0;
+  border-radius: var(--unmute-radius-lg);
+  box-shadow: var(--unmute-glass-edge), var(--unmute-shadow-lg);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--unmute-glass-border-hover) transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--unmute-glass-border-hover);
+  border-radius: 9999px;
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in / sign-up shared bits
+// ---------------------------------------------------------------------------
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--unmute-text-dim);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--unmute-glass-border);
+  }
+}
+
+.auth-link {
+  font-weight: 700;
+  color: var(--unmute-accent-text);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.auth-fineprint {
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+// ---------------------------------------------------------------------------
+// Chips: interests, filters and tags. `.chip-selected` is the brand tint used for picked ones.
+// ---------------------------------------------------------------------------
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--unmute-radius-pill);
+  border: 1px solid var(--unmute-input-border);
+  background: var(--unmute-surface-overlay);
+  color: var(--unmute-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background var(--unmute-transition-fast), color var(--unmute-transition-fast),
+    border-color var(--unmute-transition-fast);
+}
+
+button.chip {
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--unmute-primary-light);
+    color: var(--unmute-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.chip-selected,
+.chip-selected.chip {
+  border-color: color-mix(in srgb, var(--unmute-primary) 35%, transparent);
+  background: var(--unmute-primary-surface);
+  color: var(--unmute-accent-text);
+}
+
+// ---------------------------------------------------------------------------
+// Menu lists: the tappable rows on Profile and Settings
+// ---------------------------------------------------------------------------
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem;
+  border-radius: var(--unmute-radius-lg);
+  background: var(--unmute-surface);
+  border: 1px solid var(--unmute-glass-border);
+  box-shadow: var(--unmute-shadow-sm);
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.8rem 0.75rem;
+  border: 0;
+  border-radius: var(--unmute-radius-sm);
+  background: transparent;
+  color: var(--unmute-text-primary);
+  text-align: left;
+  text-decoration: none;
+
+  & + & {
+    border-top: 1px solid var(--unmute-glass-border);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  &:hover {
+    background: var(--unmute-surface-raised);
+  }
+
+  > i:first-child {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    color: var(--unmute-accent-text);
+  }
+
+  .menu-text {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .menu-title {
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  .menu-sub {
+    font-size: 0.75rem;
+    color: var(--unmute-text-muted);
+  }
+
+  .menu-value {
+    font-size: 0.8rem;
+    color: var(--unmute-text-muted);
+  }
+
+  .menu-chevron {
+    font-size: 1.2rem;
+    color: var(--unmute-text-dim);
+  }
+
+  &.is-danger,
+  &.is-danger > i:first-child {
+    color: var(--unmute-danger);
+  }
+}
+
+// The page a menu row opens is highlighted when the menu sits beside it (web layout).
+.menu-row.router-link-exact-active,
+.menu-row.is-current {
+  background: var(--unmute-primary-surface);
+
+  .menu-title {
+    color: var(--unmute-accent-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Round white buttons: back, filters, search, more, and card actions in the brand screens
+// ---------------------------------------------------------------------------
+.round-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--unmute-surface);
+  box-shadow: 0 6px 18px -8px rgba(117, 48, 170, 0.35);
+  color: var(--unmute-text-heading);
+  font-size: 1.45rem;
+  text-decoration: none;
+  transition: transform var(--unmute-transition-fast), background var(--unmute-transition-fast);
+
+  &:hover {
+    background: var(--unmute-surface-raised);
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &.is-accent {
+    color: var(--unmute-cta);
+  }
+
+  &.is-tinted {
+    background: var(--unmute-primary-surface);
+    color: var(--unmute-cta);
+  }
+}
+
+.verified-badge {
+  color: #1d8cf8;
+  vertical-align: -0.08em;
+}
+
+.online-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #1fc75b;
+}

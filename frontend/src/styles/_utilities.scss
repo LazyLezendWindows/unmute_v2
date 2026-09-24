@@ -1,0 +1,148 @@
+// Unmute Custom Utility Classes (complements Bootstrap 5)
+
+.surface-glass {
+  background: var(--unmute-glass-bg);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  border: 0;
+  box-shadow: var(--unmute-glass-edge);
+}
+
+.surface-raised {
+  background: var(--unmute-glass-surface);
+  border: 0;
+  box-shadow: var(--unmute-glass-edge), var(--unmute-shadow-sm);
+}
+
+.shadow-3d {
+  box-shadow: var(--unmute-shadow-3d);
+}
+
+.glow-primary {
+  box-shadow: var(--unmute-glow-primary);
+}
+
+.font-display {
+  font-family: var(--unmute-font-display) !important;
+  letter-spacing: -0.03em;
+}
+
+.font-sans {
+  font-family: var(--unmute-font-body) !important;
+}
+
+// Custom Radii
+.rounded-xl {
+  border-radius: var(--unmute-radius-md) !important;
+}
+.rounded-2xl {
+  border-radius: var(--unmute-radius-lg) !important;
+}
+.rounded-3xl {
+  border-radius: var(--unmute-radius-xl) !important;
+}
+
+// Max widths
+.max-w-xs { max-width: 20rem; }
+.max-w-sm { max-width: 24rem; }
+.max-w-md { max-width: 28rem; }
+.max-w-lg { max-width: 32rem; }
+.max-w-xl { max-width: 36rem; }
+.max-w-2xl { max-width: 42rem; }
+.max-w-3xl { max-width: 48rem; }
+.max-w-4xl { max-width: 56rem; }
+
+// Flex children that must be allowed to shrink (so text-truncate works inside flex rows)
+.min-w-0 { min-width: 0; }
+
+.extra-small { font-size: 0.6875rem; }
+
+// Interactive Helpers
+.cursor-pointer { cursor: pointer; }
+.user-select-none { user-select: none; }
+
+// Text gradients
+.text-gradient-primary {
+  background: var(--unmute-primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// Animations
+.animate-float {
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ---------------------------------------------------------------------------
+// Token utilities replacing inline `style` attributes. An inline style beats every
+// stylesheet rule, including Bootstrap's `!important` utilities (e.g. .text-decoration-none,
+// .text-muted). These use plus specificity (0,2,1) to keep that precedence.
+// ---------------------------------------------------------------------------
+@mixin inline-strength($name) {
+  html .#{$name}.#{$name} {
+    @content;
+  }
+}
+
+// Text tones
+@include inline-strength(u-text-primary) { color: var(--unmute-text-primary); }
+@include inline-strength(u-text-secondary) { color: var(--unmute-text-secondary); }
+@include inline-strength(u-text-muted) { color: var(--unmute-text-muted); }
+@include inline-strength(u-text-dim) { color: var(--unmute-text-dim); }
+@include inline-strength(u-text-accent) { color: var(--unmute-accent-text); }
+@include inline-strength(u-text-accent-soft) { color: var(--unmute-primary-light); }
+@include inline-strength(u-pre-line) { white-space: pre-line; }
+@include inline-strength(u-font-editorial) {
+  font-family: var(--unmute-font-display);
+  letter-spacing: -0.03em;
+}
+
+// Strong inline link (e.g. "Create account")
+@include inline-strength(u-link-strong) {
+  color: var(--unmute-text-primary);
+  text-decoration: underline !important;
+}
+
+// Borders
+@include inline-strength(u-border-glass) { border-color: var(--unmute-glass-border) !important; }
+@include inline-strength(u-border-default) { border-color: var(--unmute-border) !important; }
+
+// Surfaces
+@include inline-strength(u-page) {
+  background: var(--unmute-app-bg);
+  background-attachment: fixed;
+  color: var(--unmute-text-primary);
+}
+@include inline-strength(u-input-surface) {
+  background-color: var(--unmute-input-bg);
+  color: var(--unmute-text-primary);
+  border: 1px solid var(--unmute-input-border);
+}
+@include inline-strength(u-fill-primary) {
+  background: var(--unmute-primary-gradient);
+  box-shadow: var(--unmute-glow-primary);
+}
+@include inline-strength(u-fill-primary-3d) {
+  background: var(--unmute-primary-gradient);
+  box-shadow: var(--unmute-btn-3d-shadow), var(--unmute-3d-specular);
+}
+@include inline-strength(u-ambient-halo) {
+  background: radial-gradient(circle, var(--unmute-primary-surface) 0%, transparent 70%);
+}
+
+// Layering
+@include inline-strength(z-10) { z-index: 10; }

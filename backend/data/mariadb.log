@@ -1,0 +1,258 @@
+2026-09-24 15:40:00 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 18209
+2026-09-24 15:40:00 0 [Note] InnoDB: The first data file './ibdata1' did not exist. A new tablespace will be created!
+2026-09-24 15:40:00 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 15:40:00 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 15:40:00 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 15:40:00 0 [Note] InnoDB: Using liburing
+2026-09-24 15:40:00 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 15:40:00 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 15:40:00 0 [Note] InnoDB: Setting log file ./ib_logfile101 size to 100663296 bytes
+2026-09-24 15:40:00 0 [Note] InnoDB: Setting file './ibdata1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 15:40:00 0 [Note] InnoDB: File './ibdata1' size is now 12 MB.
+2026-09-24 15:40:01 0 [Note] InnoDB: Renaming log file ./ib_logfile101 to ./ib_logfile0
+2026-09-24 15:40:01 0 [Note] InnoDB: New log file created, LSN=10313
+2026-09-24 15:40:01 0 [Note] InnoDB: Doublewrite buffer not found: creating new
+2026-09-24 15:40:01 0 [Note] InnoDB: Doublewrite buffer created
+2026-09-24 15:40:01 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 15:40:01 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 15:40:01 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 15:40:01 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 15:40:01 0 [Note] InnoDB: 10.6.23 started; log sequence number 0; transaction id 3
+2026-09-24 15:40:01 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 15:40:01 0 [ERROR] Could not open mysql.plugin table: "Table 'mysql.plugin' doesn't exist". Some plugins may be not loaded
+2026-09-24 15:40:01 0 [ERROR] Can't open and lock privilege tables: Table 'mysql.servers' doesn't exist
+2026-09-24 15:40:01 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 15:40:01 0 [Note] Server socket created on IP: '::'.
+2026-09-24 15:40:01 0 [ERROR] Fatal error: Can't open and lock privilege tables: Table 'mysql.db' doesn't exist
+2026-09-24 15:40:01 0 [ERROR] Aborting
+2026-09-24 15:40:04 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 18276
+2026-09-24 15:40:04 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 15:40:04 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 15:40:04 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 15:40:04 0 [Note] InnoDB: Using liburing
+2026-09-24 15:40:04 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 15:40:04 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 15:40:04 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 15:40:04 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 15:40:04 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 15:40:04 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 15:40:04 0 [Note] InnoDB: 10.6.23 started; log sequence number 33085; transaction id 4
+2026-09-24 15:40:04 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 15:40:04 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 15:40:04 0 [ERROR] Could not open mysql.plugin table: "Table 'mysql.plugin' doesn't exist". Some plugins may be not loaded
+2026-09-24 15:40:04 0 [Note] InnoDB: Buffer pool(s) load completed at 260924 15:40:04
+2026-09-24 15:40:04 0 [ERROR] Can't open and lock privilege tables: Table 'mysql.servers' doesn't exist
+2026-09-24 15:40:04 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 15:40:04 0 [Note] Server socket created on IP: '::'.
+2026-09-24 15:40:04 0 [ERROR] Fatal error: Can't open and lock privilege tables: Table 'mysql.db' doesn't exist
+2026-09-24 15:40:04 0 [ERROR] Aborting
+2026-09-24 15:40:53 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 18680
+2026-09-24 15:40:53 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 15:40:53 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 15:40:53 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 15:40:53 0 [Note] InnoDB: Using liburing
+2026-09-24 15:40:53 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 15:40:53 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 15:40:53 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 15:40:53 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 15:40:53 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 15:40:53 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 15:40:53 0 [Note] InnoDB: 10.6.23 started; log sequence number 33097; transaction id 4
+2026-09-24 15:40:53 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 15:40:53 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 15:40:53 0 [ERROR] Could not open mysql.plugin table: "Table 'mysql.plugin' doesn't exist". Some plugins may be not loaded
+2026-09-24 15:40:53 0 [Note] InnoDB: Buffer pool(s) load completed at 260924 15:40:53
+2026-09-24 15:40:53 0 [ERROR] Can't open and lock privilege tables: Table 'mysql.servers' doesn't exist
+2026-09-24 15:40:53 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 15:40:53 0 [Note] Server socket created on IP: '::'.
+2026-09-24 15:40:53 0 [ERROR] Fatal error: Can't open and lock privilege tables: Table 'mysql.db' doesn't exist
+2026-09-24 15:40:53 0 [ERROR] Aborting
+2026-09-24 15:42:22 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 19037
+2026-09-24 15:42:22 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 15:42:22 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 15:42:22 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 15:42:22 0 [Note] InnoDB: Using liburing
+2026-09-24 15:42:22 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 15:42:22 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 15:42:22 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 15:42:22 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 15:42:22 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 15:42:22 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 15:42:22 0 [Note] InnoDB: 10.6.23 started; log sequence number 42486; transaction id 14
+2026-09-24 15:42:22 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 15:42:22 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 15:42:22 0 [Note] InnoDB: Buffer pool(s) load completed at 260924 15:42:22
+2026-09-24 15:42:22 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 15:42:22 0 [Note] Server socket created on IP: '::'.
+2026-09-24 15:42:22 0 [Note] mariadbd: ready for connections.
+Version: '10.6.23-MariaDB-0ubuntu0.22.04.1'  socket: '/home/caratred/Videos/vue js/UnMute/backend/data/mariadb.sock'  port: 3307  Ubuntu 22.04
+2026-09-24 15:42:53 6 [Warning] Aborted connection 6 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 15:43:00 8 [Warning] Aborted connection 8 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 15:59:20 16 [Warning] Aborted connection 16 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 16:54:12 17 [Warning] Aborted connection 17 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 16:54:12 12 [Warning] Aborted connection 12 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 16:54:12 18 [Warning] Aborted connection 18 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 18:59:18 22 [Warning] Aborted connection 22 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 18:59:18 23 [Warning] Aborted connection 23 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 18:59:28 0 [Note] mariadbd (initiated by: unknown): Normal shutdown
+2026-09-24 18:59:28 0 [Note] InnoDB: FTS optimize thread exiting.
+2026-09-24 18:59:29 0 [Note] InnoDB: Starting shutdown...
+2026-09-24 18:59:29 0 [Note] InnoDB: Dumping buffer pool(s) to /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 18:59:29 0 [Note] InnoDB: Buffer pool(s) dump completed at 260924 18:59:29
+2026-09-24 18:59:29 0 [Note] InnoDB: Removed temporary tablespace data file: "./ibtmp1"
+2026-09-24 18:59:29 0 [Note] InnoDB: Shutdown completed; log sequence number 666989; transaction id 1933
+2026-09-24 18:59:29 0 [Note] mariadbd: Shutdown complete
+2026-09-24 20:24:22 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 61438
+2026-09-24 20:24:22 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 20:24:22 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 20:24:22 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 20:24:22 0 [Note] InnoDB: Using liburing
+2026-09-24 20:24:22 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 20:24:22 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 20:24:22 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 20:24:22 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 20:24:22 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 20:24:22 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 20:24:22 0 [Note] InnoDB: 10.6.23 started; log sequence number 666989; transaction id 1934
+2026-09-24 20:24:22 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 20:24:22 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 20:24:22 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 20:24:22 0 [Note] Server socket created on IP: '::'.
+2026-09-24 20:24:22 0 [Note] InnoDB: Buffer pool(s) load completed at 260924 20:24:22
+2026-09-24 20:24:22 0 [Note] mariadbd: ready for connections.
+Version: '10.6.23-MariaDB-0ubuntu0.22.04.1'  socket: '/home/caratred/Videos/vue js/UnMute/backend/data/mariadb.sock'  port: 3307  Ubuntu 22.04
+2026-09-24 20:43:57 0 [Note] mariadbd (initiated by: unknown): Normal shutdown
+2026-09-24 20:43:57 0 [Note] InnoDB: FTS optimize thread exiting.
+2026-09-24 20:43:57 0 [Note] InnoDB: Starting shutdown...
+2026-09-24 20:43:57 0 [Note] InnoDB: Dumping buffer pool(s) to /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 20:43:57 0 [Note] InnoDB: Buffer pool(s) dump completed at 260924 20:43:57
+2026-09-24 20:43:57 0 [Note] InnoDB: Removed temporary tablespace data file: "./ibtmp1"
+2026-09-24 20:43:57 0 [Note] InnoDB: Shutdown completed; log sequence number 1532033; transaction id 2496
+2026-09-24 20:43:57 0 [Note] mariadbd: Shutdown complete
+2026-09-24 21:04:19 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 64327
+2026-09-24 21:04:19 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 21:04:19 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 21:04:19 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 21:04:19 0 [Note] InnoDB: Using liburing
+2026-09-24 21:04:19 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 21:04:19 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 21:04:19 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 21:04:19 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 21:04:19 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 21:04:19 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 21:04:19 0 [Note] InnoDB: 10.6.23 started; log sequence number 1532033; transaction id 2497
+2026-09-24 21:04:19 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 21:04:19 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 21:04:19 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 21:04:19 0 [Note] Server socket created on IP: '::'.
+2026-09-24 21:04:19 0 [Note] mariadbd: ready for connections.
+Version: '10.6.23-MariaDB-0ubuntu0.22.04.1'  socket: '/home/caratred/Videos/vue js/UnMute/backend/data/mariadb.sock'  port: 3307  Ubuntu 22.04
+2026-09-24 21:04:19 0 [Note] InnoDB: Buffer pool(s) load completed at 260924 21:04:19
+2026-09-24 21:11:45 5 [Warning] Aborted connection 5 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:12:27 7 [Warning] Aborted connection 7 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:12:52 9 [Warning] Aborted connection 9 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:13:24 11 [Warning] Aborted connection 11 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:14:28 13 [Warning] Aborted connection 13 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:51 21 [Warning] Aborted connection 21 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:51 22 [Warning] Aborted connection 22 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:51 20 [Warning] Aborted connection 20 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:55 24 [Warning] Aborted connection 24 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:55 25 [Warning] Aborted connection 25 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:55 27 [Warning] Aborted connection 27 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:59 30 [Warning] Aborted connection 30 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:17:59 29 [Warning] Aborted connection 29 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 21:26:32 15 [Warning] Aborted connection 15 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:14 42 [Warning] Aborted connection 42 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:14 39 [Warning] Aborted connection 39 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:14 41 [Warning] Aborted connection 41 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:14 40 [Warning] Aborted connection 40 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:18 45 [Warning] Aborted connection 45 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:18 44 [Warning] Aborted connection 44 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:22 47 [Warning] Aborted connection 47 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:22 48 [Warning] Aborted connection 48 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:19:24 54 [Warning] Aborted connection 54 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:43:59 68 [Warning] Aborted connection 68 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:43:59 69 [Warning] Aborted connection 69 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:43:59 67 [Warning] Aborted connection 67 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:43:59 70 [Warning] Aborted connection 70 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:44:03 73 [Warning] Aborted connection 73 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:44:03 72 [Warning] Aborted connection 72 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:44:07 76 [Warning] Aborted connection 76 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:44:07 75 [Warning] Aborted connection 75 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:44:10 82 [Warning] Aborted connection 82 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:44:12 0 [Note] mariadbd (initiated by: unknown): Normal shutdown
+2026-09-24 22:44:12 0 [Note] InnoDB: FTS optimize thread exiting.
+2026-09-24 22:44:12 0 [Note] InnoDB: Starting shutdown...
+2026-09-24 22:44:12 0 [Note] InnoDB: Dumping buffer pool(s) to /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 22:44:12 0 [Note] InnoDB: Buffer pool(s) dump completed at 260924 22:44:12
+2026-09-24 22:44:12 0 [Note] InnoDB: Removed temporary tablespace data file: "./ibtmp1"
+2026-09-24 22:44:12 0 [Note] InnoDB: Shutdown completed; log sequence number 13487896; transaction id 6613
+2026-09-24 22:44:12 0 [Note] mariadbd: Shutdown complete
+2026-09-24 22:47:52 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 73665
+2026-09-24 22:47:52 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-24 22:47:52 0 [Note] InnoDB: Number of pools: 1
+2026-09-24 22:47:52 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-24 22:47:52 0 [Note] InnoDB: Using liburing
+2026-09-24 22:47:52 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-24 22:47:52 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-24 22:47:52 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-24 22:47:52 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-24 22:47:52 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-24 22:47:52 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-24 22:47:52 0 [Note] InnoDB: 10.6.23 started; log sequence number 13487896; transaction id 6613
+2026-09-24 22:47:52 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-24 22:47:52 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/UnMute/backend/data/mariadb/ib_buffer_pool
+2026-09-24 22:47:52 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-24 22:47:52 0 [Note] Server socket created on IP: '::'.
+2026-09-24 22:47:52 0 [Note] mariadbd: ready for connections.
+Version: '10.6.23-MariaDB-0ubuntu0.22.04.1'  socket: '/home/caratred/Videos/vue js/UnMute/backend/data/mariadb.sock'  port: 3307  Ubuntu 22.04
+2026-09-24 22:47:52 0 [Note] InnoDB: Buffer pool(s) load completed at 260924 22:47:52
+2026-09-24 22:58:07 7 [Warning] Aborted connection 7 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:58:07 6 [Warning] Aborted connection 6 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 22:58:07 5 [Warning] Aborted connection 5 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:02:21 10 [Warning] Aborted connection 10 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:02:21 9 [Warning] Aborted connection 9 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:02:57 19 [Warning] Aborted connection 19 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:02:57 17 [Warning] Aborted connection 17 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:02:57 18 [Warning] Aborted connection 18 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:02:57 20 [Warning] Aborted connection 20 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:03:08 23 [Warning] Aborted connection 23 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:03:08 22 [Warning] Aborted connection 22 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:03:16 25 [Warning] Aborted connection 25 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:03:16 26 [Warning] Aborted connection 26 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:03:19 32 [Warning] Aborted connection 32 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:10:39 36 [Warning] Aborted connection 36 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:10:39 37 [Warning] Aborted connection 37 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:10:39 35 [Warning] Aborted connection 35 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:31 39 [Warning] Aborted connection 39 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:31 14 [Warning] Aborted connection 14 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:44 49 [Warning] Aborted connection 49 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:44 46 [Warning] Aborted connection 46 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:44 48 [Warning] Aborted connection 48 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:44 47 [Warning] Aborted connection 47 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:48 53 [Warning] Aborted connection 53 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:48 52 [Warning] Aborted connection 52 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:48 51 [Warning] Aborted connection 51 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:51 56 [Warning] Aborted connection 56 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:51 55 [Warning] Aborted connection 55 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:19:54 62 [Warning] Aborted connection 62 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:54 82 [Warning] Aborted connection 82 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:54 81 [Warning] Aborted connection 81 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:54 80 [Warning] Aborted connection 80 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:54 79 [Warning] Aborted connection 79 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:58 85 [Warning] Aborted connection 85 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:58 84 [Warning] Aborted connection 84 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:47:58 86 [Warning] Aborted connection 86 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:02 88 [Warning] Aborted connection 88 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:02 89 [Warning] Aborted connection 89 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 95 [Warning] Aborted connection 95 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 73 [Warning] Aborted connection 73 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 76 [Warning] Aborted connection 76 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 74 [Warning] Aborted connection 74 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 75 [Warning] Aborted connection 75 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 67 [Warning] Aborted connection 67 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 72 [Warning] Aborted connection 72 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 70 [Warning] Aborted connection 70 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 69 [Warning] Aborted connection 69 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 68 [Warning] Aborted connection 68 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-24 23:48:05 71 [Warning] Aborted connection 71 to db: 'unmute_shots_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)

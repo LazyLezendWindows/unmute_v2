@@ -1,0 +1,1 @@
+import{P as e}from"./ProfileSummary-Bc9DEIhS.js";import{d as o,f as a,i as t,o as r,n as s}from"./index-DQBwi6Rt.js";const c={class:"profile-page mx-auto w-100"},_=o({__name:"ProfilePage",setup(n){return(p,f)=>(r(),a("div",c,[t(e)]))}}),l=s(_,[["__scopeId","data-v-04992413"]]);export{l as default};
