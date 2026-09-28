@@ -41,7 +41,16 @@ export interface DiscoverFilters {
   lookingFor?: readonly string[];
   educationLevel?: string;
   professionField?: string;
+  /** Search words; each must appear in the name, work, bio, an interest, the college or the area. */
+  searchTerms?: string[];
 }
+
+/** Escapes LIKE wildcards so a search for "50%" or "a_b" matches literally. */
+function likeContains(term: string): string {
+  return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+const SEARCH_FIELDS = ['p.display_name', 'p.profession', 'p.bio', 'lp.name', 'ld.name', 'ins.name', 'ins.short_name', 'ue.course'];
 
 export type DiscoverableRow = ProfileRow & { common_count: number; distance_km: number | null };
 
@@ -146,6 +155,16 @@ export class ProfileRepository {
       where(
         `EXISTS (SELECT 1 FROM user_interests fi WHERE fi.user_id = u.id AND fi.interest_id IN (${placeholders(filters.interestIds.length)}))`,
         ...filters.interestIds
+      );
+    }
+    for (const term of filters.searchTerms ?? []) {
+      const pattern = likeContains(term);
+      where(
+        `(${SEARCH_FIELDS.map((f) => `${f} LIKE ?`).join(' OR ')}
+          OR EXISTS (SELECT 1 FROM user_interests si JOIN interests sin ON sin.id = si.interest_id
+                     WHERE si.user_id = u.id AND sin.name LIKE ?))`,
+        ...SEARCH_FIELDS.map(() => pattern),
+        pattern
       );
     }
     if (filters.lookingFor?.length) {

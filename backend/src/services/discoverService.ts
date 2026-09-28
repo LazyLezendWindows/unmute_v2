@@ -44,6 +44,7 @@ export class DiscoverService {
       educationLevel: query.educationLevel,
       professionField: query.professionField,
       lookingFor: query.lookingFor ? LOOKING_FOR_GROUPS[query.lookingFor] : undefined,
+      searchTerms: query.q?.length ? query.q : undefined,
     };
   }
 

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { api, onUnauthorized } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { useGoogleIdentity } from '../composables/useGoogleIdentity';
+import { useNotificationStore } from './notifications';
 import { User, Profile, LocationPrecision } from '../types';
 
 /**
@@ -36,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     status.value = 'UNAUTHENTICATED';
     disconnectSocket();
+    useNotificationStore().reset();
   }
 
   onUnauthorized(() => {

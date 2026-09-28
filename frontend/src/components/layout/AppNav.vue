@@ -59,25 +59,30 @@ import BrandLogo from './BrandLogo.vue';
 import { NAV_ITEMS, NavItem, isNavActive } from '../../navigation';
 import { useAuthStore } from '../../stores/auth';
 import { useChatStore } from '../../stores/chat';
+import { useNotificationStore } from '../../stores/notifications';
 
 defineProps<{ showMobileDock: boolean }>();
 
 const route = useRoute();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const notificationStore = useNotificationStore();
 const desktopItems = NAV_ITEMS.filter((item) => item.desktop);
 const mobileItems = NAV_ITEMS.filter((item) => item.mobile);
 
 function badgeFor(item: NavItem): number {
   if (item.unreadBadge) return chatStore.totalUnreadCount;
   if (item.matchBadge) return chatStore.matches.length;
+  if (item.notificationBadge) return notificationStore.unreadCount;
   return 0;
 }
 
-// The tab badges need both lists wherever the app is opened.
+// The tab badges need both lists wherever the app is opened; notifications arrive live from then on.
 onMounted(() => {
   if (!chatStore.matches.length) chatStore.loadMatches();
   if (!chatStore.conversations.length) chatStore.loadConversations();
+  notificationStore.bindSocket();
+  notificationStore.refreshCount();
 });
 
 function iconClass(item: NavItem): string {

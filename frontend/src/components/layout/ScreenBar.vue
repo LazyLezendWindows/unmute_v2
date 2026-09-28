@@ -78,6 +78,21 @@ function goBack() {
   text-decoration: none;
 }
 
+// Phones: with a back button on the left and two buttons on the right, the full wordmark no
+// longer fits between them, so only the heart mark stays.
+@media (max-width: 479.98px) {
+  .screen-bar.is-centered:has(.bar-end > :nth-child(2)) :deep(.brand-logo-word) {
+    display: none;
+  }
+}
+
+// Very narrow phones: three buttons beside the full wordmark don't fit either.
+@media (max-width: 399.98px) {
+  .screen-bar:has(.bar-end > :nth-child(3)) :deep(.brand-logo-word) {
+    display: none;
+  }
+}
+
 // Web: the sidebar carries the logo, so the bar keeps only its buttons.
 @media (min-width: 768px) {
   .bar-logo {

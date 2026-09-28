@@ -6,6 +6,7 @@ import { ConversationRepository } from '../repositories/conversationRepository';
 import { MessageRepository } from '../repositories/messageRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
+import { NotificationService } from './notificationService';
 
 export class ChatService {
   static async getConversations(userId: string) {
@@ -59,6 +60,7 @@ export class ChatService {
     ]);
 
     await MessageRepository.markRead(conversationId, userId);
+    await NotificationService.conversationRead(userId, conversationId);
     getSocketServer()?.to(`conversation:${conversationId}`).emit('messages_read', { conversationId, readerId: userId });
 
     return {
@@ -82,6 +84,7 @@ export class ChatService {
       io.to(`conversation:${conversationId}`).emit('new_message', message);
       io.to(`user:${conv.other_user_id}`).emit('message_notification', { conversationId, message });
     }
+    await NotificationService.messageReceived(conv.other_user_id, senderId, conversationId, content);
 
     return message;
   }

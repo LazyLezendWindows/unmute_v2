@@ -410,6 +410,23 @@ describe('Unmute API', () => {
       expect((await viewer.agent.get('/api/v1/discover?educationLevel=college')).status).toBe(400);
     });
 
+    it('searches by name, work, bio and interests, with every word required', async () => {
+      await woman.agent.patch('/api/v1/users/me').send({ profession: 'Pediatric Nurse', bio: 'Loves 100% dark chocolate' });
+      await man.agent.patch('/api/v1/users/me').send({ profession: 'Backend Engineer', bio: 'Trail runner' });
+      const interestName = (await viewer.agent.get('/api/v1/users/interests')).body.data[0].name as string;
+
+      expect(await idsFor('q=nurse')).toEqual([woman.id]);
+      expect(await idsFor('q=ENGINEER')).toEqual([man.id]);
+      expect(await idsFor(`q=${encodeURIComponent(interestName)}`)).toContain(woman.id);
+      expect(await idsFor('q=filter%20runner')).toEqual([man.id]);
+      expect(await idsFor('q=nurse%20runner')).toEqual([]);
+      // LIKE wildcards are matched literally.
+      expect(await idsFor('q=100%25')).toEqual([woman.id]);
+      expect(await idsFor('q=_')).toEqual([]);
+      expect(await idsFor('q=%20%20')).toEqual(expect.arrayContaining([woman.id, man.id]));
+      expect((await viewer.agent.get(`/api/v1/discover?q=${'a'.repeat(61)}`)).status).toBe(400);
+    });
+
     it('counts the likes a member has received', async () => {
       await woman.agent.post('/api/v1/interactions/like').send({ targetUserId: viewer.id });
       await man.agent.post('/api/v1/interactions/like').send({ targetUserId: viewer.id });
@@ -529,6 +546,55 @@ describe('Unmute API', () => {
       const send = await outsider.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: 'hi' });
       expect(send.status).toBe(404);
       expect((await outsider.agent.get('/api/v1/conversations')).body.data).toEqual([]);
+    });
+  });
+
+  describe('Notifications', () => {
+    it('keeps likes anonymous, turns them into a match, and folds messages per conversation', async () => {
+      const a = await registerAgent('notify-a@example.com', 'Asha');
+      const b = await registerAgent('notify-b@example.com', 'Bala');
+      const feed = async (agent: typeof a.agent) => (await agent.get('/api/v1/notifications')).body.data;
+
+      await a.agent.post('/api/v1/interactions/like').send({ targetUserId: b.id });
+      // Repeating a like does not notify again.
+      await a.agent.post('/api/v1/interactions/like').send({ targetUserId: b.id });
+      let bFeed = await feed(b.agent);
+      expect(bFeed.unreadCount).toBe(1);
+      expect(bFeed.items).toHaveLength(1);
+      expect(bFeed.items[0]).toMatchObject({ type: 'like', read: false, actor: null });
+
+      const match = await b.agent.post('/api/v1/interactions/like').send({ targetUserId: a.id });
+      const conversationId = match.body.data.conversationId;
+      bFeed = await feed(b.agent);
+      // The anonymous like is replaced; the one who completed the match has already seen it.
+      expect(bFeed.items.map((n: any) => n.type)).toEqual(['match']);
+      expect(bFeed.items[0]).toMatchObject({ read: true, conversationId, actor: { id: a.id, displayName: 'Asha' } });
+      let aFeed = await feed(a.agent);
+      expect(aFeed.unreadCount).toBe(1);
+      expect(aFeed.items[0]).toMatchObject({ type: 'match', read: false, actor: { id: b.id } });
+
+      await b.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: 'Hi there' });
+      await b.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: 'Coffee this week?' });
+      aFeed = await feed(a.agent);
+      const message = aFeed.items.find((n: any) => n.type === 'message');
+      expect(message).toMatchObject({ count: 2, preview: 'Coffee this week?', read: false, actor: { id: b.id } });
+      expect(aFeed.unreadCount).toBe(2);
+
+      // Reading the conversation reads its message notification.
+      await a.agent.get(`/api/v1/conversations/${conversationId}/messages`);
+      expect((await a.agent.get('/api/v1/notifications/unread-count')).body.data.unreadCount).toBe(1);
+
+      const readAll = await a.agent.post('/api/v1/notifications/read-all');
+      expect(readAll.body.data.unreadCount).toBe(0);
+
+      // Only the owner can delete a notification.
+      expect((await b.agent.delete(`/api/v1/notifications/${message.id}`)).status).toBe(404);
+      expect((await a.agent.delete(`/api/v1/notifications/${message.id}`)).status).toBe(200);
+      expect((await feed(a.agent)).items.some((n: any) => n.id === message.id)).toBe(false);
+
+      // A block hides everything from that person.
+      await a.agent.post('/api/v1/safety/block').send({ targetUserId: b.id });
+      expect((await feed(a.agent)).items).toHaveLength(0);
     });
   });
 

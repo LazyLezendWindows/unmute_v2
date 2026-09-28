@@ -11,12 +11,15 @@ export interface NavItem {
   unreadBadge?: boolean;
   /** Shows the number of matches. */
   matchBadge?: boolean;
+  /** Shows the unread notification count. */
+  notificationBadge?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { to: '/discover', label: 'Discover', icon: 'ri-fire', desktop: true, mobile: true },
   { to: '/matches', label: 'Matches', icon: 'ri-heart-3', desktop: true, mobile: true, matchBadge: true },
   { to: '/chat', label: 'Chats', icon: 'ri-chat-smile-2', desktop: true, mobile: true, unreadBadge: true },
+  { to: '/notifications', label: 'Notifications', icon: 'ri-notification-3', desktop: true, mobile: false, notificationBadge: true },
   { to: '/profile', label: 'Profile', icon: 'ri-user-3', desktop: true, mobile: true },
   { to: '/settings', label: 'Settings', icon: 'ri-settings-3', desktop: true, mobile: false },
 ];

@@ -8,6 +8,7 @@ import chatRoutes from './chatRoutes';
 import safetyRoutes from './safetyRoutes';
 import locationRoutes from './locationRoutes';
 import educationRoutes from './educationRoutes';
+import notificationRoutes from './notificationRoutes';
 
 const apiRouter = Router();
 
@@ -20,5 +21,6 @@ apiRouter.use('/conversations', chatRoutes);
 apiRouter.use('/safety', safetyRoutes);
 apiRouter.use('/locations', locationRoutes);
 apiRouter.use('/education', educationRoutes);
+apiRouter.use('/notifications', notificationRoutes);
 
 export default apiRouter;

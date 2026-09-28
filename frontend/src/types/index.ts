@@ -180,3 +180,26 @@ export interface BlockedUser {
   age: number;
   avatarUrl?: string;
 }
+
+export type NotificationType = 'like' | 'match' | 'message';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  createdAt: string;
+  read: boolean;
+  /** Messages folded into one entry; 1 for likes and matches. */
+  count: number;
+  /** Latest message text, for message entries. */
+  preview: string | null;
+  conversationId: string | null;
+  /** Null for likes, which stay anonymous until they are returned. */
+  actor: {
+    id: string;
+    displayName: string;
+    age: number;
+    avatarUrl: string;
+    isVerified: boolean;
+    isOnline: boolean;
+  } | null;
+}

@@ -94,6 +94,8 @@ export const useDiscoverStore = defineStore('discover', () => {
   const hasMore = computed(() => currentIndex.value < feed.value.length);
 
   const filters = ref<DiscoverFilters>(emptyFilters());
+  /** Free-text search (name, work, bio, interests, college, area); for this visit only, never saved. */
+  const search = ref('');
   let filtersOwner: string | null = null;
 
   /** Loads the signed-in viewer's saved filters once, and again if a different member signs in. */
@@ -139,6 +141,7 @@ export const useDiscoverStore = defineStore('discover', () => {
     if (f.educationLevel) params.educationLevel = f.educationLevel;
     if (f.professionField) params.professionField = f.professionField;
     if (f.interests.length) params.interestIds = f.interests.map((i) => i.id).join(',');
+    if (search.value.trim()) params.q = search.value.trim();
     return params;
   }
 
@@ -149,24 +152,36 @@ export const useDiscoverStore = defineStore('discover', () => {
     return loadFeed();
   }
 
+  function setSearch(text: string) {
+    const next = text.trim().slice(0, 60);
+    if (next === search.value) return Promise.resolve();
+    search.value = next;
+    return loadFeed();
+  }
+
   function clearFilters() {
     return setFilters(emptyFilters());
   }
 
+  // Typing a search fires overlapping requests; only the newest one may fill the deck.
+  let feedRequest = 0;
+
   async function loadFeed() {
     syncFiltersOwner();
+    const request = ++feedRequest;
     loading.value = true;
     error.value = null;
     try {
       const res = await api.get('/discover', { params: filterParams() });
+      if (request !== feedRequest) return;
       feed.value = res.data.data;
       currentIndex.value = 0;
       recommendedOrder = feed.value.map(person => person.id);
       setSort(sort.value);
     } catch (err: any) {
-      error.value = err.message;
+      if (request === feedRequest) error.value = err.message;
     } finally {
-      loading.value = false;
+      if (request === feedRequest) loading.value = false;
     }
   }
 
@@ -222,9 +237,11 @@ export const useDiscoverStore = defineStore('discover', () => {
     hasMore,
     activeMatch,
     filters,
+    search,
     activeFilterCount,
     setSort,
     setFilters,
+    setSearch,
     clearFilters,
     loadFeed,
     likeCurrent,

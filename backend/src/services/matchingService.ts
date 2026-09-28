@@ -8,6 +8,7 @@ import { MessageRepository } from '../repositories/messageRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { assertInteractable } from './userGuards';
+import { NotificationService } from './notificationService';
 import { UserLocationRepository } from '../repositories/userLocationRepository';
 import { distanceBucketKm, haversineKm } from './location/distance.service';
 
@@ -17,15 +18,19 @@ export class MatchingService {
       throw new AppError('Cannot like yourself', 400);
     }
     await assertInteractable(likerId, likeeId);
+    // A repeated like changes nothing and notifies no one again.
+    const isNewLike = !(await InteractionRepository.hasLiked(likerId, likeeId));
     await InteractionRepository.like(likerId, likeeId);
 
     // Each side's like is committed before it checks for the other's, so of two simultaneous
     // likes at least one sees the reciprocal; MatchRepository.ensure makes both succeed without duplicates.
     if (!(await InteractionRepository.hasLiked(likeeId, likerId))) {
+      if (isNewLike) await NotificationService.likeReceived(likeeId, likerId);
       return { matched: false };
     }
 
     const conversationId = await MatchRepository.ensure(likerId, likeeId);
+    if (isNewLike) await NotificationService.matched(likerId, likeeId, conversationId);
     const profiles = await ProfileRepository.findByUserIds([likerId, likeeId]);
 
     const liker = toPublicProfile(likerId, profiles.get(likerId));

@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '../services/api';
-import { getSocket } from '../services/socket';
+import { getSocket, onReconnect } from '../services/socket';
 import { useToastStore } from './toast';
+import { useNotificationStore } from './notifications';
 import { Conversation, Match, Message } from '../types';
 
 export const useChatStore = defineStore('chat', () => {
@@ -59,6 +60,8 @@ export const useChatStore = defineStore('chat', () => {
         socket.emit('join_conversation', conversationId);
       }
 
+      useNotificationStore().conversationOpened(conversationId);
+
       // Decrement unread count locally
       const conv = conversations.value.find((c) => c.id === conversationId);
       if (conv) {
@@ -108,9 +111,26 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  /** The server forgets conversation rooms when a socket drops; rejoin and catch up on anything missed. */
+  function resync() {
+    const socket = getSocket();
+    if (activeConversationId.value && socket) {
+      socket.emit('join_conversation', activeConversationId.value);
+      api
+        .get(`/conversations/${activeConversationId.value}/messages`, { silent: true })
+        .then((res) => {
+          if (res.data.data.conversationId === activeConversationId.value) activeMessages.value = res.data.data.messages;
+        })
+        .catch(() => undefined);
+    }
+    loadConversations();
+    loadMatches();
+  }
+
   function initSocketHandlers() {
     const socket = getSocket();
     if (!socket) return;
+    onReconnect(resync);
 
     // Listen for new messages
     socket.off('new_message');

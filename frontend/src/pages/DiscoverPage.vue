@@ -2,8 +2,17 @@
   <div class="discover-page d-flex flex-column flex-grow-1">
     <ScreenBar>
       <template #actions>
-        <button type="button" class="round-btn" aria-label="Search" @click="comingSoon('Search')">
-          <i class="ri-search-line" aria-hidden="true"></i>
+        <NotificationBell />
+        <button
+          type="button"
+          class="round-btn"
+          :class="{ 'is-tinted': searchOpen }"
+          :aria-label="searchOpen ? 'Close search' : 'Search'"
+          :aria-expanded="searchOpen"
+          aria-controls="discover-search"
+          @click="toggleSearch"
+        >
+          <i :class="searchOpen ? 'ri-close-line' : 'ri-search-line'" aria-hidden="true"></i>
         </button>
         <router-link to="/discover/filters" class="round-btn is-accent" :aria-label="filterButtonLabel">
           <i class="ri-equalizer-2-line" aria-hidden="true"></i>
@@ -11,6 +20,27 @@
         </router-link>
       </template>
     </ScreenBar>
+
+    <!-- Search: narrows the deck by name, work, bio, interests, college or area -->
+    <form v-if="searchOpen" id="discover-search" class="search-bar mb-3" role="search" @submit.prevent="applySearch">
+      <i class="ri-search-line search-icon" aria-hidden="true"></i>
+      <input
+        ref="searchInput"
+        v-model="searchText"
+        type="search"
+        class="search-input"
+        placeholder="Search name, work, interests, college…"
+        aria-label="Search people"
+        maxlength="60"
+        enterkeyhint="search"
+        autocomplete="off"
+        @input="scheduleSearch"
+        @keydown.esc="closeSearch"
+      />
+      <button v-if="searchText" type="button" class="search-clear" aria-label="Clear search" @click="clearSearch">
+        <i class="ri-close-circle-fill" aria-hidden="true"></i>
+      </button>
+    </form>
 
     <!-- Order of the deck -->
     <div class="sort-tabs mb-3" role="group" aria-label="Order people by">
@@ -91,6 +121,19 @@
         </template>
       </UEmptyState>
 
+      <!-- No search results -->
+      <UEmptyState
+        v-else-if="discoverStore.search"
+        :title="`No one matches “${discoverStore.search}”`"
+        :description="discoverStore.activeFilterCount ? 'Try another word, or clear your filters to search everyone.' : 'Try another word, like an interest, a job or a college.'"
+      >
+        <template #icon><i class="ri-search-eye-line fs-2"></i></template>
+        <template #action>
+          <UButton v-if="discoverStore.activeFilterCount" variant="secondary" size="md" @click="discoverStore.clearFilters">Clear filters</UButton>
+          <UButton variant="primary" size="md" @click="clearSearch">Clear search</UButton>
+        </template>
+      </UEmptyState>
+
       <!-- No filter results -->
       <UEmptyState
         v-else-if="discoverStore.activeFilterCount"
@@ -132,9 +175,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, onMounted } from 'vue';
 import DiscoverStack from '../components/discovery/DiscoverStack.vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
+import NotificationBell from '../components/layout/NotificationBell.vue';
 import CandidateDetails from '../components/discovery/CandidateDetails.vue';
 import SafetyModal from '../components/safety/SafetyModal.vue';
 import USkeleton from '../components/ui/USkeleton.vue';
@@ -205,6 +249,49 @@ function removeFilter(key: ChipKey) {
   discoverStore.setFilters(next);
 }
 
+const SEARCH_DEBOUNCE_MS = 400;
+
+// Opens with the last search still applied (the store keeps it until cleared).
+const searchOpen = ref(Boolean(discoverStore.search));
+const searchText = ref(discoverStore.search);
+const searchInput = ref<HTMLInputElement | null>(null);
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function toggleSearch() {
+  if (searchOpen.value) {
+    closeSearch();
+    return;
+  }
+  searchOpen.value = true;
+  await nextTick();
+  searchInput.value?.focus();
+}
+
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applySearch, SEARCH_DEBOUNCE_MS);
+}
+
+function applySearch() {
+  clearTimeout(searchTimer);
+  discoverStore.setSearch(searchText.value);
+}
+
+function clearSearch() {
+  searchText.value = '';
+  applySearch();
+  searchInput.value?.focus();
+}
+
+/** Closing the bar drops the search, so the deck is never narrowed by something out of sight. */
+function closeSearch() {
+  searchOpen.value = false;
+  searchText.value = '';
+  applySearch();
+}
+
+onBeforeUnmount(() => clearTimeout(searchTimer));
+
 const isSafetyOpen = ref(false);
 const safetyTarget = ref<{ id: string; displayName: string } | null>(null);
 
@@ -229,6 +316,60 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
 </script>
 
 <style scoped lang="scss">
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.5rem 0 1.1rem;
+  min-height: 3.2rem;
+  border-radius: var(--unmute-radius-pill);
+  background: var(--unmute-surface);
+  box-shadow: 0 6px 18px -14px rgba(117, 48, 170, 0.5);
+  border: 1.5px solid transparent;
+
+  &:focus-within {
+    border-color: var(--unmute-cta);
+  }
+}
+
+.search-icon {
+  font-size: 1.25rem;
+  color: var(--unmute-text-secondary);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 3rem;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--unmute-text-primary);
+  font-size: 1rem;
+
+  &::placeholder {
+    color: var(--unmute-text-muted);
+  }
+
+  // The bar has its own clear button.
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--unmute-text-muted);
+  font-size: 1.3rem;
+}
+
 .sort-tabs {
   display: flex;
   gap: 0.25rem;

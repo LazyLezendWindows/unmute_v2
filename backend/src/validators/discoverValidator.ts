@@ -38,6 +38,12 @@ export const discoverQuerySchema = paginationSchema(20, 50)
       .optional(),
     educationLevel: z.enum(EDUCATION_LEVELS).optional(),
     professionField: z.enum(PROFESSION_FIELDS).optional(),
+    // Free-text search, split into up to five words that must all match.
+    q: z
+      .string()
+      .max(60, 'Search is too long')
+      .transform((v) => v.trim().split(/\s+/).filter(Boolean).slice(0, 5))
+      .optional(),
     lookingFor: z.enum(Object.keys(LOOKING_FOR_GROUPS) as [keyof typeof LOOKING_FOR_GROUPS]).optional(),
   })
   .refine((q) => q.minAge === undefined || q.maxAge === undefined || q.minAge <= q.maxAge, {

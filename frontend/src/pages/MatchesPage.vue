@@ -2,8 +2,17 @@
   <div class="matches-page">
     <ScreenBar back>
       <template #actions>
-        <button type="button" class="round-btn" aria-label="Refresh matches" @click="refresh">
-          <i class="ri-more-fill" aria-hidden="true"></i>
+        <NotificationBell />
+        <button
+          type="button"
+          class="round-btn"
+          aria-label="Refresh matches"
+          title="Refresh matches"
+          :disabled="chatStore.matchesLoading"
+          :aria-busy="chatStore.matchesLoading"
+          @click="refresh"
+        >
+          <i class="ri-refresh-line" :class="{ 'is-spinning': chatStore.matchesLoading }" aria-hidden="true"></i>
         </button>
       </template>
     </ScreenBar>
@@ -84,6 +93,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
+import NotificationBell from '../components/layout/NotificationBell.vue';
 import { photoBackground } from '../services/media';
 import SafetyModal from '../components/safety/SafetyModal.vue';
 import UButton from '../components/ui/UButton.vue';
@@ -170,6 +180,22 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
 .matches-page {
   width: 100%;
+}
+
+.is-spinning {
+  animation: refresh-spin 0.8s linear infinite;
+}
+
+@keyframes refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-spinning {
+    animation: none;
+  }
 }
 
 .page-title {
