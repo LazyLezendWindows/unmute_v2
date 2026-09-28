@@ -455,6 +455,8 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
 .discover-grid {
   display: grid;
   gap: 1rem;
+  // minmax(0, …): the five action buttons must not widen the column past the screen.
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas: 'card' 'details' 'actions';
   align-items: start;
 
@@ -501,7 +503,7 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
   &:hover { transform: translateY(-3px); }
   &:active { transform: scale(0.93); }
 
-  @media (max-width: 379.98px) {
+  @media (max-width: 429.98px) {
     width: 3.3rem;
     height: 3.3rem;
     font-size: 1.6rem;
@@ -521,7 +523,7 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
   background: linear-gradient(135deg, #ff4f8e 0%, #f21872 55%, #d00a8a 100%);
   box-shadow: 0 14px 30px -12px rgba(242, 24, 114, 0.7);
 
-  @media (max-width: 379.98px) {
+  @media (max-width: 429.98px) {
     width: 4.4rem;
     height: 4.4rem;
   }

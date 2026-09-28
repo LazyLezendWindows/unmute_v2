@@ -12,6 +12,30 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/** Each code request sends a paid SMS, so these are capped per client well below other sign-in calls. */
+export const smsRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  message: {
+    success: false,
+    error: 'Too many code requests. Please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Code checks; each code also locks after a few wrong guesses (see PhoneAuthService). */
+export const phoneVerifyRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,
+  message: {
+    success: false,
+    error: 'Too many code attempts. Please try again in 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const apiRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 300, // 300 requests per minute

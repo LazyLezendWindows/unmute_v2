@@ -1,7 +1,7 @@
 <template>
-  <div class="setup-progress">
+  <div class="setup-progress" :class="{ 'is-compact': compact }">
     <div v-if="skipTo" class="d-flex justify-content-end mb-2">
-      <router-link :to="skipTo" class="setup-skip">Skip</router-link>
+      <router-link :to="skipTo" class="pill-skip">Skip</router-link>
     </div>
     <ol class="setup-steps" :aria-label="`Step ${step + 1} of ${SETUP_LABELS.length}`">
       <li
@@ -11,10 +11,12 @@
         :aria-current="index === step ? 'step' : undefined"
       >
         <span class="step-dot">
-          <i v-if="index < step" class="ri-check-line" aria-hidden="true"></i>
-          <template v-else>{{ index + 1 }}</template>
+          <template v-if="!compact">
+            <i v-if="index < step" class="ri-check-line" aria-hidden="true"></i>
+            <template v-else>{{ index + 1 }}</template>
+          </template>
         </span>
-        <span class="step-label">{{ label }}</span>
+        <span :class="compact ? 'visually-hidden' : 'step-label'">{{ label }}</span>
       </li>
     </ol>
   </div>
@@ -25,9 +27,10 @@ import { SETUP_LABELS } from '../../onboarding';
 
 /**
  * The new-account stepper. `step` is the setup step being shown (1-based, as in `?setup=`);
- * 0 is the sign-up form itself, which comes before those steps.
+ * 0 is the sign-up form itself, which comes before those steps. `compact` draws dots on a line
+ * without numbers or labels (the sign-up screen).
  */
-defineProps<{ step: number; skipTo?: string }>();
+defineProps<{ step: number; skipTo?: string; compact?: boolean }>();
 </script>
 
 <style scoped lang="scss">
@@ -99,13 +102,33 @@ defineProps<{ step: number; skipTo?: string }>();
   }
 }
 
-.setup-skip {
-  padding: 0.4rem 1.1rem;
-  border-radius: var(--unmute-radius-pill);
-  background: var(--unmute-primary-surface);
-  color: var(--unmute-accent-text);
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-decoration: none;
+// Compact: small dots on one line; the current step's dot is solid brand pink.
+.is-compact {
+  max-width: 14rem;
+  margin-inline: auto;
+
+  .step-dot {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0;
+    background: var(--unmute-surface-active);
+  }
+
+  .is-done .step-dot,
+  .is-current .step-dot {
+    background: var(--unmute-cta);
+  }
+
+  .setup-steps li + li::before {
+    top: calc(0.5rem - 1.5px);
+    right: calc(50% + 0.5rem);
+    left: calc(-50% + 0.5rem);
+  }
+
+  // The line out of the current step starts filling, as in the mockup.
+  .setup-steps li.is-current + li::before {
+    background: linear-gradient(90deg, var(--unmute-cta) 0%, var(--unmute-surface-active) 60%);
+  }
 }
+
 </style>

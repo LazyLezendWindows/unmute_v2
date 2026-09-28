@@ -179,7 +179,8 @@ function currentPosition(): Promise<GeolocationPosition> {
   );
 }
 
-async function useDevice() {
+/** Shares the device position once; true when the area was saved. */
+async function useDevice(): Promise<boolean> {
   busy.value = true;
   let position: GeolocationPosition;
   try {
@@ -191,10 +192,10 @@ async function useDevice() {
         ? 'Location access was blocked. Allow it in your browser settings, or search for your area instead.'
         : "Couldn't get your position. Try again, or search for your area instead."
     );
-    return;
+    return false;
   }
   busy.value = false;
-  await save(
+  return save(
     () =>
       authStore.setLocation({
         mode: 'device',
@@ -205,6 +206,8 @@ async function useDevice() {
     'Area updated from your location.'
   );
 }
+
+defineExpose({ useDevice, geolocationSupported });
 
 function changePrecision(precision: LocationPrecision) {
   save(() => authStore.setLocationPrecision(precision), 'Visibility updated.');

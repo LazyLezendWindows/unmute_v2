@@ -42,6 +42,15 @@ export const config = {
   corsOrigins,
   minAge: parseInt(process.env.MIN_AGE || '18', 10),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  /** SMS delivery for phone sign-in codes (see services/auth/smsSender.ts). */
+  sms: {
+    provider: (process.env.SMS_PROVIDER || (isProduction ? '' : 'console')).toLowerCase(),
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.TWILIO_AUTH_TOKEN || '',
+      from: process.env.TWILIO_FROM || '',
+    },
+  },
   session: {
     // The __Host- prefix makes browsers require Secure, Path=/ and no Domain for the cookie.
     cookieName: isProduction ? '__Host-unmute_session' : 'unmute_session',

@@ -132,10 +132,10 @@ describe('Unmute API', () => {
   });
 
   describe('Google sign-in', () => {
-    it('publishes the Google client ID (and nothing else) for the sign-in button', async () => {
+    it('publishes the Google client ID and whether phone sign-in is on (and nothing else)', async () => {
       const res = await request(app).get('/api/v1/auth/config');
       expect(res.status).toBe(200);
-      expect(res.body.data).toEqual({ googleClientId: 'test-client-id.apps.googleusercontent.com' });
+      expect(res.body.data).toEqual({ googleClientId: 'test-client-id.apps.googleusercontent.com', phoneSignIn: true });
     });
 
     it('rejects client-asserted identity without a verified credential', async () => {
@@ -215,6 +215,111 @@ describe('Unmute API', () => {
         .send({ credential: fakeGoogleCredential('sub-unverified', 'alice@example.com', false), dateOfBirth: '1990-01-01' });
       expect(res.status).toBe(403);
       expect(sessionCookie(res)).toBeUndefined();
+    });
+  });
+
+  describe('Phone sign-in', () => {
+    const PHONE = '+919876543210';
+    let codeSpy: ReturnType<typeof vi.spyOn>;
+
+    /** The code from the last SMS the (console) sender printed for `phone`. */
+    function lastCode(phone: string): string {
+      const line = codeSpy.mock.calls.map((c) => String(c[0])).reverse().find((l) => l.startsWith(`[SMS] to ${phone}:`));
+      return line!.match(/: (\d{6}) /)![1];
+    }
+
+    /** Lets a new code be sent straight away in tests (the real resend wait is 30 seconds). */
+    async function skipResendWait(phone: string) {
+      await getDatabase().run('UPDATE phone_codes SET created_at = created_at - INTERVAL 1 MINUTE WHERE phone = ?', [phone]);
+    }
+
+    beforeAll(() => {
+      codeSpy = vi.spyOn(console, 'info');
+    });
+
+    it('rejects a number that is not a mobile number', async () => {
+      const res = await request(app).post('/api/v1/auth/phone/start').send({ phone: '12345' });
+      expect(res.status).toBe(400);
+    });
+
+    it('texts a code to a bare Indian number as +91 and stores only its hash', async () => {
+      const res = await request(app).post('/api/v1/auth/phone/start').send({ phone: '98765 43210' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.resendAfter).toBe(30);
+      // Codes are only ever shown on screen in local development, never in tests or production.
+      expect(res.body.data.devCode).toBeUndefined();
+      const code = lastCode(PHONE);
+      const row = await getDatabase().get('SELECT code_hash FROM phone_codes WHERE phone = ?', [PHONE]);
+      expect(row.code_hash).not.toContain(code);
+    });
+
+    it('makes the member wait before another code is sent', async () => {
+      const res = await request(app).post('/api/v1/auth/phone/start').send({ phone: PHONE });
+      expect(res.status).toBe(429);
+    });
+
+    it('rejects a wrong code without signing in', async () => {
+      const wrong = lastCode(PHONE) === '000000' ? '111111' : '000000';
+      const res = await request(app).post('/api/v1/auth/phone/verify').send({ phone: PHONE, code: wrong });
+      expect(res.status).toBe(400);
+      expect(sessionCookie(res)).toBeUndefined();
+    });
+
+    it('asks a new number for a name and date of birth before creating anything', async () => {
+      const res = await request(app).post('/api/v1/auth/phone/verify').send({ phone: PHONE, code: lastCode(PHONE) });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({ requiresProfile: true });
+      expect(sessionCookie(res)).toBeUndefined();
+      const link = await getDatabase().get("SELECT user_id FROM auth_accounts WHERE provider = 'phone' AND provider_account_id = ?", [PHONE]);
+      expect(link).toBeNull();
+    });
+
+    it('rejects an under-18 date of birth', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/phone/verify')
+        .send({ phone: PHONE, code: lastCode(PHONE), displayName: 'Young', dateOfBirth: '2012-05-15' });
+      expect(res.status).toBe(400);
+    });
+
+    it('creates an account without an email, and a session, once the profile is supplied', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/phone/verify')
+        .send({ phone: PHONE, code: lastCode(PHONE), displayName: 'Priya', dateOfBirth: '1999-02-02' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.isNewUser).toBe(true);
+      expect(res.body.data.user.email).toBeNull();
+      expect(res.body.data.user.phone).toBe(PHONE);
+      expect(res.body.data.user.profile.displayName).toBe('Priya');
+      expect(sessionCookie(res)).toBeDefined();
+    });
+
+    it('never accepts the same code twice', async () => {
+      const res = await request(app).post('/api/v1/auth/phone/verify').send({ phone: PHONE, code: lastCode(PHONE) });
+      expect(res.status).toBe(400);
+      expect(sessionCookie(res)).toBeUndefined();
+    });
+
+    it('signs a returning number in to the same account', async () => {
+      await skipResendWait(PHONE);
+      expect((await request(app).post('/api/v1/auth/phone/start').send({ phone: PHONE })).status).toBe(200);
+      const res = await request(app).post('/api/v1/auth/phone/verify').send({ phone: PHONE, code: lastCode(PHONE) });
+      expect(res.status).toBe(200);
+      expect(res.body.data.isNewUser).toBe(false);
+      expect(res.body.data.user.phone).toBe(PHONE);
+      expect(sessionCookie(res)).toBeDefined();
+    });
+
+    it('stops accepting a code after five wrong guesses', async () => {
+      const phone = '+919812345678';
+      expect((await request(app).post('/api/v1/auth/phone/start').send({ phone })).status).toBe(200);
+      const code = lastCode(phone);
+      const wrong = code === '000000' ? '111111' : '000000';
+      for (let i = 0; i < 5; i++) {
+        await request(app).post('/api/v1/auth/phone/verify').send({ phone, code: wrong });
+      }
+      const res = await request(app).post('/api/v1/auth/phone/verify').send({ phone, code, displayName: 'Guess', dateOfBirth: '1990-01-01' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/expired/);
     });
   });
 

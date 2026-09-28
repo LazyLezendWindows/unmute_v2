@@ -14,7 +14,10 @@
       </UButton>
 
       <div class="auth-divider" role="separator">or continue with</div>
-      <GoogleSignIn text="continue_with" @authenticated="onGoogleAuthenticated" />
+      <div class="d-flex flex-column gap-2">
+        <GoogleSignIn text="continue_with" @authenticated="onSignedIn" />
+        <PhoneSignIn @authenticated="onSignedIn" />
+      </div>
 
       <p class="text-center small mb-0 u-text-muted">
         Already have an account?
@@ -29,11 +32,12 @@ import { useRouter } from 'vue-router';
 import AuthStage from '../components/auth/AuthStage.vue';
 import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
+import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
 import { ONBOARDING_START } from '../onboarding';
 
 const router = useRouter();
 
-function onGoogleAuthenticated(isNewUser: boolean) {
+function onSignedIn(isNewUser: boolean) {
   router.push(isNewUser ? ONBOARDING_START : '/discover');
 }
 </script>

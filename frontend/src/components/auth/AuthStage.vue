@@ -3,6 +3,14 @@
     <!-- Ambient blobs -->
     <div class="auth-blob auth-blob-1" aria-hidden="true"></div>
     <div class="auth-blob auth-blob-2" aria-hidden="true"></div>
+    <span class="auth-ring" aria-hidden="true"></span>
+    <i class="ri-heart-3-fill auth-heart auth-heart-1" aria-hidden="true"></i>
+    <i class="ri-heart-3-fill auth-heart auth-heart-2" aria-hidden="true"></i>
+    <!-- Soft lilac waves along the bottom, as in the brand screens -->
+    <svg class="auth-wave" viewBox="0 0 390 120" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 60C70 20 140 90 220 60S340 20 390 40V120H0Z" fill="#f6d4f0" opacity="0.7" />
+      <path d="M0 85C90 55 170 115 260 85S360 65 390 75V120H0Z" fill="#e2c3f5" opacity="0.8" />
+    </svg>
 
     <div class="auth-column w-100 position-relative">
       <router-link v-if="back" :to="back" class="auth-back" aria-label="Back">
@@ -68,6 +76,59 @@ withDefaults(
   bottom: -6rem;
   right: -6rem;
   background: radial-gradient(circle, rgba(74, 0, 91, 0.3) 0%, transparent 70%);
+}
+
+.auth-ring {
+  position: fixed;
+  top: 6rem;
+  right: -5rem;
+  width: 11rem;
+  height: 11rem;
+  border: 1px solid rgba(192, 0, 120, 0.15);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-heart {
+  position: fixed;
+  z-index: 0;
+  color: #ffb3d1;
+  filter: drop-shadow(0 6px 12px rgba(242, 24, 114, 0.25));
+  pointer-events: none;
+  animation: auth-heart-float 6s ease-in-out infinite;
+}
+
+.auth-heart-1 {
+  top: 9rem;
+  right: 8%;
+  font-size: 2.2rem;
+}
+
+.auth-heart-2 {
+  top: 12.5rem;
+  left: 5%;
+  font-size: 1.6rem;
+  animation-delay: -3s;
+}
+
+@keyframes auth-heart-float {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50% { transform: translateY(-8px) rotate(4deg); }
+}
+
+.auth-wave {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 100%;
+  height: 7rem;
+  pointer-events: none;
+}
+
+:global([data-theme='dark']) .auth-wave {
+  opacity: 0.25;
 }
 
 .auth-column {

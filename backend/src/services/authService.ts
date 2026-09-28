@@ -120,13 +120,15 @@ export class AuthService {
     if (!user || !user.is_active) {
       throw new AppError('User not found or inactive', 404);
     }
-    const [profile, interests] = await Promise.all([
+    const [profile, interests, phone] = await Promise.all([
       ProfileRepository.findByUserId(userId),
       InterestRepository.forUser(userId),
+      AuthAccountRepository.phoneOf(userId),
     ]);
     return {
       id: user.id,
       email: user.email,
+      phone,
       profile: profile ? toOwnProfile(profile, interests) : null,
     };
   }

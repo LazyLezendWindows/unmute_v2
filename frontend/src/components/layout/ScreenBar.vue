@@ -87,7 +87,7 @@ function goBack() {
 }
 
 // Very narrow phones: three buttons beside the full wordmark don't fit either.
-@media (max-width: 399.98px) {
+@media (max-width: 369.98px) {
   .screen-bar:has(.bar-end > :nth-child(3)) :deep(.brand-logo-word) {
     display: none;
   }

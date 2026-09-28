@@ -152,6 +152,55 @@ h1, h2, h3, h4, .font-display, .brand-heading {
   }
 }
 
+// White pill for social sign-in (Phone, and Google when its own button can't load).
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0 1.25rem;
+  border: 1px solid var(--unmute-input-border);
+  border-radius: var(--unmute-radius-pill);
+  background: var(--unmute-surface);
+  color: var(--unmute-text-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: var(--unmute-shadow-sm);
+  transition: transform var(--unmute-transition-fast), box-shadow var(--unmute-transition-fast);
+
+  > i,
+  > svg {
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    line-height: 1;
+    color: var(--unmute-brand-plum);
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--unmute-shadow-md);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.auth-forgot {
+  align-self: flex-end;
+  margin-top: -0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--unmute-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .auth-fineprint {
   font-size: 0.72rem;
   line-height: 1.5;
@@ -326,6 +375,20 @@ button.chip {
     background: var(--unmute-primary-surface);
     color: var(--unmute-cta);
   }
+}
+
+// "Skip" in a setup screen's top bar.
+.pill-skip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 1.3rem;
+  border-radius: var(--unmute-radius-pill);
+  background: var(--unmute-primary-surface);
+  color: var(--unmute-accent-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .verified-badge {

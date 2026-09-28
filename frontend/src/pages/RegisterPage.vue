@@ -1,6 +1,6 @@
 <template>
   <AuthStage title="Create your account" subtitle="Let's get to know you better" back="/welcome" logo-size="3.5rem">
-    <template #header><SetupProgress :step="0" class="register-steps" /></template>
+    <template #header><SetupProgress :step="0" compact class="register-steps" /></template>
     <div class="d-flex flex-column gap-4">
 
       <form class="d-flex flex-column gap-3" @submit.prevent="handleRegister">
@@ -35,7 +35,7 @@
         />
         <label class="terms-check">
           <input v-model="agreed" type="checkbox" required />
-          <span>I'm 18+ and agree to the Unmute Community Respect Guidelines</span>
+          <span>I'm 18+ and agree to the <a href="#" class="terms-link" @click.prevent="comingSoon('Terms of Service')">Terms of Service</a> and <a href="#" class="terms-link" @click.prevent="comingSoon('Privacy Policy')">Privacy Policy</a></span>
         </label>
         <UButton type="submit" variant="primary" size="lg" block :loading="loading" class="mt-1">
           Create account <i class="ri-arrow-right-line ms-2" aria-hidden="true"></i>
@@ -43,7 +43,10 @@
       </form>
 
       <div class="auth-divider" role="separator">or</div>
-      <GoogleSignIn text="signup_with" @authenticated="onGoogleAuthenticated" />
+      <div class="d-flex flex-column gap-2">
+        <GoogleSignIn text="signup_with" @authenticated="onSignedIn" />
+        <PhoneSignIn @authenticated="onSignedIn" />
+      </div>
 
       <p class="text-center small mb-0 u-text-muted">
         Already have an account?
@@ -60,10 +63,12 @@ import UInput from '../components/ui/UInput.vue';
 import AuthStage from '../components/auth/AuthStage.vue';
 import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
+import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import SetupProgress from '../components/layout/SetupProgress.vue';
 import { ONBOARDING_START } from '../onboarding';
+import { comingSoon } from '../utils/profileFormat';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -82,7 +87,7 @@ const maxDateFor18 = computed(() => {
   return d.toISOString().split('T')[0];
 });
 
-function onGoogleAuthenticated(isNewUser: boolean) {
+function onSignedIn(isNewUser: boolean) {
   router.push(isNewUser ? ONBOARDING_START : '/discover');
 }
 
@@ -115,7 +120,13 @@ async function handleRegister() {
 
 <style scoped lang="scss">
 .register-steps {
-  margin: 0.5rem 0 1.5rem;
+  margin: 0.5rem auto 1.5rem;
+}
+
+.terms-link {
+  color: var(--unmute-accent-text);
+  font-weight: 600;
+  text-underline-offset: 3px;
 }
 
 .terms-check {

@@ -5,13 +5,17 @@
       <form class="d-flex flex-column gap-3" @submit.prevent="handleLogin">
         <UInput v-model="email" type="email" required placeholder="Email address" icon="ri-mail-line" autocomplete="email" />
         <UInput v-model="password" type="password" required placeholder="Password" icon="ri-lock-line" autocomplete="current-password" />
+        <button type="button" class="auth-forgot btn btn-link p-0" @click="comingSoon('Password reset')">Forgot password?</button>
         <UButton type="submit" variant="primary" size="lg" block :loading="loading" class="mt-1">
           Sign in <i class="ri-arrow-right-line ms-2" aria-hidden="true"></i>
         </UButton>
       </form>
 
       <div class="auth-divider" role="separator">or continue with</div>
-      <GoogleSignIn text="continue_with" @authenticated="onGoogleAuthenticated" />
+      <div class="d-flex flex-column gap-2">
+        <GoogleSignIn text="continue_with" @authenticated="onSignedIn" />
+        <PhoneSignIn @authenticated="onSignedIn" />
+      </div>
 
       <p class="text-center small mb-0 u-text-muted">
         Don't have an account?
@@ -28,9 +32,11 @@ import UInput from '../components/ui/UInput.vue';
 import AuthStage from '../components/auth/AuthStage.vue';
 import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
+import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { ONBOARDING_START } from '../onboarding';
+import { comingSoon } from '../utils/profileFormat';
 
 const router = useRouter();
 const route = useRoute();
@@ -45,7 +51,7 @@ function postLoginPath(): string {
   return typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') ? target : '/discover';
 }
 
-function onGoogleAuthenticated(isNewUser: boolean) {
+function onSignedIn(isNewUser: boolean) {
   router.push(isNewUser ? ONBOARDING_START : postLoginPath());
 }
 

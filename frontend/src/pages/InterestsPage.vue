@@ -3,8 +3,10 @@
     <template v-if="!setup.step.value" #aside><ProfileSummary /></template>
     <div class="interests-page d-flex flex-column w-100">
       <template v-if="setup.step.value">
-        <PageHeader title="Your Interests" subtitle="Select a few interests to find better matches" />
-        <SetupProgress :step="setup.step.value" :skip-to="setup.next.value" />
+        <PageHeader title="Your Interests" subtitle="Select a few interests to find better matches">
+          <template #actions><router-link :to="setup.next.value" class="pill-skip">Skip</router-link></template>
+        </PageHeader>
+        <SetupProgress :step="setup.step.value" />
       </template>
       <PageHeader v-else title="Your Interests" subtitle="Select a few interests to find better matches" back="/profile" />
 

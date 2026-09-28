@@ -1,6 +1,8 @@
 import { config } from '../config/env';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
+import { PhoneAuthService } from '../services/phoneAuthService';
+import { smsAvailable } from '../services/auth/smsSender';
 import { SessionService } from '../services/sessionService';
 import { AuthRequest } from '../middleware/auth';
 import { getSocketServer } from '../sockets/chatSocket';
@@ -54,6 +56,31 @@ export class AuthController {
     }
   }
 
+  /** Texts a one-time sign-in code to the number. */
+  static async phoneStart(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await PhoneAuthService.start(req.body);
+      res.status(200).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Checks the code; a new number is asked for a name and date of birth before an account exists. */
+  static async phoneVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await PhoneAuthService.verify(req.body);
+      if (result.requiresProfile) {
+        res.status(200).json({ success: true, data: { requiresProfile: true } });
+        return;
+      }
+      const user = await startSession(req, res, result.userId);
+      res.status(200).json({ success: true, data: { requiresProfile: false, isNewUser: result.isNewUser, user } });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const sessionId = await SessionService.revoke(SessionService.tokenFromRequest(req));
@@ -74,7 +101,10 @@ export class AuthController {
    * embedded in every page that shows the button); only the backend verifies tokens against it.
    */
   static config(_req: Request, res: Response): void {
-    res.status(200).json({ success: true, data: { googleClientId: config.googleClientId || null } });
+    res.status(200).json({
+      success: true,
+      data: { googleClientId: config.googleClientId || null, phoneSignIn: smsAvailable() },
+    });
   }
 
   static async session(req: Request, res: Response, next: NextFunction): Promise<void> {

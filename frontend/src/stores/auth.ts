@@ -16,6 +16,8 @@ export type GoogleAuthOutcome =
   | { requiresDob: true; profile: { email: string; displayName: string; avatarUrl: string } }
   | { requiresDob: false; isNewUser: boolean };
 
+export type PhoneAuthOutcome = { requiresProfile: true } | { requiresProfile: false; isNewUser: boolean };
+
 export const useAuthStore = defineStore('auth', () => {
   const status = ref<AuthStatus>('UNKNOWN');
   const user = ref<User | null>(null);
@@ -106,6 +108,23 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
+  /** Texts a sign-in code to the number; resolves with how long until another can be sent. */
+  async function requestPhoneCode(phone: string): Promise<{ resendAfter: number; devCode?: string }> {
+    const res = await api.post('/auth/phone/start', { phone });
+    return res.data.data;
+  }
+
+  /** Checks the SMS code; a new number must include a name and date of birth to finish signing up. */
+  function loginWithPhone(payload: { phone: string; code: string; displayName?: string; dateOfBirth?: string }): Promise<PhoneAuthOutcome> {
+    return run(async () => {
+      const res = await api.post('/auth/phone/verify', payload);
+      const result = res.data.data;
+      if (result.requiresProfile) return { requiresProfile: true };
+      setAuthenticated(result.user);
+      return { requiresProfile: false, isNewUser: result.isNewUser };
+    });
+  }
+
   async function fetchMe() {
     const res = await api.get('/auth/me');
     user.value = res.data.data;
@@ -182,6 +201,8 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     loginWithGoogle,
+    requestPhoneCode,
+    loginWithPhone,
     fetchMe,
     refreshProfile,
     updateProfile,

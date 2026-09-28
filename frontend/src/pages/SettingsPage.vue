@@ -14,7 +14,7 @@
       <UAvatar :src="authStore.profile?.avatarUrl" :name="authStore.profile?.displayName || 'You'" size="lg" />
       <div class="min-w-0 flex-grow-1">
         <p class="account-name mb-0">{{ authStore.profile?.displayName || 'You' }}</p>
-        <p class="account-email mb-0 text-truncate">{{ authStore.user?.email }}</p>
+        <p class="account-email mb-0 text-truncate">{{ authStore.user?.email || authStore.user?.phone }}</p>
       </div>
       <router-link to="/profile/edit" class="auth-link small">Edit profile</router-link>
     </section>

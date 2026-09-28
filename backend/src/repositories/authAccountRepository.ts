@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { getDatabase, IDatabase } from '../config/database';
 
-export type AuthProvider = 'google' | 'password';
+export type AuthProvider = 'google' | 'password' | 'phone';
 
 export class AuthAccountRepository {
   /** The user linked to an external identity (e.g. a Google `sub`). */
@@ -12,6 +12,15 @@ export class AuthAccountRepository {
        WHERE a.provider = ? AND a.provider_account_id = ?`,
       [provider, providerAccountId]
     );
+  }
+
+  /** The phone number (E.164) a user signs in with, if any. */
+  static async phoneOf(userId: string): Promise<string | null> {
+    const row = await getDatabase().get<{ phone: string }>(
+      "SELECT provider_account_id AS phone FROM auth_accounts WHERE user_id = ? AND provider = 'phone'",
+      [userId]
+    );
+    return row?.phone ?? null;
   }
 
   /** Email lookup for password sign-in; password_hash is null when the account has no password. */

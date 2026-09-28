@@ -1,6 +1,9 @@
 export interface User {
   id: string;
-  email: string;
+  /** Null for accounts created with a phone number. */
+  email: string | null;
+  /** The number the member signs in with (E.164), if any. */
+  phone?: string | null;
   profile: Profile | null;
 }
 

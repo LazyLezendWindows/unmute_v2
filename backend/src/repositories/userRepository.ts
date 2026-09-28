@@ -3,7 +3,8 @@ import { getDatabase, IDatabase } from '../config/database';
 
 export interface UserRow {
   id: string;
-  email: string;
+  /** Null for accounts created with a phone number. */
+  email: string | null;
   is_active: number;
 }
 
@@ -20,7 +21,7 @@ export class UserRepository {
     return Boolean(await getDatabase().get('SELECT id FROM users WHERE id = ? AND is_active = 1', [id]));
   }
 
-  static async insert(tx: IDatabase, email: string): Promise<string> {
+  static async insert(tx: IDatabase, email: string | null): Promise<string> {
     const id = crypto.randomUUID();
     await tx.run('INSERT INTO users (id, email, is_active, created_at) VALUES (?, ?, 1, ?)', [
       id,
