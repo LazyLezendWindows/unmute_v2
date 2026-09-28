@@ -417,3 +417,87 @@ Version: '10.6.23-MariaDB-0ubuntu0.22.04.1'  socket: '/home/caratred/Videos/vue 
 2026-09-28 11:29:20 147 [Warning] Aborted connection 147 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
 2026-09-28 11:29:20 148 [Warning] Aborted connection 148 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
 2026-09-28 11:29:20 146 [Warning] Aborted connection 146 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+
+Status information:
+
+Current dir: /home/caratred/Videos/vue js/unmute/backend/data/mariadb/
+Running threads: 4  Cached threads: 1  Stack size: 299008
+
+Key caches:
+default
+Buffer_size:     134217728
+Block_size:           1024
+Division_limit:        100
+Age_threshold:         300
+Partitions:              0
+blocks used:             0
+not flushed:             0
+w_requests:              0
+writes:                  0
+r_requests:              0
+reads:                   0
+
+
+handler status:
+read_key:        47685
+read_next:       12289
+read_rnd          3973
+read_first:       2583
+write:            9214
+delete            8159
+update:           1154
+
+Table status:
+Opened tables:        174
+Open tables:           97
+Open files:            31
+Open streams:           4
+
+Alarm status:
+Active alarms:   0
+Max used alarms: 0
+Next alarm time: 0
+
+Memory status:
+Non-mmapped space allocated from system: 96866304
+Number of free chunks:                   743
+Number of fastbin blocks:                159
+Number of mmapped regions:               8
+Space in mmapped regions:                41029632
+Maximum total allocated space:           0
+Space available in freed fastbin blocks: 10256
+Total allocated space:                   12897344
+Total free space:                        83968960
+Top-most, releasable space:              75888
+Estimated memory (with thread stack):    139390976
+Global memory allocated by server:       445712992
+Memory allocated by threads:             976544
+
+
+
+Events status:
+LLA = Last Locked At  LUA = Last Unlocked At
+WOC = Waiting On Condition  DL = Data Locked
+
+Event scheduler status:
+State      : INITIALIZED
+Thread id  : 0
+LLA        : n/a:0
+LUA        : n/a:0
+WOC        : NO
+Workers    : 0
+Executed   : 0
+Data locked: NO
+
+Event queue status:
+Element count   : 0
+Data locked     : NO
+Attempting lock : NO
+LLA             : drop_schema_events:393
+LUA             : drop_schema_events:395
+WOC             : NO
+Next activation : never
+2026-09-28 11:33:43 151 [Warning] Aborted connection 151 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-28 11:33:43 150 [Warning] Aborted connection 150 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-28 11:33:43 142 [Warning] Aborted connection 142 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-28 11:33:43 149 [Warning] Aborted connection 149 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
