@@ -3,14 +3,24 @@
     <div class="upgrade-card">
       <span class="eyebrow">UNMUTE MEMBERSHIP</span>
       <h1>{{ sub.access?.active ? 'Keep connecting' : 'Upgrade to continue' }}</h1>
-      <p v-if="sub.access?.active">Your {{ sub.access.state === 'trial' ? 'free trial' : 'access' }} lasts until {{ expiry }}.</p>
+      <p v-if="sub.access?.state === 'paid'" class="current-plan">You're on <PremiumBadge :plan="sub.access.plan" label /> until {{ expiry }}.</p>
+      <p v-else-if="sub.access?.planStartsAt">Your <strong>{{ planTier(sub.access.plan).name }}</strong> plan starts when your free trial ends, on {{ new Date(sub.access.planStartsAt).toLocaleString() }}.</p>
+      <p v-else-if="sub.access?.active">Your free trial lasts until {{ expiry }}.</p>
       <p v-else>Your seven-day free trial or paid plan has ended. Choose a plan to unlock the app.</p>
-      <p>Every plan includes all app features. One-time payment, no automatic renewal. Any remaining access time is kept.</p>
+      <p>Every paid plan unlocks the whole app plus these Premium extras. One-time payment, no automatic renewal. Any remaining access time is kept.</p>
+      <ul class="perks" aria-label="Premium extras">
+        <li><i class="ri-vip-crown-2-fill" aria-hidden="true"></i><span><strong>Plan badge</strong>Your plan’s badge (Weekly, Gold, Platinum…) next to your name, everywhere</span></li>
+        <li><i class="ri-flashlight-fill" aria-hidden="true"></i><span><strong>Weekly Boost</strong>Be the top profile in Discover for 30 minutes</span></li>
+        <li><i class="ri-star-fill" aria-hidden="true"></i><span><strong>25 Super Likes a day</strong>Instead of 5</span></li>
+        <li><i class="ri-heart-add-fill" aria-hidden="true"></i><span><strong>Priority likes</strong>Your likes show first in their "Liked You"</span></li>
+        <li><i class="ri-equalizer-2-fill" aria-hidden="true"></i><span><strong>Advanced filters</strong>Verified only, lifestyle, education and profession</span></li>
+        <li><i class="ri-plane-fill" aria-hidden="true"></i><span><strong>Travel mode</strong>Meet people in another city before you go</span></li>
+      </ul>
       <fieldset :disabled="busy" class="plans">
         <legend class="visually-hidden">Choose your plan</legend>
         <label v-for="plan in sub.access?.plans || []" :key="plan.id" class="plan" :class="{ selected: selected === plan.id }">
           <input v-model="selected" type="radio" name="plan" :value="plan.id" />
-          <span>{{ plan.label }}</span><strong>₹{{ plan.amount / 100 }}</strong>
+          <PremiumBadge :plan="plan.id" /><span>{{ plan.label }} <small class="tier">{{ planTier(plan.id).name }}</small></span><strong>₹{{ plan.amount / 100 }}</strong>
         </label>
       </fieldset>
       <p v-if="sub.access && !sub.access.paymentsAvailable" role="status">Payments are not available yet. Please check again later.</p>
@@ -34,12 +44,16 @@
 import { computed, onMounted, ref } from 'vue';
 import { useSubscriptionStore } from '../stores/subscription';
 import { useAuthStore } from '../stores/auth';
+import { usePremiumStore } from '../stores/premium';
 import { api } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { loadCheckout, PaymentResult } from '../services/checkout';
 import UButton from '../components/ui/UButton.vue';
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
+import { planTier } from '../utils/plans';
 const sub = useSubscriptionStore();
 const auth = useAuthStore();
+const premium = usePremiumStore();
 const selected = ref('month');
 const busy = ref(false);
 const error = ref('');
@@ -51,7 +65,7 @@ const expiry = computed(() => sub.access?.expiresAt ? new Date(sub.access.expire
 onMounted(async () => { try { await sub.fetchStatus(); } catch (err) { error.value = (err as Error).message; } });
 async function refresh() {
   await sub.fetchStatus();
-  if (sub.access?.active) { disconnectSocket(); connectSocket(); message.value = 'Your access is ready. Continue to the app.'; }
+  if (sub.access?.active) { disconnectSocket(); connectSocket(); await premium.load(); message.value = 'Your access is ready. Continue to the app.'; }
   else message.value = 'No confirmed payment yet. If money was deducted, please check again shortly.';
 }
 async function checkPayment() {
@@ -99,5 +113,12 @@ p { color: var(--unmute-text-muted); }
 .plan strong { margin-left: auto; }
 .plan.selected { border-color: var(--unmute-primary, #e94057); }
 .test-note { display: flex; gap: .5rem; padding: .75rem 1rem; border-radius: 1rem; background: #fff4dc; color: #7a4d00; font-size: .88rem; }
+.current-plan { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.tier { color: var(--unmute-text-muted); font-weight: 600; }
+.perks { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.perks li { display: flex; align-items: center; gap: .75rem; font-size: .88rem; color: var(--unmute-text-muted); }
+.perks li span { display: flex; flex-direction: column; }
+.perks li strong { color: var(--unmute-text-heading); font-size: .95rem; }
+.perks i { display: grid; place-items: center; flex-shrink: 0; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: linear-gradient(135deg, #ffd66b, #f5a524); color: #fff; }
 .signout { border: 0; background: transparent; color: inherit; padding: .5rem; }
 </style>

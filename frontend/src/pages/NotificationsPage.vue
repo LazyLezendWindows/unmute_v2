@@ -61,6 +61,9 @@
                 <span v-if="n.type === 'like'" class="like-avatar" aria-hidden="true">
                   <i class="ri-heart-3-fill"></i>
                 </span>
+                <span v-else-if="n.type === 'plan'" class="like-avatar is-plan" aria-hidden="true">
+                  <i class="ri-vip-crown-2-fill"></i>
+                </span>
                 <UAvatar v-else :src="n.actor?.avatarUrl" :name="n.actor?.displayName" size="md" :online="n.actor?.isOnline" />
                 <span class="type-badge" :class="`is-${n.type}`" aria-hidden="true">
                   <i :class="TYPE_ICONS[n.type]"></i>
@@ -103,6 +106,7 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   like: 'ri-heart-3-fill',
   match: 'ri-sparkling-2-fill',
   message: 'ri-chat-3-fill',
+  plan: 'ri-time-fill',
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -147,6 +151,7 @@ const groups = computed(() => {
 
 const emptyText = computed(() => ({
   all: { title: 'No notifications yet', description: 'Likes, matches and messages will show up here.' },
+  plan: { title: 'No plan updates', description: 'Reminders about your plan will show up here.' },
   match: { title: 'No matches yet', description: 'When someone you like likes you back, you will hear about it here.' },
   message: { title: 'No messages yet', description: 'Say hi to a match and their replies will show up here.' },
   like: { title: 'No likes yet', description: 'A complete profile with a few photos gets noticed sooner.' },
@@ -166,7 +171,8 @@ function timeLabel(iso: string): string {
 
 function open(n: AppNotification) {
   store.markRead(n);
-  if (n.type === 'like') router.push('/discover');
+  if (n.type === 'plan') router.push('/upgrade');
+  else if (n.type === 'like') router.push('/discover');
   else if (n.conversationId) router.push(`/chat/${n.conversationId}`);
 }
 
@@ -389,6 +395,14 @@ onMounted(() => store.load());
   &.is-message {
     background: var(--unmute-text-secondary);
   }
+
+  &.is-plan {
+    background: #f5a524;
+  }
+}
+
+.like-avatar.is-plan {
+  background: linear-gradient(135deg, #ffd66b, #f5a524);
 }
 
 .row-text {

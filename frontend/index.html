@@ -10,9 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Unmute" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Fonts ship with the app (see main.ts): nothing on the first screen needs the internet. -->
     <link rel="stylesheet" href="/vendor/remixicon/remixicon.css" />
     <style>
       .splash {
@@ -46,6 +44,18 @@
         line-height: 1.4;
         color: #81768b;
       }
+      .splash-offline {
+        display: none;
+        margin-top: 1.2rem !important;
+        padding: 0.7rem 1.1rem;
+        border-radius: 1rem;
+        background: #fff4dc;
+        color: #7a4d00 !important;
+        font-size: 0.95rem !important;
+      }
+      .is-offline .splash-offline {
+        display: block;
+      }
       @media (prefers-color-scheme: dark) {
         .splash { background: #0f0714; }
         .splash-word { color: #fff0f5; }
@@ -60,8 +70,23 @@
         <img src="/favicon.svg" alt="" width="120" height="110" />
         <div class="splash-word"><span>Un</span><span>mute</span></div>
         <p>Real People<br />Real Conversations</p>
+        <p class="splash-offline" role="alert">No internet connection.<br />Unmute will open when you're back online.</p>
       </div>
     </div>
+    <script>
+      // Before the app itself loads: say so when there's no connection, and reload once it's back.
+      (function () {
+        var splash = document.querySelector('.splash');
+        function update() {
+          if (splash && splash.isConnected) splash.classList.toggle('is-offline', !navigator.onLine);
+        }
+        update();
+        window.addEventListener('offline', update);
+        window.addEventListener('online', function () {
+          if (splash && splash.isConnected) location.reload();
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

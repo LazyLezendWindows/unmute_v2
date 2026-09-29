@@ -6,6 +6,7 @@ import { DiscoverQuery, LOOKING_FOR_GROUPS } from '../validators/discoverValidat
 import { distanceBucketKm } from './location/distance.service';
 import { UserLocationService } from './location/geolocation.service';
 import { EducationService } from './educationService';
+import { PremiumService } from './premiumService';
 
 /** `YYYY-MM-DD` for today minus `years`, in UTC. */
 function yearsAgo(years: number): string {
@@ -17,7 +18,12 @@ function yearsAgo(years: number): string {
 export class DiscoverService {
   /** Turns validated query options into repository filters, resolving anything relative to the viewer. */
   static async resolveFilters(viewerId: string, query: Partial<DiscoverQuery>): Promise<DiscoverFilters> {
-    const origin = await UserLocationService.originFor(viewerId);
+    // Travel mode (Premium) searches around the place being visited instead of home.
+    const origin = (await PremiumService.travelOrigin(viewerId)) ?? (await UserLocationService.originFor(viewerId));
+    const advanced = query.verifiedOnly || query.drinking || query.smoking || query.workout || query.educationLevel || query.professionField;
+    if (advanced && !(await PremiumService.isPremium(viewerId))) {
+      throw new AppError('Verified-only, lifestyle, education and profession filters are Premium features. Upgrade to use them.', 403);
+    }
     if (query.radiusKm !== undefined && !origin) {
       throw new AppError('Set your area on your profile to filter by distance.', 400);
     }

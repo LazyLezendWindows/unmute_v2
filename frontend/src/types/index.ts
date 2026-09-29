@@ -102,6 +102,12 @@ export interface Profile extends ProfileDetails {
   interactionPreferences: string[];
   interests: Interest[];
   isVerified?: boolean;
+  /** A paid (Premium) member. */
+  isPremium?: boolean;
+  /** Which paid plan: day, week, month, 2months, 3months, 6months or year. */
+  premiumPlan?: string | null;
+  /** Travel mode: the place they're visiting. */
+  travellingTo?: string | null;
   location?: OwnLocation | null;
   education?: OwnEducation | null;
   gender: Gender | null;
@@ -123,6 +129,12 @@ export interface DiscoveryCandidate extends ProfileDetails {
   /** The day they joined (YYYY-MM-DD). */
   joinedOn?: string | null;
   isVerified: boolean;
+  /** A paid (Premium) member. */
+  isPremium?: boolean;
+  /** Which paid plan: day, week, month, 2months, 3months, 6months or year. */
+  premiumPlan?: string | null;
+  /** Travel mode: the place they're visiting. */
+  travellingTo?: string | null;
   education: PublicEducation | null;
   /** Bucketed upper bound in km (never exact); null when either side has no area. */
   distanceKm: number | null;
@@ -143,6 +155,12 @@ export interface Match {
     approximateLocation: string;
     avatarUrl: string;
     isVerified: boolean;
+    /** A paid (Premium) member. */
+    isPremium?: boolean;
+    /** Which paid plan: day, week, month, 2months, 3months, 6months or year. */
+    premiumPlan?: string | null;
+    /** Travel mode: the place they're visiting. */
+    travellingTo?: string | null;
     isOnline: boolean;
     interests: string[];
     education: PublicEducation | null;
@@ -164,6 +182,12 @@ export interface Conversation {
     avatarUrl: string;
     approximateLocation: string;
     isVerified: boolean;
+    /** A paid (Premium) member. */
+    isPremium?: boolean;
+    /** Which paid plan: day, week, month, 2months, 3months, 6months or year. */
+    premiumPlan?: string | null;
+    /** Travel mode: the place they're visiting. */
+    travellingTo?: string | null;
     isOnline: boolean;
     profession: string;
   };
@@ -191,7 +215,7 @@ export interface BlockedUser {
   avatarUrl?: string;
 }
 
-export type NotificationType = 'like' | 'match' | 'message';
+export type NotificationType = 'like' | 'match' | 'message' | 'plan';
 
 export interface AppNotification {
   id: string;
@@ -210,6 +234,12 @@ export interface AppNotification {
     age: number;
     avatarUrl: string;
     isVerified: boolean;
+    /** A paid (Premium) member. */
+    isPremium?: boolean;
+    /** Which paid plan: day, week, month, 2months, 3months, 6months or year. */
+    premiumPlan?: string | null;
+    /** Travel mode: the place they're visiting. */
+    travellingTo?: string | null;
     isOnline: boolean;
   } | null;
 }

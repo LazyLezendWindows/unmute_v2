@@ -7,6 +7,7 @@
       class="app-main flex-grow-1 d-flex flex-column position-relative"
     >
       <div class="app-stage flex-grow-1 d-flex flex-column w-100 mx-auto">
+        <PlanBanner />
         <slot />
       </div>
     </main>
@@ -23,6 +24,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import AppNav from '../components/layout/AppNav.vue';
 import MatchModal from '../components/matching/MatchModal.vue';
+import PlanBanner from '../components/layout/PlanBanner.vue';
 import IncomingCall from '../components/matching/IncomingCall.vue';
 import { useDiscoverStore } from '../stores/discover';
 

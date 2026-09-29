@@ -171,6 +171,8 @@ export function describeNotification(n: AppNotification): string {
       return `It's a match! You and ${name} liked each other.`;
     case 'message':
       return n.count > 1 ? `${name} sent you ${n.count} messages` : `${name} sent you a message`;
+    case 'plan':
+      return n.preview ?? 'Your plan is ending. Renew to continue.';
   }
 }
 

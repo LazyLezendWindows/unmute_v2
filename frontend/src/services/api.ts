@@ -1,6 +1,7 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import { begin } from './activity';
 import { API_BASE_URL } from '../config';
+import { markReachable, markUnreachable } from './connectivity';
 
 /** API error carrying the HTTP status so callers can distinguish auth failures from other errors. */
 export class ApiError extends Error {
@@ -28,6 +29,8 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
   // The session lives in an HttpOnly cookie set by the backend; JS never sees the token.
   withCredentials: true,
+  // A request with no answer after this long is treated as a connection problem, not left hanging.
+  timeout: 20_000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -50,11 +53,15 @@ api.interceptors.request.use((config: TrackedConfig) => {
 api.interceptors.response.use(
   (response) => {
     (response.config as TrackedConfig).endActivity?.();
+    markReachable();
     return response;
   },
   (error) => {
     (error.config as TrackedConfig | undefined)?.endActivity?.();
     const status: number | undefined = error.response?.status;
+    // No answer at all (offline, no internet, server down or timed out): show the offline screen.
+    if (!error.response && error.code !== 'ERR_CANCELED') markUnreachable();
+    else if (error.response) markReachable();
     // Server faults carry no useful detail for users; client errors (4xx) explain what to fix.
     const message = !error.response
       ? 'Unable to reach Unmute. Check your connection.'

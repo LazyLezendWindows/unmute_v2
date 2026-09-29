@@ -16,7 +16,7 @@
         <div class="me-title">
           <h1 class="me-name">
             {{ profile?.displayName || 'You' }}<template v-if="profile?.age">, {{ profile.age }}</template>
-            <i v-if="profile?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+            <i v-if="profile?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="profile?.isPremium" :plan="profile?.premiumPlan" />
           </h1>
           <router-link to="/profile/edit" class="edit-pill"><i class="ri-pencil-fill" aria-hidden="true"></i> Edit Profile</router-link>
         </div>
@@ -32,6 +32,14 @@
     </section>
 
     <p v-if="profile?.bio" class="me-bio">{{ firstLine }}</p>
+
+    <!-- Which plan you're on, and until when -->
+    <router-link to="/upgrade" class="me-card my-plan">
+      <PremiumBadge v-if="profile?.isPremium" :plan="profile.premiumPlan" label />
+      <span v-else class="plan-free"><i class="ri-gift-line" aria-hidden="true"></i>{{ sub.access?.state === 'expired' ? 'No active plan' : 'Free trial' }}</span>
+      <span class="plan-until">{{ planLine }}</span>
+      <span class="plan-action">{{ profile?.isPremium ? 'Renew' : 'Upgrade' }} <i class="ri-arrow-right-s-line" aria-hidden="true"></i></span>
+    </router-link>
 
     <!-- Photo strip -->
     <router-link v-if="photos.length" to="/profile/edit" class="me-strip" aria-label="Edit photos">
@@ -137,10 +145,13 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import UAvatar from '../components/ui/UAvatar.vue';
 import { useAuthStore } from '../stores/auth';
+import { useSubscriptionStore } from '../stores/subscription';
+import { planTier } from '../utils/plans';
 import { useChatStore } from '../stores/chat';
 import { useDiscoverStore } from '../stores/discover';
 import { useProfileStrength } from '../composables/useProfileStrength';
@@ -159,6 +170,19 @@ const authStore = useAuthStore();
 const chatStore = useChatStore();
 const discoverStore = useDiscoverStore();
 const strength = useProfileStrength();
+const sub = useSubscriptionStore();
+onMounted(() => sub.fetchStatus().catch(() => undefined));
+
+const dateText = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+const planLine = computed(() => {
+  const a = sub.access;
+  if (!a) return '';
+  if (a.state === 'expired') return 'Choose a plan to continue';
+  if (a.planStartsAt) return `${planTier(a.plan).name} starts ${dateText(a.planStartsAt)}`;
+  return `${a.state === 'trial' ? 'Ends' : 'Until'} ${dateText(a.expiresAt)}`;
+});
 
 const profile = computed(() => authStore.profile);
 const photos = computed(() => (profile.value ? photosOf(profile.value) : []));
@@ -580,6 +604,39 @@ $soft: #4b4fa6;
   font-size: 0.85rem;
   color: $soft;
 }
+.my-plan {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.plan-free {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  background: var(--unmute-surface-overlay);
+  color: var(--unmute-text-heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.plan-until {
+  color: var(--unmute-text-secondary);
+  font-size: 0.85rem;
+}
+
+.plan-action {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  color: var(--unmute-cta);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 .alert-row {
   display: flex;
   align-items: center;

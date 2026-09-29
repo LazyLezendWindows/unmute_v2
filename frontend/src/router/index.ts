@@ -1,3 +1,4 @@
+import { ApiError } from '../services/api';
 import { useSubscriptionStore } from '../stores/subscription';
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
@@ -167,6 +168,9 @@ router.onError(() => {
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   await authStore.ensureSession();
+  // Offline before we could check: stay on this screen (the offline screen covers it) and let
+  // the app reload once the connection is back, rather than guessing the member is signed out.
+  if (authStore.status === 'UNKNOWN') return true;
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // Opening the app lands on the welcome screen; a deep link asks to sign in and comes back.
@@ -179,7 +183,8 @@ router.beforeEach(async (to) => {
   const SUBSCRIPTION_FREE = ['upgrade', 'safety', 'settings', 'settings-appearance', 'profile', 'profile-edit', 'profile-interests', 'profile-photos', 'profile-location', 'notifications', 'verify'];
   if (to.meta.requiresAuth && !SUBSCRIPTION_FREE.includes(String(to.name))) {
     try { if (!(await useSubscriptionStore().fetchStatus()).active) return '/upgrade'; }
-    catch { return '/upgrade'; }
+    // Only a real "no access" answer sends them to Upgrade; a connection failure doesn't.
+    catch (err) { if (err instanceof ApiError && err.status !== undefined) return '/upgrade'; }
   }
   return true;
 });

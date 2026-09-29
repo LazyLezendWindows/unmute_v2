@@ -23,7 +23,7 @@
       <div class="call-who">
         <h1 class="call-name">
           {{ other?.displayName || '…' }}<template v-if="other">, {{ other.age }}</template>
-          <i v-if="other?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+          <i v-if="other?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="other?.isPremium" :plan="other?.premiumPlan" />
         </h1>
         <p class="call-status" role="status" aria-live="polite">{{ statusLine }}</p>
       </div>
@@ -106,6 +106,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';

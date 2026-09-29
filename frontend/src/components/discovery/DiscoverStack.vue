@@ -52,7 +52,7 @@
       <div class="card-caption">
         <h2 class="caption-name">
           {{ top.displayName }}, {{ top.age }}
-          <i v-if="top.isVerified" class="ri-verified-badge-fill caption-verified" aria-label="Verified"></i>
+          <i v-if="top.isVerified" class="ri-verified-badge-fill caption-verified" aria-label="Verified"></i><PremiumBadge v-if="top.isPremium" :plan="top.premiumPlan" />
         </h2>
         <p v-if="top.profession" class="caption-line"><i class="ri-briefcase-4-fill" aria-hidden="true"></i>{{ top.profession }}</p>
         <p v-if="study" class="caption-line"><i class="ri-graduation-cap-fill" aria-hidden="true"></i>{{ study }}</p>
@@ -70,6 +70,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../premium/PremiumBadge.vue';
 import { computed, ref, watch } from 'vue';
 import { DiscoveryCandidate } from '../../types';
 import { formatDistance } from '../../services/directory';

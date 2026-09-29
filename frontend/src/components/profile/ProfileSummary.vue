@@ -7,7 +7,7 @@
       </router-link>
       <p class="identity-name mb-0">
         {{ profile?.displayName || 'You' }}<span v-if="profile?.age">, {{ profile.age }}</span>
-        <i v-if="profile?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+        <i v-if="profile?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="profile?.isPremium" :plan="profile?.premiumPlan" />
       </p>
       <p v-if="profile?.approximateLocation" class="identity-line mb-0">
         <i class="ri-map-pin-line" aria-hidden="true"></i> {{ profile.approximateLocation }}
@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../premium/PremiumBadge.vue';
 import { computed } from 'vue';
 import UAvatar from '../ui/UAvatar.vue';
 import { useAuthStore } from '../../stores/auth';

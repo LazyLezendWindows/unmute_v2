@@ -58,7 +58,7 @@
           <span class="conv-body">
             <span class="conv-name">
               {{ conv.otherUser.displayName }}
-              <i v-if="conv.otherUser.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+              <i v-if="conv.otherUser.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="conv.otherUser.isPremium" :plan="conv.otherUser.premiumPlan" />
             </span>
             <span class="conv-preview">
               <template v-if="conv.lastMessage">
@@ -94,7 +94,7 @@
         <div class="min-w-0 flex-grow-1">
           <h2 class="thread-name">
             {{ activeOtherUser.displayName }}, {{ activeOtherUser.age }}
-            <i v-if="activeOtherUser.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+            <i v-if="activeOtherUser.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="activeOtherUser.isPremium" :plan="activeOtherUser.premiumPlan" />
           </h2>
           <p class="thread-status">
             <span class="online-dot" :class="{ 'is-off': !activeOtherUser.isOnline }" aria-hidden="true"></span>
@@ -221,6 +221,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import UModal from '../components/ui/UModal.vue';

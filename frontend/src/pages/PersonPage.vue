@@ -35,12 +35,16 @@
       <div class="min-w-0">
         <h1 class="person-name">
           {{ person.displayName }}, {{ person.age }}
-          <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+          <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="person.isPremium" :plan="person.premiumPlan" />
         </h1>
+        <p v-if="person.isPremium" class="person-plan"><PremiumBadge :plan="person.premiumPlan" label /></p>
         <p class="person-line">
           <span v-if="person.distanceKm !== null"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ person.distanceKm }} km away</span>
           <span v-else-if="person.approximateLocation"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ person.approximateLocation }}</span>
           <span v-if="person.isOnline"><span class="online-dot" aria-hidden="true"></span>Online now</span>
+        </p>
+        <p v-if="person.travellingTo" class="person-line is-travel">
+          <span><i class="ri-plane-fill" aria-hidden="true"></i>Travelling to {{ person.travellingTo }}</span>
         </p>
         <p class="person-line is-facts">
           <span v-if="person.profession"><i class="ri-briefcase-4-fill" aria-hidden="true"></i>{{ person.profession }}</span>
@@ -77,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
@@ -298,6 +303,16 @@ $ink: #10106b;
     padding-left: 1rem;
     border-left: 1px solid #d9d1f0;
   }
+}
+
+.person-line.is-travel {
+  color: #0e7a9a;
+
+  i { color: #0e9ac6; }
+}
+
+.person-plan {
+  margin: 0 0 0.4rem;
 }
 
 .match-pill {

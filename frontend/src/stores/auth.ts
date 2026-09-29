@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api, onUnauthorized } from '../services/api';
+import { api, ApiError, onUnauthorized } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { useGoogleIdentity } from '../composables/useGoogleIdentity';
 import { useNotificationStore } from './notifications';
 import { useCallStore } from './call';
+import { usePremiumStore } from './premium';
 import { unregisterPush } from '../services/push';
 import { User, Profile, LocationPrecision } from '../types';
 
@@ -44,6 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
     useNotificationStore().reset();
     // Signing out stops any call (camera and microphone included).
     useCallStore().reset();
+    usePremiumStore().reset();
   }
 
   onUnauthorized(() => {
@@ -64,7 +66,15 @@ export const useAuthStore = defineStore('auth', () => {
           if (authenticated) setAuthenticated(sessionUser);
           else setUnauthenticated();
         })
-        .catch(() => setUnauthenticated())
+        .catch((err) => {
+          // Can't reach the server: that isn't being signed out. Stay put (the offline screen shows)
+          // and check again later, instead of sending the member to the sign-in screens.
+          if (err instanceof ApiError && err.status === undefined) {
+            status.value = 'UNKNOWN';
+            return;
+          }
+          setUnauthenticated();
+        })
         .finally(() => {
           sessionCheck = null;
         });

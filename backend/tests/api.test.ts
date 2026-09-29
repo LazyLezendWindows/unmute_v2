@@ -32,6 +32,14 @@ async function registerAgent(email: string, displayName: string, dateOfBirth = '
   return { agent, id: res.body.data.user.id as string };
 }
 
+/** Gives a test member an active paid plan (Premium). */
+async function makePremium(userId: string, days = 30) {
+  await getDatabase().run(
+    `UPDATE subscriptions SET plan = 'month', plan_started_at = UTC_TIMESTAMP(), plan_expires_at = UTC_TIMESTAMP() + INTERVAL ? DAY WHERE user_id = ?`,
+    [days, userId]
+  );
+}
+
 describe('Unmute API', () => {
   beforeAll(async () => {
     await resetTestDatabase();
@@ -546,6 +554,9 @@ describe('Unmute API', () => {
     });
 
     it('narrows by education level and profession field', async () => {
+      // Advanced filters are Premium.
+      expect((await viewer.agent.get('/api/v1/discover?educationLevel=masters')).status).toBe(403);
+      await makePremium(viewer.id);
       await woman.agent.patch('/api/v1/users/me').send({ educationLevel: 'masters', professionField: 'healthcare' });
       await man.agent.patch('/api/v1/users/me').send({ educationLevel: 'bachelors', professionField: 'it_software' });
       const masters = await idsFor('educationLevel=masters');
@@ -740,9 +751,60 @@ describe('Unmute API', () => {
     });
   });
 
+  describe('Premium extras', () => {
+    it('shows a Premium badge, allows 25 Super Likes, and lists Premium likes first', async () => {
+      const me = await registerAgent('prem-me@example.com', 'Me');
+      const freeFan = await registerAgent('prem-free@example.com', 'Free');
+      const paidFan = await registerAgent('prem-paid@example.com', 'Paid');
+      await makePremium(paidFan.id);
+      await freeFan.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id });
+      await paidFan.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id });
+
+      const received = (await me.agent.get('/api/v1/interactions/likes-received')).body.data;
+      expect(received.map((p: any) => [p.id, p.isPremium])).toEqual([[paidFan.id, true], [freeFan.id, false]]);
+
+      const overview = (await paidFan.agent.get('/api/v1/users/me/premium')).body.data;
+      expect(overview.isPremium).toBe(true);
+      expect(overview.superLikes.limit).toBe(25);
+      expect((await freeFan.agent.get('/api/v1/users/me/premium')).body.data.superLikes.limit).toBe(5);
+    });
+
+    it('boosts a Premium profile to the top of Discover, once a week', async () => {
+      const viewer = await registerAgent('boost-viewer@example.com', 'Viewer');
+      const booster = await registerAgent('boost-me@example.com', 'Booster');
+      const free = await registerAgent('boost-free@example.com', 'Free');
+
+      expect((await free.agent.post('/api/v1/users/me/premium/boost')).status).toBe(403);
+      await makePremium(booster.id);
+      const boosted = await booster.agent.post('/api/v1/users/me/premium/boost');
+      expect(boosted.status).toBe(200);
+      expect(boosted.body.data.boost.activeUntil).toBeTruthy();
+      expect((await viewer.agent.get('/api/v1/discover')).body.data[0].id).toBe(booster.id);
+      expect((await booster.agent.post('/api/v1/users/me/premium/boost')).status).toBe(429);
+      // End it, so later tests see Discover's normal order.
+      await getDatabase().run('UPDATE boosts SET ends_at = UTC_TIMESTAMP() WHERE user_id = ?', [booster.id]);
+    });
+
+    it('searches around the travel city in Travel mode, and shows where they are travelling', async () => {
+      const traveller = await registerAgent('travel-me@example.com', 'Traveller');
+      const place = (await traveller.agent.get('/api/v1/locations/search?q=Pune')).body.data[0];
+      expect((await traveller.agent.put('/api/v1/users/me/premium/travel').send({ placeId: place.id })).status).toBe(403);
+      await makePremium(traveller.id);
+      const set = await traveller.agent.put('/api/v1/users/me/premium/travel').send({ placeId: place.id });
+      expect(set.status).toBe(200);
+      expect(set.body.data.travel.label).toMatch(/Pune/);
+      expect((await traveller.agent.get('/api/v1/users/me')).body.data.travellingTo).toMatch(/Pune/);
+      // Distance filters now work from Pune even without a home area set.
+      expect((await traveller.agent.get('/api/v1/discover?radiusKm=50')).status).toBe(200);
+      await traveller.agent.delete('/api/v1/users/me/premium/travel');
+      expect((await traveller.agent.get('/api/v1/users/me')).body.data.travellingTo).toBeNull();
+    });
+  });
+
   describe('Verified and lifestyle filters', () => {
     it('narrows discovery to verified members and to lifestyle answers', async () => {
       const viewer = await registerAgent('lifeviewer@example.com', 'Viewer');
+      await makePremium(viewer.id);
       const smoker = await registerAgent('smoker@example.com', 'Smoker');
       const verified = await registerAgent('verifiedone@example.com', 'Verified');
       await smoker.agent.patch('/api/v1/users/me').send({ lifestyle: { smoking: 'regularly' } });

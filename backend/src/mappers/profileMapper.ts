@@ -4,6 +4,8 @@ import { isOnline } from '../sockets/presence';
 
 export interface ProfileRow {
   user_id: string;
+  is_premium?: number | null;
+  travel_label?: string | null;
   created_at?: string;
   id: string;
   display_name: string;
@@ -138,6 +140,8 @@ export function toOwnProfile(row: ProfileRow, interests: Interest[]) {
     interactionPreferences: parsePreferences(row.interaction_preferences),
     interests,
     isVerified: Boolean(row.is_verified),
+    isPremium: Boolean(row.is_premium),
+    travellingTo: row.travel_label ?? null,
     gender: row.gender,
     ...profileDetails(row),
   };
@@ -156,5 +160,9 @@ export function toPublicProfile(userId: string, row: ProfileRow | undefined | nu
     education: publicEducation(row),
     ...profileDetails(row),
     isOnline: isOnline(userId),
+    /** A paid member (shown as a crown badge). */
+    isPremium: Boolean(row?.is_premium),
+    /** Travel mode: the place they're visiting, e.g. "Goa, Goa". */
+    travellingTo: row?.travel_label ?? null,
   };
 }

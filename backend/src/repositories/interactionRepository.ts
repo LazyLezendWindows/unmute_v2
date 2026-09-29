@@ -82,7 +82,10 @@ export class InteractionRepository {
          AND NOT EXISTS (SELECT 1 FROM likes back WHERE back.liker_id = l.likee_id AND back.likee_id = l.liker_id)
          AND NOT EXISTS (SELECT 1 FROM passes p WHERE p.passer_id = l.likee_id AND p.passee_id = l.liker_id)
          AND NOT ${blockedBetween('l.liker_id', 'l.likee_id')}
-       ORDER BY l.is_super DESC, l.created_at DESC`,
+       -- Super Likes first, then likes from paid (Premium) members, then newest.
+       ORDER BY l.is_super DESC,
+                EXISTS (SELECT 1 FROM subscriptions sp WHERE sp.user_id = l.liker_id AND sp.plan_expires_at > UTC_TIMESTAMP()) DESC,
+                l.created_at DESC`,
       [userId]
     );
   }

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { api } from '../services/api';
 import { useToastStore } from './toast';
 import { useAuthStore } from './auth';
+import { usePremiumStore } from './premium';
 import { DiscoveryCandidate, EducationLevel, HabitFrequency, Institution, Interest, Place, ProfessionField, WorkoutFrequency } from '../types';
 
 /** Discovery filters as the viewer chose them; applied by the backend, never client-side. */
@@ -144,7 +145,7 @@ export const useDiscoverStore = defineStore('discover', () => {
     const f = filters.value;
     const profile = useAuthStore().profile;
     const params: Record<string, string | number | boolean> = {};
-    if (f.radiusKm !== null && profile?.location) params.radiusKm = f.radiusKm;
+    if (f.radiusKm !== null && (profile?.location || usePremiumStore().overview?.travel)) params.radiusKm = f.radiusKm;
     if (f.place) params.placeId = f.place.id;
     if (f.sameInstitution && profile?.education) params.sameInstitution = true;
     else if (f.institution) params.institutionId = f.institution.id;
@@ -154,10 +155,16 @@ export const useDiscoverStore = defineStore('discover', () => {
     if (f.showMe) params.showMe = f.showMe;
     if (f.educationLevel) params.educationLevel = f.educationLevel;
     if (f.professionField) params.professionField = f.professionField;
-    if (f.verifiedOnly) params.verifiedOnly = true;
-    if (f.drinking) params.drinking = f.drinking;
-    if (f.smoking) params.smoking = f.smoking;
-    if (f.workout) params.workout = f.workout;
+    // Advanced filters are Premium; saved ones are left out (not sent to fail) after a plan ends.
+    const premium = usePremiumStore().isPremium;
+    if (premium && f.verifiedOnly) params.verifiedOnly = true;
+    if (premium && f.drinking) params.drinking = f.drinking;
+    if (premium && f.smoking) params.smoking = f.smoking;
+    if (premium && f.workout) params.workout = f.workout;
+    if (!premium) {
+      delete params.educationLevel;
+      delete params.professionField;
+    }
     if (f.interests.length) params.interestIds = f.interests.map((i) => i.id).join(',');
     if (search.value.trim()) params.q = search.value.trim();
     return params;

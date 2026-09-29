@@ -8,12 +8,10 @@ import { MessageRepository } from '../repositories/messageRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { assertInteractable } from './userGuards';
+import { PREMIUM_SUPER_LIKES_PER_DAY, PremiumService } from './premiumService';
 import { NotificationService } from './notificationService';
 import { UserLocationRepository } from '../repositories/userLocationRepository';
 import { distanceBucketKm, haversineKm } from './location/distance.service';
-
-/** Super Likes each member can send per 24 hours. */
-export const SUPER_LIKES_PER_DAY = 5;
 
 export class MatchingService {
   static async recordLike(likerId: string, likeeId: string, superLike = false) {
@@ -24,8 +22,14 @@ export class MatchingService {
     const newSuper = superLike && !(await InteractionRepository.isSuperLike(likerId, likeeId));
     if (newSuper) {
       const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
-      if ((await InteractionRepository.countSuperLikesSince(likerId, dayAgo)) >= SUPER_LIKES_PER_DAY) {
-        throw new AppError(`You've used your ${SUPER_LIKES_PER_DAY} Super Likes for today. Try again tomorrow.`, 429);
+      const limit = await PremiumService.superLikesPerDay(likerId);
+      if ((await InteractionRepository.countSuperLikesSince(likerId, dayAgo)) >= limit) {
+        throw new AppError(
+          limit < PREMIUM_SUPER_LIKES_PER_DAY
+            ? `You've used your ${limit} Super Likes for today. Premium members get ${PREMIUM_SUPER_LIKES_PER_DAY} a day.`
+            : `You've used your ${limit} Super Likes for today. Try again tomorrow.`,
+          429
+        );
       }
     }
     // A repeated like changes nothing and notifies no one again (upgrading it to a Super Like does).

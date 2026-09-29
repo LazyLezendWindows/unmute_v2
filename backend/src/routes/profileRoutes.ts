@@ -1,5 +1,6 @@
 import express, { Router } from 'express';
 import verificationRoutes from './verificationRoutes';
+import premiumRoutes from './premiumRoutes';
 import { ProfileController } from '../controllers/profileController';
 import { LocationController } from '../controllers/locationController';
 import { EducationController } from '../controllers/educationController';
@@ -31,6 +32,7 @@ router.post(
 );
 
 router.use('/me/verification', verificationRoutes);
+router.use('/me/premium', premiumRoutes);
 
 router.put('/me/location', locationRateLimiter, validateBody(setLocationSchema), LocationController.setMyLocation);
 router.patch('/me/location', validateBody(updatePrecisionSchema), LocationController.updateMyPrecision);

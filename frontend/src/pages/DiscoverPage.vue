@@ -38,11 +38,21 @@
     </form>
 
     <!-- Hero -->
+    <router-link v-if="premium.overview?.travel" to="/discover/filters" class="travel-chip">
+      <i class="ri-plane-fill" aria-hidden="true"></i>
+      Travel mode: showing people around <strong>{{ premium.overview.travel.label }}</strong>
+      <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+    </router-link>
+
     <section class="hero">
       <div class="hero-text">
         <h1 class="hero-title">Find<br />Real Connections</h1>
         <p class="hero-sub">Meaningful people. Genuine conversations.<br />Your story, without filters.</p>
-        <button type="button" class="upgrade-btn" @click="$router.push('/upgrade')">
+        <!-- Premium: Boost to the top of Discover; everyone else: Upgrade -->
+        <button v-if="premium.isPremium" type="button" class="upgrade-btn" :disabled="boostBusy || Boolean(boostLabel.wait)" @click="boost">
+          <i class="ri-flashlight-fill" aria-hidden="true"></i> {{ boostLabel.text }}
+        </button>
+        <button v-else type="button" class="upgrade-btn" @click="$router.push('/upgrade')">
           <i class="ri-vip-crown-2-fill" aria-hidden="true"></i> Upgrade
         </button>
       </div>
@@ -105,7 +115,7 @@
               <span v-if="matchOf(p) !== null" class="pct"><i class="ri-heart-3-fill" aria-hidden="true"></i>{{ matchOf(p) }}%</span>
             </span>
             <span class="card-body">
-              <span class="card-name">{{ p.displayName }}, {{ p.age }}<i v-if="p.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i></span>
+              <span class="card-name">{{ p.displayName }}, {{ p.age }}<i v-if="p.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="p.isPremium" :plan="p.premiumPlan" /></span>
               <span v-if="p.profession" class="card-line"><i class="ri-briefcase-4-fill" aria-hidden="true"></i>{{ p.profession }}</span>
               <span v-if="where(p)" class="card-line"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ where(p) }}</span>
             </span>
@@ -138,7 +148,7 @@
                 <span v-if="!p.avatarUrl" class="initial">{{ p.displayName.charAt(0) }}</span>
               </span>
               <span class="card-body">
-                <span class="card-name">{{ p.displayName }}, {{ p.age }}<i v-if="p.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i></span>
+                <span class="card-name">{{ p.displayName }}, {{ p.age }}<i v-if="p.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="p.isPremium" :plan="p.premiumPlan" /></span>
                 <span v-if="p.profession" class="card-line"><i class="ri-briefcase-4-fill" aria-hidden="true"></i>{{ p.profession }}</span>
                 <span v-if="where(p)" class="card-line"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ where(p) }}</span>
                 <span v-if="p.isOnline" class="status is-online"><span></span>Online now</span>
@@ -156,6 +166,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import NotificationBell from '../components/layout/NotificationBell.vue';
@@ -165,6 +176,7 @@ import USkeleton from '../components/ui/USkeleton.vue';
 import { useDiscoverStore } from '../stores/discover';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
+import { usePremiumStore } from '../stores/premium';
 import { photoBackground } from '../services/media';
 import { formatDistance } from '../services/directory';
 import { matchPercent } from '../utils/profileFormat';
@@ -197,6 +209,39 @@ const NEW_DAYS = 14;
 const FOR_YOU = 8;
 
 const store = useDiscoverStore();
+const premium = usePremiumStore();
+
+// ---- Boost (Premium) ----
+const boostBusy = ref(false);
+const now = ref(Date.now());
+const clock = setInterval(() => (now.value = Date.now()), 30_000);
+onBeforeUnmount(() => clearInterval(clock));
+
+function untilText(iso: string) {
+  const mins = Math.max(1, Math.round((Date.parse(iso) - now.value) / 60000));
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.round(mins / 60);
+  return hours < 48 ? `${hours} h` : `${Math.round(hours / 24)} days`;
+}
+
+const boostLabel = computed(() => {
+  const b = premium.overview?.boost;
+  if (b?.activeUntil && Date.parse(b.activeUntil) > now.value) return { text: `Boosted · ${untilText(b.activeUntil)} left`, wait: true };
+  if (b?.nextAvailableAt && Date.parse(b.nextAvailableAt) > now.value) return { text: `Next Boost in ${untilText(b.nextAvailableAt)}`, wait: true };
+  return { text: 'Boost my profile', wait: false };
+});
+
+async function boost() {
+  boostBusy.value = true;
+  try {
+    await premium.boost();
+    useToastStore().success(`Boosted! You're at the top of Discover for ${premium.overview?.boost.minutes ?? 30} minutes.`);
+  } catch (err: any) {
+    useToastStore().error(err.message);
+  } finally {
+    boostBusy.value = false;
+  }
+}
 const authStore = useAuthStore();
 const view = ref<View>('all');
 
@@ -352,6 +397,21 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
   font-size: 0.78rem;
   line-height: 1.4;
   opacity: 0.92;
+}
+
+.travel-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 1rem;
+  background: #e2f5fb;
+  color: #0e5f78;
+  font-size: 0.88rem;
+  text-decoration: none;
+
+  i:first-child { color: #0e9ac6; font-size: 1.1rem; }
+  i:last-child { margin-left: auto; }
 }
 
 .upgrade-btn {

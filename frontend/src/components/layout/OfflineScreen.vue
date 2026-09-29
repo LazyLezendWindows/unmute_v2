@@ -1,7 +1,7 @@
 <template>
   <!-- Covers the app while the device has no connection; it clears itself when the network returns. -->
   <Transition name="offline-fade">
-    <div v-if="!online" class="offline-screen" role="alertdialog" aria-modal="true" aria-labelledby="offline-title" aria-describedby="offline-text">
+    <div v-if="!online || serverUnreachable" class="offline-screen" role="alertdialog" aria-modal="true" aria-labelledby="offline-title" aria-describedby="offline-text">
       <span class="orb orb-1" aria-hidden="true"></span>
       <span class="orb orb-2" aria-hidden="true"></span>
       <span class="ring" aria-hidden="true"></span>
@@ -22,9 +22,10 @@
           <i class="ri-sparkling-2-fill art-spark"></i>
         </div>
 
-        <h1 id="offline-title" class="offline-title">No internet connection</h1>
+        <h1 id="offline-title" class="offline-title">{{ online ? 'Can’t connect right now' : 'No internet connection' }}</h1>
         <p id="offline-text" class="offline-text">
-          Looks like you're offline. Check your Wi‑Fi or mobile data, and we'll pick up right where you left off.
+          <template v-if="online">Your Wi‑Fi or data may be on but not working, or Unmute isn't responding. We'll keep trying and pick up right where you left off.</template>
+          <template v-else>Looks like you're offline. Check your Wi‑Fi or mobile data, and we'll pick up right where you left off.</template>
         </p>
 
         <ul class="tips">
@@ -45,26 +46,33 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import BrandLogo from './BrandLogo.vue';
+import { API_BASE_URL } from '../../config';
+import { appStartedOk, markReachable, serverUnreachable } from '../../services/connectivity';
 
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 const checking = ref(false);
 const status = ref('');
-
-function update() {
-  online.value = navigator.onLine;
-  if (online.value) status.value = '';
-}
+let autoRetry: ReturnType<typeof setInterval> | undefined;
 
 /** A real request to our own server: "online" in the browser doesn't always mean reachable. */
 async function reachable(): Promise<boolean> {
   try {
-    const res = await fetch('/api/v1/auth/config', { cache: 'no-store', signal: AbortSignal.timeout(6000) });
+    const res = await fetch(`${API_BASE_URL}/auth/config`, { cache: 'no-store', credentials: 'include', signal: AbortSignal.timeout(6000) });
     return res.ok;
   } catch {
     return false;
   }
+}
+
+/** Back online: if the app never finished starting (it opened offline), reload it to finish. */
+function recovered() {
+  const needsReload = !appStartedOk();
+  markReachable();
+  online.value = true;
+  status.value = '';
+  if (needsReload) location.reload();
 }
 
 async function retry() {
@@ -72,17 +80,37 @@ async function retry() {
   status.value = '';
   const ok = await reachable();
   checking.value = false;
-  if (ok) online.value = true;
+  if (ok) recovered();
   else status.value = 'Still offline. Check your connection and try again.';
 }
 
+async function onOnline() {
+  online.value = true;
+  if (await reachable()) recovered();
+}
+
+function onOffline() {
+  online.value = false;
+}
+
+// While the offline screen is up, quietly check every 10 seconds so it clears on its own.
+watch(
+  () => !online.value || serverUnreachable.value,
+  (down) => {
+    clearInterval(autoRetry);
+    if (down) autoRetry = setInterval(async () => { if (navigator.onLine && (await reachable())) recovered(); }, 10_000);
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
-  window.addEventListener('online', update);
-  window.addEventListener('offline', update);
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
 });
 onBeforeUnmount(() => {
-  window.removeEventListener('online', update);
-  window.removeEventListener('offline', update);
+  clearInterval(autoRetry);
+  window.removeEventListener('online', onOnline);
+  window.removeEventListener('offline', onOffline);
 });
 </script>
 

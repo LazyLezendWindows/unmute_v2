@@ -61,6 +61,7 @@ import { useAuthStore } from '../../stores/auth';
 import { useChatStore } from '../../stores/chat';
 import { useNotificationStore } from '../../stores/notifications';
 import { useCallStore } from '../../stores/call';
+import { usePremiumStore } from '../../stores/premium';
 import { syncPush } from '../../services/push';
 
 defineProps<{ showMobileDock: boolean }>();
@@ -70,6 +71,7 @@ const authStore = useAuthStore();
 const chatStore = useChatStore();
 const notificationStore = useNotificationStore();
 const callStore = useCallStore();
+const premiumStore = usePremiumStore();
 const desktopItems = NAV_ITEMS.filter((item) => item.desktop);
 const mobileItems = NAV_ITEMS.filter((item) => item.mobile);
 
@@ -87,6 +89,7 @@ onMounted(() => {
   notificationStore.bindSocket();
   callStore.bindSocket();
   syncPush();
+  premiumStore.load();
   notificationStore.refreshCount();
 });
 

@@ -64,7 +64,7 @@
                 <button type="button" class="more-open" :aria-label="`${p.displayName}, ${p.age}`" @click="go(`/people/${p.id}`)">
                   <span class="more-photo" :style="photoBackground(p.avatarUrl)"></span>
                   <span class="more-body">
-                    <strong>{{ p.displayName }}, {{ p.age }}<i v-if="p.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i></strong>
+                    <strong>{{ p.displayName }}, {{ p.age }}<i v-if="p.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="p.isPremium" :plan="p.premiumPlan" /></strong>
                     <span v-if="p.distanceKm !== null"><i class="ri-map-pin-line" aria-hidden="true"></i>{{ p.distanceKm }} km away</span>
                   </span>
                 </button>
@@ -81,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../premium/PremiumBadge.vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import UAvatar from '../ui/UAvatar.vue';

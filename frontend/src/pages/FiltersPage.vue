@@ -103,7 +103,11 @@
       </fieldset>
 
       <!-- Lifestyle -->
-      <fieldset class="f-card">
+      <!-- Premium filters: locked (tap to upgrade) for free members -->
+      <fieldset class="f-card" :class="{ 'is-locked': !premium.isPremium }" :disabled="!premium.isPremium">
+        <router-link v-if="!premium.isPremium" to="/upgrade" class="lock-cover" aria-label="Premium filter. Upgrade to use it">
+          <span><i class="ri-vip-crown-2-fill" aria-hidden="true"></i>Premium</span>
+        </router-link>
         <legend class="f-head"><i class="ri-cup-line" aria-hidden="true"></i><span>Lifestyle</span></legend>
         <div class="row-3">
           <label v-for="item in LIFESTYLE" :key="item.key" class="pick">
@@ -122,7 +126,10 @@
       </fieldset>
 
       <!-- Education & work -->
-      <fieldset class="f-card">
+      <fieldset class="f-card" :class="{ 'is-locked': !premium.isPremium }" :disabled="!premium.isPremium">
+        <router-link v-if="!premium.isPremium" to="/upgrade" class="lock-cover" aria-label="Premium filter. Upgrade to use it">
+          <span><i class="ri-vip-crown-2-fill" aria-hidden="true"></i>Premium</span>
+        </router-link>
         <legend class="f-head"><i class="ri-graduation-cap-line" aria-hidden="true"></i><span>Education &amp; Work</span></legend>
         <div class="row-2">
           <label class="pick">
@@ -151,14 +158,48 @@
       </fieldset>
 
       <!-- Verified only -->
-      <label class="f-card verified">
+      <label class="f-card verified" :class="{ 'is-locked': !premium.isPremium }">
+        <router-link v-if="!premium.isPremium" to="/upgrade" class="lock-cover" aria-label="Premium filter. Upgrade to use it">
+          <span><i class="ri-vip-crown-2-fill" aria-hidden="true"></i>Premium</span>
+        </router-link>
         <i class="ri-verified-badge-fill" aria-hidden="true"></i>
         <span class="verified-text">
           <strong>Show only verified profiles</strong>
           <span>See only people who have verified their profile</span>
         </span>
-        <input v-model="draft.verifiedOnly" type="checkbox" role="switch" class="switch" />
+        <input v-model="draft.verifiedOnly" type="checkbox" role="switch" class="switch" :disabled="!premium.isPremium" />
       </label>
+
+      <!-- Travel mode (Premium): Discover searches around another city -->
+      <section class="f-card travel" :class="{ 'is-locked': !premium.isPremium }" aria-labelledby="travel-title">
+        <router-link v-if="!premium.isPremium" to="/upgrade" class="lock-cover" aria-label="Premium filter. Upgrade to use it">
+          <span><i class="ri-vip-crown-2-fill" aria-hidden="true"></i>Premium</span>
+        </router-link>
+        <div class="f-head">
+          <i class="ri-plane-line" aria-hidden="true"></i><span id="travel-title">Travel mode</span>
+        </div>
+        <template v-if="premium.overview?.travel">
+          <p class="travel-now">
+            <i class="ri-map-pin-2-fill" aria-hidden="true"></i>
+            Browsing <strong>{{ premium.overview.travel.label }}</strong>
+          </p>
+          <button type="button" class="travel-off" :disabled="travelBusy" @click="stopTravel">Back to my area</button>
+        </template>
+        <template v-else>
+          <p class="f-hint">Planning a trip? Meet people in another city before you arrive.</p>
+          <UTypeahead
+            :model-value="null"
+            :fetch-items="(q: string) => searchPlaces(q, { kinds: TRAVEL_KINDS })"
+            :item-key="(p: Place) => p.id"
+            :item-label="(p: Place) => p.name"
+            :item-meta="placeMeta"
+            placeholder="Search a city, e.g. Goa, Pune"
+            icon="ri-search-line"
+            :disabled="travelBusy || !premium.isPremium"
+            @update:model-value="startTravel"
+          />
+        </template>
+      </section>
     </form>
 
     <button type="submit" form="filters-form" class="apply-btn">
@@ -168,6 +209,10 @@
 </template>
 
 <script setup lang="ts">
+import UTypeahead from '../components/ui/UTypeahead.vue';
+import { usePremiumStore } from '../stores/premium';
+import { useToastStore } from '../stores/toast';
+import { placeMeta, searchPlaces } from '../services/directory';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
@@ -175,7 +220,7 @@ import { DiscoverFilters, emptyFilters, useDiscoverStore } from '../stores/disco
 import { useAuthStore } from '../stores/auth';
 import { api } from '../services/api';
 import { interestIcon } from '../utils/interestIcon';
-import { Interest } from '../types';
+import { Interest, Place, PlaceKind } from '../types';
 import { EDUCATION_LEVELS, LIFESTYLE_OPTIONS, PROFESSION_FIELDS } from '../utils/profileFormat';
 import { PHOTO_INTEREST_ORDER } from '../utils/interestPhoto';
 
@@ -206,9 +251,40 @@ const AGE_MAX = 50;
 const INTERESTS_SHOWN = 12;
 
 const router = useRouter();
+const premium = usePremiumStore();
+
+// ---- Travel mode (Premium) ----
+const TRAVEL_KINDS: PlaceKind[] = ['city', 'town', 'district'];
+const travelBusy = ref(false);
+
+async function startTravel(place: Place | null) {
+  if (!place) return;
+  travelBusy.value = true;
+  try {
+    await premium.setTravel(place.id);
+    useToastStore().success(`Travel mode on: showing people around ${place.name}.`);
+  } catch (err: any) {
+    useToastStore().error(err.message);
+  } finally {
+    travelBusy.value = false;
+  }
+}
+
+async function stopTravel() {
+  travelBusy.value = true;
+  try {
+    await premium.clearTravel();
+    useToastStore().success('Back to your own area.');
+  } catch (err: any) {
+    useToastStore().error(err.message);
+  } finally {
+    travelBusy.value = false;
+  }
+}
 const discoverStore = useDiscoverStore();
 const authStore = useAuthStore();
-const hasLocation = computed(() => Boolean(authStore.profile?.location));
+// Distance works from home, or from the Travel mode city.
+const hasLocation = computed(() => Boolean(authStore.profile?.location || premium.overview?.travel));
 const hasEducation = computed(() => Boolean(authStore.profile?.education));
 
 // Edits happen on a copy; nothing changes until Apply.
@@ -724,5 +800,63 @@ input.single-range {
   @media (min-width: 768px) {
     left: calc(50% + var(--unmute-dock-width) / 2);
   }
+}
+// Premium sections for free members: dimmed, with a tap-to-upgrade cover.
+.is-locked {
+  position: relative;
+
+  > :not(.lock-cover) {
+    opacity: 0.45;
+  }
+}
+
+.lock-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0.9rem;
+  border-radius: inherit;
+  text-decoration: none;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--unmute-radius-pill);
+    background: linear-gradient(135deg, #ffd66b, #f5a524);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    box-shadow: 0 4px 10px -4px rgba(245, 165, 36, 0.7);
+  }
+}
+
+// On the one-line "verified" card, the badge sits where the switch is.
+.verified .lock-cover {
+  align-items: center;
+}
+
+.travel-now {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  color: $soft;
+
+  i { color: $pink; }
+  strong { color: $ink; }
+}
+
+.travel-off {
+  padding: 0.5rem 1rem;
+  border: 1.5px solid rgba(242, 24, 114, 0.45);
+  border-radius: var(--unmute-radius-pill);
+  background: #fdf0f7;
+  color: $pink;
+  font-weight: 600;
 }
 </style>

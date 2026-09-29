@@ -48,7 +48,7 @@
             <div class="card-line">
               <h2 class="card-name">
                 {{ person.displayName }}, {{ person.age }}
-                <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+                <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="person.isPremium" :plan="person.premiumPlan" />
               </h2>
             </div>
             <div v-if="person.interests.length" class="card-chips">
@@ -94,7 +94,7 @@
             <div class="card-line">
               <h2 class="card-name">
                 {{ person.displayName }}, {{ person.age }}
-                <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+                <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="person.isPremium" :plan="person.premiumPlan" />
               </h2>
             </div>
             <div v-if="person.interests.length" class="card-chips">
@@ -139,7 +139,7 @@
             <div class="card-line">
               <h2 class="card-name">
                 {{ match.user.displayName }}, {{ match.user.age }}
-                <i v-if="match.user.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+                <i v-if="match.user.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="match.user.isPremium" :plan="match.user.premiumPlan" />
               </h2>
               <span v-if="match.user.distanceKm !== null" class="card-distance">
                 <i class="ri-map-pin-line" aria-hidden="true"></i>{{ match.user.distanceKm }} km
@@ -175,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
