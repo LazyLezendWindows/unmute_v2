@@ -1,3 +1,4 @@
+import { billingWebhook } from './controllers/billingWebhook';
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -17,7 +18,11 @@ export function createApp(): Express {
   // Security Headers
   app.use(
     helmet({
-      contentSecurityPolicy: config.isProduction ? undefined : false,
+      contentSecurityPolicy: config.isProduction ? { directives: {
+        scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
+        frameSrc: ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
+        connectSrc: ["'self'", 'https://*.razorpay.com', 'wss:'],
+      } } : false,
     })
   );
 
@@ -30,6 +35,9 @@ export function createApp(): Express {
       allowedHeaders: ['Content-Type', 'Authorization'],
     })
   );
+
+  // Signed gateway webhooks use exact raw bytes and do not use browser session/CSRF checks.
+  app.post('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json', limit: '256kb' }), billingWebhook);
 
   // Body parsers
   app.use(express.json({ limit: '1mb' }));

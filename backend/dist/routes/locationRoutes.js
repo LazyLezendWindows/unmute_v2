@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const locationController_1 = require("../controllers/locationController");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const common_1 = require("../validators/common");
+const locationValidator_1 = require("../validators/locationValidator");
+const router = (0, express_1.Router)();
+router.use(auth_1.requireAuth);
+router.get('/states', locationController_1.LocationController.states);
+router.get('/search', (0, validate_1.validateQuery)(locationValidator_1.placeSearchQuerySchema), locationController_1.LocationController.search);
+router.get('/pincodes/:pincode', (0, validate_1.validateParams)(locationValidator_1.pincodeParamsSchema), locationController_1.LocationController.pincode);
+router.get('/:id/children', (0, validate_1.validateParams)(common_1.idParamsSchema), (0, validate_1.validateQuery)(locationValidator_1.placeChildrenQuerySchema), locationController_1.LocationController.children);
+exports.default = router;

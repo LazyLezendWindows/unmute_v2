@@ -248,7 +248,7 @@ async function flip() {
   flipped.value = !flipped.value;
 }
 
-type SinkElement = HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
+type SinkElement = Omit<HTMLMediaElement, 'setSinkId'> & { setSinkId?: (id: string) => Promise<void> };
 let outputIndex = 0;
 
 /**

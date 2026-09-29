@@ -10,11 +10,19 @@ export class ApiError extends Error {
 }
 
 let unauthorizedHandler: (() => void) | null = null;
+let subscriptionRequiredHandler: (() => void) | null = null;
 
 /** Registered by the auth store so an expired/revoked session anywhere resets auth state. */
 export function onUnauthorized(handler: () => void): void {
   unauthorizedHandler = handler;
 }
+
+/** Registered by the router/app so a 402 anywhere redirects to /upgrade. */
+export function onSubscriptionRequired(handler: () => void): void {
+  subscriptionRequiredHandler = handler;
+}
+
+export function notifySubscriptionRequired(): void { subscriptionRequiredHandler?.(); }
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -56,6 +64,9 @@ api.interceptors.response.use(
 
     if (status === 401 && !String(error.config?.url || '').startsWith('/auth/')) {
       unauthorizedHandler?.();
+    }
+    if (status === 402) {
+      subscriptionRequiredHandler?.();
     }
 
     return Promise.reject(new ApiError(message, status));

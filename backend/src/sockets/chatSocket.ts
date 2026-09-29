@@ -1,3 +1,4 @@
+import { SubscriptionService } from '../services/subscriptionService';
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { config } from '../config/env';
@@ -28,6 +29,7 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
       if (!session) {
         return next(new Error('Authentication required'));
       }
+      await SubscriptionService.requireAccess(session.userId);
       socket.data.userId = session.userId;
       socket.data.sessionId = session.sessionId;
       next();
@@ -38,6 +40,21 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
 
   ioInstance.on('connection', (socket: Socket) => {
     const userId: string = socket.data.userId;
+    // Check each inbound action, and disconnect at expiry even if the socket stays idle.
+    socket.use(async (_packet, next) => {
+      try { await SubscriptionService.requireAccess(userId); next(); }
+      catch { socket.emit('subscription:expired'); socket.disconnect(true); }
+    });
+    let expiryTimer: ReturnType<typeof setTimeout>;
+    const scheduleExpiry = async () => {
+      try {
+        const status = await SubscriptionService.status(userId);
+        if (!status.active) { socket.emit('subscription:expired'); socket.disconnect(true); return; }
+        if (socket.connected) expiryTimer = setTimeout(scheduleExpiry, Math.min(2147483647, Math.max(1, Date.parse(status.expiresAt!) - Date.now())));
+      } catch { socket.disconnect(true); }
+    };
+    void scheduleExpiry();
+    socket.on('disconnect', () => clearTimeout(expiryTimer));
     socket.join(`user:${userId}`);
     // Lets logout disconnect exactly the sockets opened with the revoked session.
     socket.join(`session:${socket.data.sessionId}`);

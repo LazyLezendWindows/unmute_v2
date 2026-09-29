@@ -34,7 +34,7 @@ export class AuthService {
    * first call (no code) only checks the details and answers `requiresPhoneCode`; the client then
    * texts a code (POST /auth/phone/start) and repeats the call with it, which links the number.
    */
-  static async register(input: RegisterInput): Promise<string | { requiresPhoneCode: true }> {
+  static async register(input: RegisterInput, beforeCreate?: () => Promise<void>): Promise<string | { requiresPhoneCode: true }> {
     if (!isAtLeast18YearsOld(input.dateOfBirth)) {
       throw new AppError('You must be at least 18 years of age to join Unmute', 400);
     }
@@ -54,6 +54,7 @@ export class AuthService {
     }
     const phoneCode = phone && code ? await PhoneAuthService.checkCode(phone, code) : null;
 
+    await beforeCreate?.();
     const passwordHash = await bcrypt.hash(input.password, 12);
     return db.transaction(async (tx) => {
       if (phoneCode && !(await PhoneCodeRepository.consume(tx, phoneCode.id))) {
@@ -84,7 +85,7 @@ export class AuthService {
    * Signs in with a Google ID token. Identity comes exclusively from the verified token.
    * New users must supply a date of birth (18+); the client re-sends the same credential with it.
    */
-  static async googleAuth(input: GoogleAuthInput): Promise<GoogleAuthResult> {
+  static async googleAuth(input: GoogleAuthInput, beforeCreate?: () => Promise<void>): Promise<GoogleAuthResult> {
     const identity = await verifyGoogleCredential(input.credential);
     const db = getDatabase();
 
@@ -109,6 +110,7 @@ export class AuthService {
       return { requiresDob: false, isNewUser: false, userId: existing.id };
     }
 
+    await beforeCreate?.();
     // 3. New user: the 18+ policy requires a date of birth before an account is created.
     if (!input.dateOfBirth) {
       return {

@@ -87,7 +87,7 @@ export class PhoneAuthService {
    * birth (18+), so the first answer for it is `requiresProfile` and the code stays valid for the
    * follow-up request, as with Google sign-up.
    */
-  static async verify(input: PhoneVerifyInput): Promise<PhoneAuthResult> {
+  static async verify(input: PhoneVerifyInput, beforeCreate?: () => Promise<void>): Promise<PhoneAuthResult> {
     const { phone } = input;
     const active = await PhoneAuthService.checkCode(phone, input.code);
 
@@ -101,6 +101,7 @@ export class PhoneAuthService {
       return { requiresProfile: false, isNewUser: false, userId: linked.id };
     }
 
+    await beforeCreate?.();
     if (!input.displayName || !input.dateOfBirth) {
       return { requiresProfile: true };
     }

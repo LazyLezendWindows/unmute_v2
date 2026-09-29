@@ -1,3 +1,4 @@
+import { useSubscriptionStore } from '../stores/subscription';
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { begin } from '../services/activity';
@@ -132,6 +133,12 @@ const router = createRouter({
       component: () => import('../pages/AppearancePage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/upgrade',
+      name: 'upgrade',
+      component: () => import('../pages/UpgradePage.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 
@@ -162,6 +169,10 @@ router.beforeEach(async (to) => {
   }
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return '/discover';
+  }
+  if (to.meta.requiresAuth && !['upgrade', 'safety', 'settings', 'settings-appearance'].includes(String(to.name))) {
+    try { if (!(await useSubscriptionStore().fetchStatus()).active) return '/upgrade'; }
+    catch { return '/upgrade'; }
   }
   return true;
 });

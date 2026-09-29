@@ -1,3 +1,4 @@
+import { getDatabase } from '../src/config/database';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
 import { AddressInfo } from 'net';
@@ -16,7 +17,7 @@ async function signUp(email: string, displayName: string) {
   const res = await request(app)
     .post('/api/v1/auth/register')
     .send({ email, password: 'Password123!', displayName, dateOfBirth: '1995-01-01' });
-  const cookie = ([] as string[]).concat(res.headers['set-cookie'])[0].split(';')[0];
+  const cookie = ([] as string[]).concat(res.headers['set-cookie']).find(c => c.startsWith('unmute_session='))!.split(';')[0];
   return { id: res.body.data.user.id as string, cookie };
 }
 
@@ -184,6 +185,16 @@ describe('Realtime chat authorization', () => {
       .send({ content: 'after unblock' });
     expect(sent.status).toBe(201);
     expect(await received).toBeNull();
+  });
+
+  it('rejects expired access and disconnects an idle socket when its trial ends', async () => {
+    await getDatabase().run('UPDATE subscriptions SET trial_started_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 8 DAY) WHERE user_id = ?', [outsider.id]);
+    await expect(openSocket(outsider.cookie)).rejects.toThrow(/upgrade/);
+    await getDatabase().run('UPDATE subscriptions SET trial_started_at = DATE_ADD(DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY), INTERVAL 2 SECOND) WHERE user_id = ?', [outsider.id]);
+    const expiring = await openSocket(outsider.cookie);
+    const disconnected = new Promise(resolve => expiring.once('disconnect', resolve));
+    await expect(disconnected).resolves.toBeDefined();
+    expect(expiring.connected).toBe(false);
   });
 
   it('disconnects sockets belonging to a session when it logs out', async () => {

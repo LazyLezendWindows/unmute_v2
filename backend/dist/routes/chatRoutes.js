@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const chatController_1 = require("../controllers/chatController");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const common_1 = require("../validators/common");
+const chatValidator_1 = require("../validators/chatValidator");
+const router = (0, express_1.Router)();
+router.use(auth_1.requireAuth);
+router.get('/', chatController_1.ChatController.getConversations);
+router.get('/call-config', chatController_1.ChatController.iceServers);
+router.get('/:id/messages', (0, validate_1.validateParams)(common_1.idParamsSchema), (0, validate_1.validateQuery)((0, common_1.paginationSchema)(50, 100)), chatController_1.ChatController.getMessages);
+router.post('/:id/messages', (0, validate_1.validateParams)(common_1.idParamsSchema), (0, validate_1.validateBody)(chatValidator_1.sendMessageSchema), chatController_1.ChatController.sendMessage);
+exports.default = router;

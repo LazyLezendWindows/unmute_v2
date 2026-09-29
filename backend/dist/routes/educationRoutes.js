@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const educationController_1 = require("../controllers/educationController");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const common_1 = require("../validators/common");
+const educationValidator_1 = require("../validators/educationValidator");
+const router = (0, express_1.Router)();
+router.use(auth_1.requireAuth);
+router.get('/institutions', (0, validate_1.validateQuery)(educationValidator_1.institutionSearchQuerySchema), educationController_1.EducationController.searchInstitutions);
+router.get('/institutions/:id', (0, validate_1.validateParams)(common_1.idParamsSchema), educationController_1.EducationController.getInstitution);
+exports.default = router;

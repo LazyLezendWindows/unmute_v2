@@ -1,3 +1,4 @@
+import { notifySubscriptionRequired } from './api';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_ORIGIN } from '../config';
 
@@ -22,6 +23,8 @@ export function connectSocket(): Socket {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10_000,
   });
+
+  socket.on('subscription:expired', notifySubscriptionRequired);
 
   socket.on('connect_error', (err) => {
     // A rejected handshake (signed out) is final; network failures are retried automatically.

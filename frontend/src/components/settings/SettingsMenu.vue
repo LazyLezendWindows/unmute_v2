@@ -1,6 +1,7 @@
 <template>
   <div class="d-flex flex-column gap-3">
     <nav class="menu-list" aria-label="Settings">
+      <router-link to="/upgrade" class="menu-row"><i class="ri-vip-crown-line" aria-hidden="true"></i><span class="menu-text"><span class="menu-title">Membership &amp; upgrade</span><span class="menu-sub">View your trial and plans</span></span><i class="ri-arrow-right-s-line menu-chevron" aria-hidden="true"></i></router-link>
       <router-link to="/profile/edit" class="menu-row">
         <i class="ri-user-3-line" aria-hidden="true"></i>
         <span class="menu-text"><span class="menu-title">Account</span><span class="menu-sub text-truncate">{{ authStore.user?.email || authStore.user?.phone }}</span></span>

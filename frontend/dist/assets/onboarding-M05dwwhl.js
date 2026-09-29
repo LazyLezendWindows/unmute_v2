@@ -1,0 +1,1 @@
+const o=["/verify","/profile/interests","/profile/photos","/profile/location"],t=`${o[0]}?setup=1`;function r(n){return n<o.length?`${o[n]}?setup=${n+1}`:"/discover"}function e(n){return n>1?`${o[n-2]}?setup=${n-1}`:null}const s=["Verify","Interests","Photos","Location"];export{t as O,s as S,o as a,r as n,e as p};

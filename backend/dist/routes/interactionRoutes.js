@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const interactionController_1 = require("../controllers/interactionController");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const interactionValidator_1 = require("../validators/interactionValidator");
+const router = (0, express_1.Router)();
+router.use(auth_1.requireAuth);
+router.post('/like', (0, validate_1.validateBody)(interactionValidator_1.interactionSchema), interactionController_1.InteractionController.like);
+router.post('/pass', (0, validate_1.validateBody)(interactionValidator_1.interactionSchema), interactionController_1.InteractionController.pass);
+exports.default = router;
