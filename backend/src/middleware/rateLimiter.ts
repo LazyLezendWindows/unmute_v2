@@ -3,7 +3,8 @@ import { AuthRequest } from './auth';
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 attempts per window
+  // 50 attempts per window; the test suite signs up many accounts from one address, so it raises this.
+  max: Number(process.env.AUTH_RATE_LIMIT) || 50,
   message: {
     success: false,
     error: 'Too many authentication attempts. Please try again in 15 minutes.',
@@ -15,7 +16,7 @@ export const authRateLimiter = rateLimit({
 /** Each code request sends a paid SMS, so these are capped per client well below other sign-in calls. */
 export const smsRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10,
+  max: Number(process.env.SMS_RATE_LIMIT) || 10,
   message: {
     success: false,
     error: 'Too many code requests. Please try again later.',
@@ -38,7 +39,7 @@ export const phoneVerifyRateLimiter = rateLimit({
 
 export const apiRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 300, // 300 requests per minute
+  max: Number(process.env.API_RATE_LIMIT) || 300, // 300 requests per minute
   message: {
     success: false,
     error: 'Too many requests. Please slow down.',

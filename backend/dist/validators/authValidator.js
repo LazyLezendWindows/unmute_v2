@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.phoneVerifySchema = exports.phoneStartSchema = exports.phoneLinkSchema = exports.googleAuthSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.phoneVerifySchema = exports.phoneStartSchema = exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.phoneLinkSchema = exports.googleAuthSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const age_1 = require("../utils/age");
 /**
@@ -60,6 +60,14 @@ exports.googleAuthSchema = zod_1.z
     .strict();
 exports.phoneLinkSchema = zod_1.z
     .object({ phone: phoneNumber, code: zod_1.z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS') })
+    .strict();
+exports.forgotPasswordSchema = zod_1.z.object({ email: zod_1.z.string().email('Please enter a valid email address') }).strict();
+exports.resetPasswordSchema = zod_1.z
+    .object({
+    email: zod_1.z.string().email('Please enter a valid email address'),
+    code: zod_1.z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS'),
+    password: zod_1.z.string().min(8, 'Password must be at least 8 characters long').max(100, 'Password is too long'),
+})
     .strict();
 exports.phoneStartSchema = zod_1.z.object({ phone: phoneNumber }).strict();
 // Name and date of birth are only needed (and only accepted) to create an account for a new number.

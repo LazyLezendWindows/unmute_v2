@@ -1,4 +1,3 @@
-import { SubscriptionService } from '../services/subscriptionService';
 import { Server, Socket } from 'socket.io';
 import { ConversationRepository } from '../repositories/conversationRepository';
 import { ChatService } from '../services/chatService';
@@ -62,7 +61,6 @@ export function registerCallSignals(io: Server, socket: Socket, userId: string):
     try {
       const conv = await ConversationRepository.findForParticipant(conversationId, userId);
       if (!conv || conv.blocked) return;
-      if (type === 'invite' || type === 'accept') await SubscriptionService.requireAccess(conv.other_user_id);
       track(conversationId, userId, conv.other_user_id, type as SignalType, payload);
       socket.to(`user:${conv.other_user_id}`).emit('call:signal', { conversationId, from: userId, type, payload });
       // Your other open tabs stop ringing once one of them answers or declines.

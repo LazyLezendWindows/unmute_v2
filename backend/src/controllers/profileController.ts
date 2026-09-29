@@ -38,6 +38,15 @@ export class ProfileController {
     }
   }
 
+  static async uploadVoice(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const url = await MediaService.saveVoice(req.user!.userId, req.body);
+      res.status(201).json({ success: true, data: { url } });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getInterests(_req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const interests = await ProfileService.getAllInterests();

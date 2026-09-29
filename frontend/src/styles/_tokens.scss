@@ -195,3 +195,23 @@ $brand-text-muted: #7373ad; // secondary text
 [data-theme='dark'] {
   @include spatial-dark;
 }
+
+// Clearer edges on small screens, where translucent hairlines are hard to see.
+@media (max-width: 767px) {
+  :root,
+  [data-theme='light'] {
+    --unmute-glass-border: #c8b5d0;
+    --unmute-glass-border-hover: #a67bb8;
+    --unmute-input-border: #b99ac6;
+    --unmute-mobile-option-border: #c8b5d0;
+    --unmute-mobile-selected-border: var(--unmute-cta);
+  }
+
+  [data-theme='dark'] {
+    --unmute-glass-border: #856b96;
+    --unmute-glass-border-hover: #c29bd8;
+    --unmute-input-border: #a184b2;
+    --unmute-mobile-option-border: #856b96;
+    --unmute-mobile-selected-border: var(--unmute-cta);
+  }
+}

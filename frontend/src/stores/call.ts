@@ -56,6 +56,8 @@ export const useCallStore = defineStore('call', () => {
 
   const inCall = computed(() => status.value !== 'idle' && status.value !== 'ended');
 
+  let generation = 0;
+  let connectTimer: ReturnType<typeof setTimeout> | undefined;
   let pc: RTCPeerConnection | null = null;
   let pendingIce: RTCIceCandidateInit[] = [];
   let ringTimer: ReturnType<typeof setTimeout> | undefined;
@@ -145,7 +147,6 @@ export const useCallStore = defineStore('call', () => {
         audio: { echoCancellation: true, noiseSuppression: true },
         video: mode.value === 'video' ? { facingMode: facing.value, width: { ideal: 1280 }, height: { ideal: 720 } } : false,
       });
-      cameraTrack = stream.getVideoTracks()[0] ?? null;
       return stream;
     } catch (err: any) {
       if (err?.name === 'NotAllowedError') {
@@ -158,13 +159,16 @@ export const useCallStore = defineStore('call', () => {
     }
   }
 
-  async function createPeer() {
-    pc = new RTCPeerConnection({ iceServers: await loadIceServers() });
+  async function createPeer(attempt = generation) {
+    const servers = await loadIceServers();
+    if (attempt !== generation || !inCall.value) return false;
+    pc = new RTCPeerConnection({ iceServers: servers });
     const remote = new MediaStream();
     remoteStream.value = remote;
     localStream.value?.getTracks().forEach((track) => pc!.addTrack(track, localStream.value!));
     pc.ontrack = (event) => {
-      event.streams[0]?.getTracks().forEach((t) => remote.getTracks().includes(t) || remote.addTrack(t));
+      const tracks = event.streams[0]?.getTracks() ?? [event.track];
+      tracks.forEach((t) => remote.getTracks().includes(t) || remote.addTrack(t));
       // A new object so the screen's watcher re-attaches it.
       remoteStream.value = new MediaStream(remote.getTracks());
     };
@@ -174,12 +178,35 @@ export const useCallStore = defineStore('call', () => {
     pc.onconnectionstatechange = () => {
       const state = pc?.connectionState;
       if (state === 'connected' && status.value !== 'active') {
+        clearTimeout(connectTimer);
         status.value = 'active';
         startedAt.value = Date.now();
       } else if (state === 'failed') {
+        send('end');
         finish("The call couldn't connect. Check your connection and try again.", true);
       }
     };
+    return true;
+  }
+
+  function watchConnection() {
+    clearTimeout(connectTimer);
+    connectTimer = setTimeout(() => {
+      if (status.value !== 'connecting') return;
+      send('end');
+      finish("The call could not connect. Please try again on another network.", true);
+    }, 30000);
+  }
+
+  async function acquireMedia(attempt: number) {
+    const stream = await openMedia();
+    if (attempt !== generation || !inCall.value) {
+      stream.getTracks().forEach(track => track.stop());
+      return false;
+    }
+    localStream.value = stream;
+    cameraTrack = stream.getVideoTracks()[0] ?? null;
+    return true;
   }
 
   async function flushIce() {
@@ -194,14 +221,13 @@ export const useCallStore = defineStore('call', () => {
     conversationId.value = id;
     mode.value = callMode;
     status.value = 'outgoing';
+    const attempt = generation;
     try {
-      localStream.value = await openMedia();
+      if (!(await acquireMedia(attempt))) return;
+      if (!getSocket()?.connected) throw new Error("You're offline. Reconnect and try again.");
+      if (!(await createPeer(attempt))) return;
     } catch (err: any) {
-      finish(err.message, false);
-      return;
-    }
-    if (!getSocket()?.connected) {
-      finish("You're offline. Reconnect and try again.", false);
+      if (attempt === generation) finish(err.message || 'Unable to start the call.', true);
       return;
     }
     send('invite', { mode: callMode });
@@ -218,14 +244,19 @@ export const useCallStore = defineStore('call', () => {
     if (status.value !== 'incoming') return;
     clearTimeout(ringTimer);
     status.value = 'connecting';
+    const attempt = generation;
+    watchConnection();
     try {
-      localStream.value = await openMedia();
+      if (!(await acquireMedia(attempt))) return;
+      if (!getSocket()?.connected) throw new Error("You're offline. Reconnect and try again.");
+      if (!(await createPeer(attempt))) return;
     } catch (err: any) {
-      send('decline');
-      finish(err.message, false);
+      if (attempt === generation) {
+        send('decline');
+        finish(err.message || 'Unable to answer the call.', true);
+      }
       return;
     }
-    await createPeer();
     send('accept');
   }
 
@@ -267,7 +298,9 @@ export const useCallStore = defineStore('call', () => {
         if (status.value !== 'outgoing') return;
         clearTimeout(ringTimer);
         status.value = 'connecting';
-        await createPeer();
+        watchConnection();
+        // Peer was already created in start(); just make the offer.
+        if (!pc) await createPeer();
         const offer = await pc!.createOffer();
         await pc!.setLocalDescription(offer);
         send('offer', offer);
@@ -357,14 +390,20 @@ export const useCallStore = defineStore('call', () => {
 
   /** Ends the call locally; `reason` is shown on the call screen, and `toast` also announces it elsewhere. */
   function finish(reason: string, toast: boolean) {
+    generation++;
+    clearTimeout(connectTimer);
     clearTimeout(ringTimer);
     stopMedia();
+    localStream.value = null;
+    remoteStream.value = null;
     endReason.value = reason;
     status.value = reason ? 'ended' : 'idle';
     if (toast && reason) useToastStore().error(reason);
   }
 
   function reset() {
+    generation++;
+    clearTimeout(connectTimer);
     stopMedia();
     clearTimeout(ringTimer);
     status.value = 'idle';
@@ -379,12 +418,27 @@ export const useCallStore = defineStore('call', () => {
     effect.value = 'none';
   }
 
+  function handleSignal(signal: Signal) {
+    const attempt = generation;
+    void onSignal(signal).catch(() => {
+      if (attempt !== generation || !inCall.value) return;
+      send('end');
+      finish('The call connection failed. Please try again.', true);
+    });
+  }
+
+  function handleDisconnect() {
+    if (inCall.value) finish('Connection lost. Please reconnect and call again.', true);
+  }
+
   /** Listens for calls on the current socket; safe to call again after a reconnect or new sign-in. */
   function bindSocket() {
     const socket = getSocket();
     if (!socket || socket === boundSocket) return;
-    boundSocket?.off('call:signal', onSignal);
-    socket.on('call:signal', onSignal);
+    boundSocket?.off('call:signal', handleSignal);
+    boundSocket?.off('disconnect', handleDisconnect);
+    socket.on('call:signal', handleSignal);
+    socket.on('disconnect', handleDisconnect);
     boundSocket = socket;
   }
 

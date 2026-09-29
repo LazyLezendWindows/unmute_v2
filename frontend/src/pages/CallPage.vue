@@ -1,8 +1,9 @@
 <template>
   <div class="call-screen" :style="backdropStyle">
     <!-- Their camera, full screen, once it arrives; their photo shows until then -->
-    <video v-show="showRemoteVideo" ref="remoteVideo" class="remote-video" autoplay playsinline></video>
-    <audio v-if="!isVideo" ref="remoteAudio" autoplay></audio>
+    <video v-show="showRemoteVideo" ref="remoteVideo" class="remote-video" autoplay playsinline muted></video>
+    <audio ref="remoteAudio" autoplay></audio>
+    <button v-if="playbackBlocked" type="button" class="playback-retry" @click="playRemote">Tap to hear the call</button>
     <div class="call-shade" aria-hidden="true"></div>
 
     <div class="call-top">
@@ -175,6 +176,14 @@ const backdropStyle = computed(() =>
   isVideo.value && other.value?.avatarUrl ? photoBackground(other.value.avatarUrl) : {}
 );
 
+const playbackBlocked = ref(false);
+async function playRemote() {
+  const audio = remoteAudio.value;
+  if (!audio?.srcObject) return;
+  try { await audio.play(); playbackBlocked.value = false; }
+  catch { playbackBlocked.value = true; }
+}
+
 // Streams go into the video and audio elements whenever they change (new call, flipped camera…).
 watch(
   () => [call.localStream, localVideo.value] as const,
@@ -186,7 +195,10 @@ watch(
   () => [call.remoteStream, remoteVideo.value, remoteAudio.value] as const,
   ([stream, video, audio]) => {
     if (video && video.srcObject !== stream) video.srcObject = stream;
-    if (audio && audio.srcObject !== stream) audio.srcObject = stream;
+    if (audio && audio.srcObject !== stream) {
+      audio.srcObject = stream;
+      if (stream) void playRemote();
+    }
   }
 );
 
@@ -209,6 +221,7 @@ watch(
 
 onMounted(async () => {
   clock = setInterval(() => (now.value = Date.now()), 1000);
+  call.bindSocket();
   if (!other.value) await chatStore.loadConversations();
   if (!other.value) {
     router.replace('/chat');
@@ -220,9 +233,12 @@ onMounted(async () => {
     await call.start(conversationId.value, mode);
   }
   await nextTick();
-  if (localVideo.value) localVideo.value.srcObject = call.localStream;
-  if (remoteVideo.value) remoteVideo.value.srcObject = call.remoteStream;
-  if (remoteAudio.value) remoteAudio.value.srcObject = call.remoteStream;
+  if (localVideo.value && call.localStream) localVideo.value.srcObject = call.localStream;
+  if (remoteVideo.value && call.remoteStream) remoteVideo.value.srcObject = call.remoteStream;
+  if (remoteAudio.value && call.remoteStream) {
+    remoteAudio.value.srcObject = call.remoteStream;
+    void playRemote();
+  }
 });
 
 onBeforeUnmount(() => {
@@ -259,14 +275,15 @@ let outputIndex = 0;
 async function toggleSpeaker() {
   const el = (remoteAudio.value ?? remoteVideo.value) as SinkElement | null;
   if (!el) return;
-  const outputs = el.setSinkId
+  const canPick = typeof el.setSinkId === 'function' && 'setSinkId' in HTMLMediaElement.prototype;
+  const outputs = canPick
     ? (await navigator.mediaDevices.enumerateDevices().catch(() => [])).filter((d) => d.kind === 'audiooutput' && d.deviceId !== 'communications')
     : [];
-  if (outputs.length > 1 && el.setSinkId) {
+  if (outputs.length > 1 && canPick) {
     outputIndex = (outputIndex + 1) % outputs.length;
     const device = outputs[outputIndex];
     try {
-      await el.setSinkId(device.deviceId);
+      await el.setSinkId!(device.deviceId);
       speaker.value = outputIndex === 0;
       useToastStore().show(`Sound: ${device.label || (outputIndex === 0 ? 'Default output' : `Output ${outputIndex + 1}`)}`);
       return;
@@ -298,6 +315,19 @@ function afterBlock() {
 </script>
 
 <style scoped lang="scss">
+.playback-retry {
+  position: absolute;
+  top: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: .75rem 1rem;
+  border: 2px solid white;
+  border-radius: 2rem;
+  background: #79006e;
+  color: white;
+}
+
 .call-screen {
   position: fixed;
   inset: 0;

@@ -35,6 +35,13 @@ export async function uploadPhoto(file: File): Promise<string> {
   return res.data.data.url;
 }
 
+/** Uploads a voice recording and returns its URL, for a voice message. */
+export async function uploadVoice(blob: Blob): Promise<string> {
+  const type = (blob.type || 'audio/webm').split(';')[0];
+  const res = await api.post('/users/me/voice', blob, { headers: { 'Content-Type': type } });
+  return res.data.data.url;
+}
+
 /** Main photo first, then the gallery; empty links dropped. */
 export function photosOf(person: { avatarUrl?: string; photos?: string[] }): string[] {
   return [person.avatarUrl || '', ...(person.photos || [])].filter(Boolean);

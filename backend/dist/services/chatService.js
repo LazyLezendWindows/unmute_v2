@@ -11,6 +11,7 @@ const profileRepository_1 = require("../repositories/profileRepository");
 const interestRepository_1 = require("../repositories/interestRepository");
 const notificationService_1 = require("./notificationService");
 const pushService_1 = require("./pushService");
+const mediaService_1 = require("./mediaService");
 /** 5:12, or 1:02:09 for an hour or more. */
 function formatDuration(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -99,18 +100,23 @@ class ChatService {
         }
         return message;
     }
-    static async sendMessage(conversationId, senderId, content) {
+    static async sendMessage(conversationId, senderId, content, kind = 'text') {
         const conv = await this.requireAccessible(conversationId, senderId, 'You cannot message this user');
-        const message = (0, messageMapper_1.toMessage)(await messageRepository_1.MessageRepository.insert(conversationId, senderId, content));
+        if (kind !== 'text' && !mediaService_1.MediaService.isOwnUploadOfKind(content, senderId, kind)) {
+            throw new errorHandler_1.AppError(kind === 'image' ? 'Upload the photo before sending it.' : 'Record the voice message before sending it.', 400);
+        }
+        const message = (0, messageMapper_1.toMessage)(await messageRepository_1.MessageRepository.insert(conversationId, senderId, content, undefined, kind));
+        // Notifications show a label, not the file link.
+        const preview = kind === 'image' ? '📷 Photo' : kind === 'voice' ? '🎤 Voice message' : content;
         await conversationRepository_1.ConversationRepository.touch(conversationId, message.createdAt);
         const io = (0, chatSocket_1.getSocketServer)();
         if (io) {
             io.to(`conversation:${conversationId}`).emit('new_message', message);
             io.to(`user:${conv.other_user_id}`).emit('message_notification', { conversationId, message });
         }
-        await notificationService_1.NotificationService.messageReceived(conv.other_user_id, senderId, conversationId, content);
+        await notificationService_1.NotificationService.messageReceived(conv.other_user_id, senderId, conversationId, preview);
         profileRepository_1.ProfileRepository.findByUserIds([senderId])
-            .then((profiles) => pushService_1.PushService.message(conv.other_user_id, profiles.get(senderId)?.display_name || 'New message', conversationId, content.slice(0, 120)))
+            .then((profiles) => pushService_1.PushService.message(conv.other_user_id, profiles.get(senderId)?.display_name || 'New message', conversationId, preview.slice(0, 120)))
             .catch(() => undefined);
         return message;
     }

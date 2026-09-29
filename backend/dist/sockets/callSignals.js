@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerCallSignals = registerCallSignals;
 exports.resetCalls = resetCalls;
-const subscriptionService_1 = require("../services/subscriptionService");
 const conversationRepository_1 = require("../repositories/conversationRepository");
 const chatService_1 = require("../services/chatService");
 const pushService_1 = require("../services/pushService");
@@ -56,8 +55,6 @@ function registerCallSignals(io, socket, userId) {
             const conv = await conversationRepository_1.ConversationRepository.findForParticipant(conversationId, userId);
             if (!conv || conv.blocked)
                 return;
-            if (type === 'invite' || type === 'accept')
-                await subscriptionService_1.SubscriptionService.requireAccess(conv.other_user_id);
             track(conversationId, userId, conv.other_user_id, type, payload);
             socket.to(`user:${conv.other_user_id}`).emit('call:signal', { conversationId, from: userId, type, payload });
             // Your other open tabs stop ringing once one of them answers or declines.

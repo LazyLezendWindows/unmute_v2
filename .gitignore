@@ -1,0 +1,7 @@
+# Secrets and private files that must never be committed.
+# Push-notification signing key (made automatically in development).
+backend/data/vapid.json
+# Verification selfies and ID photos awaiting review.
+backend/data/private/
+# Local environment settings (keys and passwords).
+backend/.env

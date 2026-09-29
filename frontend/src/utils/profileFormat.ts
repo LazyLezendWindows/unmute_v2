@@ -1,4 +1,3 @@
-import { useToastStore } from '../stores/toast';
 import { EducationLevel, Lifestyle, ProfessionField } from '../types';
 
 export const LIFESTYLE_OPTIONS = {
@@ -21,11 +20,6 @@ export const LIFESTYLE_OPTIONS = {
 
 /** What members can say they are looking for (the backend filters on these exact values). */
 export const LOOKING_FOR = ['Serious Relationship', 'Long Term', 'Friendship', 'Casual Dating', 'Just Chat'] as const;
-
-/** For buttons the mockups show but the app can't do yet (calls, voice notes, super likes…). */
-export function comingSoon(feature: string): void {
-  useToastStore().show(`${feature} is coming soon.`);
-}
 
 export const EDUCATION_LEVELS: { value: EducationLevel; label: string }[] = [
   { value: 'high_school', label: 'High School' },

@@ -1,6 +1,7 @@
 import { notifySubscriptionRequired } from './api';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_ORIGIN } from '../config';
+import { useCallStore } from '../stores/call';
 
 let socket: Socket | null = null;
 
@@ -22,6 +23,10 @@ export function connectSocket(): Socket {
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10_000,
+  });
+
+  socket.on('connect', () => {
+    useCallStore().bindSocket();
   });
 
   socket.on('subscription:expired', notifySubscriptionRequired);

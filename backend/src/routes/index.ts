@@ -12,12 +12,14 @@ import safetyRoutes from './safetyRoutes';
 import locationRoutes from './locationRoutes';
 import educationRoutes from './educationRoutes';
 import notificationRoutes from './notificationRoutes';
+import adminRoutes from './adminRoutes';
 
 const apiRouter = Router();
 
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/subscriptions', subscriptionRoutes);
 apiRouter.use('/safety', safetyRoutes);
+apiRouter.use('/admin', adminRoutes);
 apiRouter.use(['/users', '/discover', '/interactions', '/matches', '/conversations', '/locations', '/education', '/notifications'], requireAuth, requireAccess);
 apiRouter.use('/users', profileRoutes);
 apiRouter.use('/discover', discoverRoutes);

@@ -586,6 +586,160 @@ describe('Unmute API', () => {
     });
   });
 
+  describe('Likes lists', () => {
+    it('lists who you liked and who liked you until it becomes a match', async () => {
+      const me = await registerAgent('likes-me@example.com', 'Me');
+      const fan = await registerAgent('likes-fan@example.com', 'Fan');
+      const crush = await registerAgent('likes-crush@example.com', 'Crush');
+      await fan.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id });
+      await me.agent.post('/api/v1/interactions/like').send({ targetUserId: crush.id });
+
+      const ids = async (path: string) => (await me.agent.get(`/api/v1/interactions/${path}`)).body.data.map((p: any) => p.id);
+      expect(await ids('likes-received')).toEqual([fan.id]);
+      expect(await ids('liked')).toEqual([crush.id]);
+
+      // Liking back makes a match, so both lists empty out.
+      await me.agent.post('/api/v1/interactions/like').send({ targetUserId: fan.id });
+      await crush.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id });
+      expect(await ids('likes-received')).toEqual([]);
+      expect(await ids('liked')).toEqual([]);
+    });
+  });
+
+  describe('Super Likes, Rewind and password reset', () => {
+    it('shows who sent a Super Like, puts it first, and limits them per day', async () => {
+      const me = await registerAgent('super-me@example.com', 'Me');
+      const fan = await registerAgent('super-fan@example.com', 'Fan');
+      const plain = await registerAgent('super-plain@example.com', 'Plain');
+      await plain.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id });
+      await fan.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id, superLike: true });
+
+      const received = (await me.agent.get('/api/v1/interactions/likes-received')).body.data;
+      expect(received.map((p: any) => [p.id, p.superLike])).toEqual([[fan.id, true], [plain.id, false]]);
+
+      const notes = (await me.agent.get('/api/v1/notifications')).body.data.items.filter((n: any) => n.type === 'like');
+      expect(notes.find((n: any) => n.preview === 'super').actor.id).toBe(fan.id);
+      expect(notes.find((n: any) => n.preview !== 'super').actor).toBeNull();
+
+      const targets = await Promise.all([1, 2, 3, 4, 5].map((n) => registerAgent(`super-t${n}@example.com`, `T${n}`)));
+      for (const t of targets.slice(0, 4)) {
+        expect((await fan.agent.post('/api/v1/interactions/like').send({ targetUserId: t.id, superLike: true })).status).toBe(200);
+      }
+      const sixth = await fan.agent.post('/api/v1/interactions/like').send({ targetUserId: targets[4].id, superLike: true });
+      expect(sixth.status).toBe(429);
+    }, 20_000); // Signs up eight accounts; password hashing is deliberately slow.
+
+    it('rewinds a recent pass so the person shows up again', async () => {
+      const me = await registerAgent('rewind-me@example.com', 'Me');
+      const other = await registerAgent('rewind-other@example.com', 'Other');
+      const feedIds = async () => (await me.agent.get('/api/v1/discover?limit=50')).body.data.map((p: any) => p.id);
+      await me.agent.post('/api/v1/interactions/pass').send({ targetUserId: other.id });
+      expect(await feedIds()).not.toContain(other.id);
+      expect((await me.agent.delete('/api/v1/interactions/pass').send({ targetUserId: other.id })).status).toBe(200);
+      expect(await feedIds()).toContain(other.id);
+      expect((await me.agent.delete('/api/v1/interactions/pass').send({ targetUserId: other.id })).status).toBe(404);
+    });
+
+    it('resets a password with an SMS code to the account\'s phone, signing out old sessions', async () => {
+      const email = 'reset-me@example.com';
+      const phone = '+919822200011';
+      const { agent } = await registerAgent(email, 'Resetter');
+      const infoSpy = vi.spyOn(console, 'info');
+      const code = () => infoSpy.mock.calls.map((c) => String(c[0])).reverse().find((l) => l.startsWith(`[SMS] to ${phone}:`))!.match(/: (\d{6}) /)![1];
+      await request(app).post('/api/v1/auth/phone/start').send({ phone });
+      expect((await agent.post('/api/v1/auth/phone/link').send({ phone, code: code() })).status).toBe(200);
+      await getDatabase().run('UPDATE phone_codes SET created_at = created_at - INTERVAL 1 MINUTE WHERE phone = ?', [phone]);
+
+      // Unknown emails get the same answer, so nobody can test which emails are registered.
+      expect((await request(app).post('/api/v1/auth/password/forgot').send({ email: 'nobody@example.com' })).body).toEqual({ success: true, data: {} });
+      expect((await request(app).post('/api/v1/auth/password/forgot').send({ email })).status).toBe(200);
+
+      const reset = await request(app).post('/api/v1/auth/password/reset').send({ email, code: code(), password: 'NewPassword456!' });
+      expect(reset.status).toBe(200);
+      expect((await agent.get('/api/v1/auth/me')).status).toBe(401);
+      expect((await request(app).post('/api/v1/auth/login').send({ email, password: 'NewPassword456!' })).status).toBe(200);
+      expect((await request(app).post('/api/v1/auth/login').send({ email, password: 'Password123!' })).status).toBe(401);
+    });
+  });
+
+  describe('Photo and voice messages', () => {
+    it('sends your own uploaded photo or recording, never someone else\'s file', async () => {
+      const a = await registerAgent('media-a@example.com', 'MediaA');
+      const b = await registerAgent('media-b@example.com', 'MediaB');
+      await a.agent.post('/api/v1/interactions/like').send({ targetUserId: b.id });
+      const conversationId = (await b.agent.post('/api/v1/interactions/like').send({ targetUserId: a.id })).body.data.conversationId;
+
+      const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+      const photo = (await a.agent.post('/api/v1/users/me/photos').set('Content-Type', 'image/png').send(png)).body.data.url;
+      const webm = Buffer.concat([Buffer.from('1a45dfa3', 'hex'), Buffer.alloc(32)]);
+      const voice = await a.agent.post('/api/v1/users/me/voice').set('Content-Type', 'audio/webm').send(webm);
+      expect(voice.status).toBe(201);
+
+      const sent = await a.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: photo, kind: 'image' });
+      expect(sent.status).toBe(201);
+      expect(sent.body.data.kind).toBe('image');
+      expect((await a.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: voice.body.data.url, kind: 'voice' })).status).toBe(201);
+
+      // B can't pass A's upload off as their own, and a photo can't be sent as a voice message.
+      expect((await b.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: photo, kind: 'image' })).status).toBe(400);
+      expect((await a.agent.post(`/api/v1/conversations/${conversationId}/messages`).send({ content: photo, kind: 'voice' })).status).toBe(400);
+      expect((await a.agent.post('/api/v1/users/me/voice').set('Content-Type', 'audio/webm').send(png)).status).toBe(415);
+
+      const notes = (await b.agent.get('/api/v1/notifications')).body.data.items;
+      expect(notes.find((n: any) => n.type === 'message').preview).toBe('🎤 Voice message');
+    });
+  });
+
+  describe('Email, selfie and ID verification', () => {
+    const emailCode = (spy: ReturnType<typeof vi.spyOn>, to: string) =>
+      spy.mock.calls.map((c) => String(c[0])).reverse().find((l) => l.startsWith(`[Email] to ${to}:`))!.match(/code is (\d{6})/)![1];
+
+    it('verifies an email with a code, and refuses an address owned by someone else', async () => {
+      const spy = vi.spyOn(console, 'info');
+      const { agent } = await registerAgent('verify-mail@example.com', 'Mailer');
+      expect((await agent.post('/api/v1/users/me/verification/email/start').send({})).status).toBe(200);
+      const wrong = await agent.post('/api/v1/users/me/verification/email/confirm').send({ email: 'verify-mail@example.com', code: '000000' });
+      expect(wrong.status).toBe(400);
+      const ok = await agent.post('/api/v1/users/me/verification/email/confirm').send({ email: 'verify-mail@example.com', code: emailCode(spy, 'verify-mail@example.com') });
+      expect(ok.status).toBe(200);
+      expect(ok.body.data.email).toEqual({ address: 'verify-mail@example.com', verified: true });
+      expect((await agent.post('/api/v1/users/me/verification/email/start').send({ email: 'alice@example.com' })).status).toBe(409);
+    });
+
+    it('sends selfies and IDs to moderators privately, and approval verifies the profile', async () => {
+      const member = await registerAgent('verify-selfie@example.com', 'Selfie');
+      const mod = await registerAgent('moderator@example.com', 'Mod');
+      const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+
+      const { requestId, gesture } = (await member.agent.post('/api/v1/users/me/verification/selfie/start')).body.data;
+      expect(gesture).toBeTruthy();
+      const sent = await member.agent.post(`/api/v1/users/me/verification/selfie/${requestId}`).set('Content-Type', 'image/png').send(png);
+      expect(sent.status).toBe(201);
+      expect(sent.body.data.selfie.status).toBe('pending');
+      expect((await member.agent.post('/api/v1/users/me/verification/id').set('Content-Type', 'image/png').send(png)).status).toBe(201);
+
+      // Only moderators see the queue and the private images; to others it doesn't exist.
+      expect((await member.agent.get('/api/v1/admin/verifications')).status).toBe(404);
+      const queue = (await mod.agent.get('/api/v1/admin/verifications')).body.data.filter((r: any) => r.user.id === member.id);
+      expect(queue.map((r: any) => r.kind).sort()).toEqual(['id', 'selfie']);
+      const selfie = queue.find((r: any) => r.kind === 'selfie');
+      expect(selfie.gesture).toBe(gesture);
+      expect((await mod.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(200);
+      expect((await member.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(404);
+
+      await mod.agent.post(`/api/v1/admin/verifications/${selfie.id}/decision`).send({ approve: true });
+      const idReq = queue.find((r: any) => r.kind === 'id');
+      await mod.agent.post(`/api/v1/admin/verifications/${idReq.id}/decision`).send({ approve: false, reason: 'The photo was blurry.' });
+
+      const status = (await member.agent.get('/api/v1/users/me/verification')).body.data;
+      expect(status.selfie).toEqual({ status: 'verified', reason: null });
+      expect(status.id).toEqual({ status: 'rejected', reason: 'The photo was blurry.' });
+      expect((await member.agent.get('/api/v1/users/me')).body.data.isVerified).toBe(true);
+      // The image is deleted once reviewed.
+      expect((await mod.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(404);
+    });
+  });
+
   describe('Verified and lifestyle filters', () => {
     it('narrows discovery to verified members and to lifestyle answers', async () => {
       const viewer = await registerAgent('lifeviewer@example.com', 'Viewer');

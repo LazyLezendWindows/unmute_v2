@@ -62,6 +62,16 @@ export const phoneLinkSchema = z
   .object({ phone: phoneNumber, code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS') })
   .strict();
 
+export const forgotPasswordSchema = z.object({ email: z.string().email('Please enter a valid email address') }).strict();
+
+export const resetPasswordSchema = z
+  .object({
+    email: z.string().email('Please enter a valid email address'),
+    code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS'),
+    password: z.string().min(8, 'Password must be at least 8 characters long').max(100, 'Password is too long'),
+  })
+  .strict();
+
 export const phoneStartSchema = z.object({ phone: phoneNumber }).strict();
 
 // Name and date of birth are only needed (and only accepted) to create an account for a new number.

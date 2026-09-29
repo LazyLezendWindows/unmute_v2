@@ -10,7 +10,7 @@ function toMessage(row) {
         content: row.content,
         status: row.status,
         createdAt: row.created_at,
-        kind: row.kind === 'call' ? 'call' : 'text',
+        kind: (['call', 'image', 'voice'].includes(row.kind ?? '') ? row.kind : 'text'),
         ...(row.kind === 'call'
             ? { call: { mode: row.call_mode, outcome: row.call_outcome, seconds: row.call_seconds ?? 0 } }
             : {}),

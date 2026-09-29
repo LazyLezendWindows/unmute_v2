@@ -12,7 +12,8 @@ const PREVIEW_LENGTH = 120;
  * carries the liker; matches and messages name the other person.
  */
 function toNotification(row, profiles) {
-    const showActor = row.actor_id && row.type !== 'like';
+    // Ordinary likes stay anonymous here; a Super Like names its sender.
+    const showActor = row.actor_id && (row.type !== 'like' || row.preview === 'super');
     const actor = showActor ? (0, profileMapper_1.toPublicProfile)(row.actor_id, profiles.get(row.actor_id)) : null;
     return {
         id: row.id,
@@ -66,8 +67,9 @@ class NotificationService {
         return this.unreadCount(userId);
     }
     // ---- Producers (called by matching and chat); failures never break the action itself ----
-    static async likeReceived(likeeId, likerId) {
-        await this.deliver(likeeId, () => notificationRepository_1.NotificationRepository.insert(likeeId, 'like', { actorId: likerId }));
+    /** Ordinary likes are shown anonymously; a Super Like (preview 'super') names who sent it. */
+    static async likeReceived(likeeId, likerId, superLike = false) {
+        await this.deliver(likeeId, () => notificationRepository_1.NotificationRepository.insert(likeeId, 'like', { actorId: likerId, ...(superLike ? { preview: 'super' } : {}) }));
     }
     /**
      * Both people get a match entry; the one whose like made the match already sees the match

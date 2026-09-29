@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PushService = void 0;
+const notificationPreferences_1 = require("./notificationPreferences");
 const subscriptionService_1 = require("./subscriptionService");
 const crypto_1 = __importDefault(require("crypto"));
 const fs_1 = __importDefault(require("fs"));
@@ -46,6 +47,10 @@ function vapidKeys() {
 }
 async function sendTo(userId, payload, options = {}) {
     if (!vapidKeys() || !(await subscriptionService_1.SubscriptionService.status(userId)).active)
+        return;
+    const prefs = await (0, notificationPreferences_1.getNotificationPreferences)(userId);
+    const type = payload.type;
+    if ((type === 'call' && !prefs.calls) || (type === 'message' && !prefs.messages))
         return;
     const db = (0, database_1.getDatabase)();
     const subs = await db.query('SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?', [userId]);

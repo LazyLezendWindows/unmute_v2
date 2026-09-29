@@ -93,7 +93,7 @@
         />
         <CandidateDetails class="grid-details" :person="discoverStore.currentCandidate" @more="openSafety" />
         <div class="deck-actions grid-actions">
-          <button type="button" class="act act-undo" aria-label="Undo" @click="comingSoon('Rewind')">
+          <button type="button" class="act act-undo" aria-label="Undo" :disabled="!discoverStore.lastPassed || discoverStore.undoing" :title="discoverStore.lastPassed ? `Bring back ${discoverStore.lastPassed.displayName}` : 'Rewind your last pass'" @click="discoverStore.undoPass()">
             <i class="ri-arrow-go-back-line" aria-hidden="true"></i>
           </button>
           <button type="button" class="act act-pass" aria-label="Pass" @click="stack?.fling('left')">
@@ -102,10 +102,10 @@
           <button type="button" class="act act-like" aria-label="Like" @click="stack?.fling('right')">
             <i class="ri-heart-3-fill" aria-hidden="true"></i>
           </button>
-          <button type="button" class="act act-star" aria-label="Super like" @click="comingSoon('Super Like')">
+          <button type="button" class="act act-star" aria-label="Super like" @click="handleSuperLike">
             <i class="ri-star-fill" aria-hidden="true"></i>
           </button>
-          <button type="button" class="act act-send" aria-label="Send a message" @click="comingSoon('Messaging before you match')">
+          <button type="button" class="act act-send" aria-label="Send a message" @click="messageOpen = true">
             <i class="ri-send-plane-fill" aria-hidden="true"></i>
           </button>
         </div>
@@ -171,6 +171,20 @@
       @close="isSafetyOpen = false"
       @action-completed="onSafetyActionCompleted"
     />
+
+    <UModal :is-open="messageOpen" title="Send a Message" max-width="sm" @close="messageOpen = false">
+      <div class="prematch-info">
+        <i class="ri-heart-3-fill prematch-icon" aria-hidden="true"></i>
+        <p>You can message <strong>{{ discoverStore.currentCandidate?.displayName }}</strong> once you match.</p>
+        <p class="prematch-sub">Like their profile — if they like you back, a conversation opens automatically.</p>
+        <label class="d-block w-100 text-start">Draft a message<textarea v-model="messageDraft" class="form-control mt-2" rows="3" maxlength="1500" placeholder="What would you like to say?" /></label>
+        <p class="small mb-0">This draft is not sent. You can send messages after you both match.</p>
+      </div>
+      <template #footer>
+        <UButton variant="secondary" size="md" @click="messageOpen = false">Cancel</UButton>
+        <UButton variant="primary" size="md" @click="messageOpen = false; stack?.fling('right')">Like Instead <i class="ri-heart-3-fill ms-1"></i></UButton>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -184,12 +198,24 @@ import SafetyModal from '../components/safety/SafetyModal.vue';
 import USkeleton from '../components/ui/USkeleton.vue';
 import UEmptyState from '../components/ui/UEmptyState.vue';
 import UButton from '../components/ui/UButton.vue';
+import UModal from '../components/ui/UModal.vue';
 import { useDiscoverStore } from '../stores/discover';
-import { EDUCATION_LEVELS, LIFESTYLE_OPTIONS, PROFESSION_FIELDS, comingSoon } from '../utils/profileFormat';
+import { useToastStore } from '../stores/toast';
+import { EDUCATION_LEVELS, LIFESTYLE_OPTIONS, PROFESSION_FIELDS } from '../utils/profileFormat';
 import { useRouter } from 'vue-router';
 
 const discoverStore = useDiscoverStore();
 const router = useRouter();
+const messageOpen = ref(false);
+const messageDraft = ref('');
+
+// The star throws the card like a like; handleLike then sends it as a Super Like.
+let superNext = false;
+function handleSuperLike() {
+  if (!discoverStore.currentCandidate) return;
+  superNext = true;
+  stack.value?.fling('right');
+}
 
 function openProfile() {
   if (discoverStore.currentCandidate) router.push(`/people/${discoverStore.currentCandidate.id}`);
@@ -309,7 +335,13 @@ const behind = computed(() =>
   discoverStore.feed.slice(discoverStore.currentIndex + 1, discoverStore.currentIndex + 3)
 );
 
-function handleLike() { discoverStore.likeCurrent(); }
+async function handleLike() {
+  const person = discoverStore.currentCandidate;
+  if (!person) return;
+  if (!superNext) return discoverStore.like(person);
+  superNext = false;
+  if (await discoverStore.superLike(person)) useToastStore().success(`⭐ Super Like sent. ${person.displayName} will see it's from you.`);
+}
 function handlePass() { discoverStore.passCurrent(); }
 
 function openSafety() {
@@ -541,6 +573,7 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
 }
 
 .act-undo { color: #8a3fe4; }
+.act:disabled { opacity: 0.4; cursor: default; }
 .act-pass { color: #f0364a; }
 .act-star { color: #8a1fe0; }
 .act-send { color: #7b3fe4; }
@@ -557,5 +590,25 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
     width: 4.4rem;
     height: 4.4rem;
   }
+}
+
+.prematch-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.prematch-icon {
+  font-size: 2.8rem;
+  color: #f21872;
+}
+
+.prematch-sub {
+  font-size: 0.9rem;
+  color: var(--unmute-text-secondary);
+  margin: 0;
 }
 </style>

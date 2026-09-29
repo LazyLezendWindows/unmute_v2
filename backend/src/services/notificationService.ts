@@ -13,7 +13,8 @@ type ActorProfiles = Awaited<ReturnType<typeof ProfileRepository.findByUserIds>>
  * carries the liker; matches and messages name the other person.
  */
 function toNotification(row: NotificationRow, profiles: ActorProfiles) {
-  const showActor = row.actor_id && row.type !== 'like';
+  // Ordinary likes stay anonymous here; a Super Like names its sender.
+  const showActor = row.actor_id && (row.type !== 'like' || row.preview === 'super');
   const actor = showActor ? toPublicProfile(row.actor_id!, profiles.get(row.actor_id!)) : null;
   return {
     id: row.id,
@@ -75,8 +76,11 @@ export class NotificationService {
 
   // ---- Producers (called by matching and chat); failures never break the action itself ----
 
-  static async likeReceived(likeeId: string, likerId: string) {
-    await this.deliver(likeeId, () => NotificationRepository.insert(likeeId, 'like', { actorId: likerId }));
+  /** Ordinary likes are shown anonymously; a Super Like (preview 'super') names who sent it. */
+  static async likeReceived(likeeId: string, likerId: string, superLike = false) {
+    await this.deliver(likeeId, () =>
+      NotificationRepository.insert(likeeId, 'like', { actorId: likerId, ...(superLike ? { preview: 'super' } : {}) })
+    );
   }
 
   /**

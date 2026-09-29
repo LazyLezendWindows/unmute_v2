@@ -25,6 +25,14 @@
       </router-link>
     </nav>
 
+    <nav v-if="authStore.user?.isAdmin" class="menu-list" aria-label="Moderation">
+      <router-link to="/admin/verifications" class="menu-row">
+        <i class="ri-shield-user-line" aria-hidden="true"></i>
+        <span class="menu-text"><span class="menu-title">Review verifications</span><span class="menu-sub">Selfies and IDs waiting for a decision</span></span>
+        <i class="ri-arrow-right-s-line menu-chevron" aria-hidden="true"></i>
+      </router-link>
+    </nav>
+
     <div class="menu-list">
       <button type="button" class="menu-row is-danger" @click="handleLogout">
         <i class="ri-logout-box-r-line" aria-hidden="true"></i>

@@ -10,7 +10,7 @@ const sql_1 = require("./sql");
 const MESSAGE_COLUMNS = 'id, conversation_id, sender_id, content, status, created_at, kind, call_mode, call_outcome, call_seconds';
 class MessageRepository {
     /** A text message, or with `call` the record of a call (the caller is the sender). */
-    static async insert(conversationId, senderId, content, call) {
+    static async insert(conversationId, senderId, content, call, kind = 'text') {
         const row = {
             id: crypto_1.default.randomUUID(),
             conversation_id: conversationId,
@@ -18,7 +18,7 @@ class MessageRepository {
             content,
             status: 'sent',
             created_at: new Date().toISOString(),
-            kind: call ? 'call' : 'text',
+            kind: call ? 'call' : kind,
             call_mode: call?.mode ?? null,
             call_outcome: call?.outcome ?? null,
             call_seconds: call?.seconds ?? null,

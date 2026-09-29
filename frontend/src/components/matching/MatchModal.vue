@@ -232,6 +232,10 @@ $pink: var(--unmute-cta);
   padding: 4px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ff7a6e, #f21872 50%, #c00078);
+  animation: pop-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+
+  &:nth-child(1) { animation-delay: 120ms; }
+  &:nth-child(2) { animation-delay: 220ms; }
 
   :deep(.u-avatar) {
     width: var(--photo);
@@ -322,6 +326,7 @@ $pink: var(--unmute-cta);
   font-weight: 800;
   letter-spacing: -0.03em;
   color: $ink;
+  animation: enter-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 300ms both;
 }
 
 .match-sub {
@@ -392,6 +397,7 @@ $pink: var(--unmute-cta);
   background: linear-gradient(100deg, #ff7a6e 0%, #f21872 35%, #c00078 65%, #4a005b 100%);
   color: #fff;
   box-shadow: 0 16px 30px -14px rgba(192, 0, 120, 0.65);
+  animation: pop-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) 420ms both;
 
   i { font-size: 1.3rem; }
 }
@@ -520,17 +526,25 @@ $pink: var(--unmute-cta);
   color: rgba(242, 24, 114, 0.15);
 }
 
-.match-fade-enter-active,
-.match-fade-leave-active {
-  transition: opacity 250ms ease;
+.match-fade-enter-active {
+  animation: slide-down 380ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
 }
 
-.match-fade-enter-from,
+.match-fade-leave-active {
+  transition: opacity 200ms ease;
+}
+
 .match-fade-leave-to {
   opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pair-photo,
+  .match-title,
+  .send-btn {
+    animation: none;
+  }
+
   .pair-heart,
   .hearts i {
     animation: none;

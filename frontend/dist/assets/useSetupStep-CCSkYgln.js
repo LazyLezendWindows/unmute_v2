@@ -1,1 +1,0 @@
-import{C as n,k as a}from"./index-CUD8PoeW.js";import{a as u,n as l,p}from"./onboarding-M05dwwhl.js";function m(){const o=a(),e=n(()=>{const t=Number(o.query.setup);return Number.isInteger(t)&&t>=1&&t<=u.length?t:null}),r=n(()=>e.value?l(e.value):"/profile"),s=n(()=>e.value?p(e.value):null);return{step:e,total:u.length,next:r,previous:s}}export{m as u};

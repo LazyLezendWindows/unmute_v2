@@ -58,6 +58,21 @@ exports.config = {
         privateKey: process.env.VAPID_PRIVATE_KEY || '',
         subject: process.env.VAPID_SUBJECT || 'mailto:support@unmute.app',
     },
+    /** Account emails (verification and password-reset codes); see services/auth/emailSender.ts. */
+    email: {
+        provider: (process.env.EMAIL_PROVIDER || (isProduction ? '' : 'console')).toLowerCase(),
+        smtp: {
+            host: process.env.SMTP_HOST || '',
+            port: parseInt(process.env.SMTP_PORT || '587', 10),
+            user: process.env.SMTP_USER || '',
+            pass: process.env.SMTP_PASS || '',
+            from: process.env.EMAIL_FROM || '',
+        },
+    },
+    /** Moderators (by account email) who review photo and ID verifications. Comma-separated. */
+    adminEmails: (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
+    /** Verification selfies and ID photos: private, never served publicly. */
+    privateUploadDir: process.env.PRIVATE_UPLOAD_DIR || path_1.default.resolve(__dirname, '../../data/private'),
     /** SMS delivery for phone sign-in codes (see services/auth/smsSender.ts). */
     sms: {
         provider: (process.env.SMS_PROVIDER || (isProduction ? '' : 'console')).toLowerCase(),

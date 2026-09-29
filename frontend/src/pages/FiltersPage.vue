@@ -348,7 +348,7 @@ $pink: var(--unmute-cta);
   min-width: 0;
   margin: 0;
   padding: 1rem;
-  border: 1px solid rgba(74, 0, 91, 0.06);
+  border: 1px solid var(--unmute-mobile-option-border, rgba(74, 0, 91, 0.06));
   border-radius: 1.4rem;
   background: var(--unmute-surface);
   box-shadow: 0 10px 30px -24px rgba(117, 48, 170, 0.5);
@@ -405,7 +405,7 @@ $pink: var(--unmute-cta);
 
 // Options: white with a hairline border; chosen ones turn soft pink with a pink edge.
 @mixin option {
-  border: 1.5px solid rgba(74, 0, 91, 0.1);
+  border: 1.5px solid var(--unmute-mobile-option-border, rgba(74, 0, 91, 0.1));
   background: #fff;
   color: $ink;
 
@@ -414,7 +414,7 @@ $pink: var(--unmute-cta);
   }
 
   &[aria-pressed='true'] {
-    border-color: rgba(242, 24, 114, 0.6);
+    border-color: var(--unmute-mobile-selected-border, rgba(242, 24, 114, 0.6));
     background: #fdeaf4;
     color: $pink;
 
@@ -432,6 +432,12 @@ $pink: var(--unmute-cta);
 
 .tile {
   @include option;
+  border: 2px solid var(--unmute-mobile-option-border, #c8b5d0);
+
+  &[aria-pressed='true'] {
+    border-color: var(--unmute-mobile-selected-border, #f21872);
+  }
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -445,6 +451,20 @@ $pink: var(--unmute-cta);
 
   i {
     font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .tile {
+    padding: 1rem 0.5rem;
+    font-size: 0.85rem;
+    white-space: normal;
+    text-align: center;
   }
 }
 
@@ -503,7 +523,7 @@ $pink: var(--unmute-cta);
   gap: 0.4rem;
   min-width: 0;
   padding: 0.5rem 0.5rem 0.5rem 0.6rem;
-  border: 1.5px solid rgba(74, 0, 91, 0.1);
+  border: 1.5px solid var(--unmute-mobile-option-border, rgba(74, 0, 91, 0.1));
   border-radius: 1rem;
   color: $ink;
 

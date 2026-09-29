@@ -44,7 +44,7 @@ class ChatController {
         try {
             const { id } = req.params;
             const { content } = req.body;
-            const message = await chatService_1.ChatService.sendMessage(id, req.user.userId, content);
+            const message = await chatService_1.ChatService.sendMessage(id, req.user.userId, content, req.body.kind ?? 'text');
             res.status(201).json({
                 success: true,
                 data: message,

@@ -4,6 +4,8 @@ export interface User {
   email: string | null;
   /** The number the member signs in with (E.164), if any. */
   phone?: string | null;
+  /** Moderators can review photo and ID verifications. */
+  isAdmin?: boolean;
   profile: Profile | null;
 }
 
@@ -175,7 +177,7 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read';
   createdAt: string;
   /** 'call' messages record a call ("Missed video call", "Voice call · 3:12"). */
-  kind?: 'text' | 'call';
+  kind?: 'text' | 'call' | 'image' | 'voice';
   call?: { mode: 'voice' | 'video'; outcome: 'completed' | 'missed' | 'declined'; seconds: number };
 }
 

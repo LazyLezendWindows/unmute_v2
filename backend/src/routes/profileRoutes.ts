@@ -1,4 +1,5 @@
 import express, { Router } from 'express';
+import verificationRoutes from './verificationRoutes';
 import { ProfileController } from '../controllers/profileController';
 import { LocationController } from '../controllers/locationController';
 import { EducationController } from '../controllers/educationController';
@@ -22,6 +23,14 @@ router.post(
   express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '5mb' }),
   ProfileController.uploadPhoto
 );
+// A voice message recording, up to 3 MB; its bytes decide the format.
+router.post(
+  '/me/voice',
+  express.raw({ type: ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'video/webm'], limit: '3mb' }),
+  ProfileController.uploadVoice
+);
+
+router.use('/me/verification', verificationRoutes);
 
 router.put('/me/location', locationRateLimiter, validateBody(setLocationSchema), LocationController.setMyLocation);
 router.patch('/me/location', validateBody(updatePrecisionSchema), LocationController.updateMyPrecision);

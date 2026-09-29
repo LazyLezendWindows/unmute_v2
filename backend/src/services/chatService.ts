@@ -8,6 +8,7 @@ import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { NotificationService } from './notificationService';
 import { PushService } from './pushService';
+import { MediaService } from './mediaService';
 
 /** 5:12, or 1:02:09 for an hour or more. */
 function formatDuration(seconds: number): string {
@@ -111,10 +112,15 @@ export class ChatService {
     return message;
   }
 
-  static async sendMessage(conversationId: string, senderId: string, content: string) {
+  static async sendMessage(conversationId: string, senderId: string, content: string, kind: 'text' | 'image' | 'voice' = 'text') {
     const conv = await this.requireAccessible(conversationId, senderId, 'You cannot message this user');
+    if (kind !== 'text' && !MediaService.isOwnUploadOfKind(content, senderId, kind)) {
+      throw new AppError(kind === 'image' ? 'Upload the photo before sending it.' : 'Record the voice message before sending it.', 400);
+    }
 
-    const message = toMessage(await MessageRepository.insert(conversationId, senderId, content));
+    const message = toMessage(await MessageRepository.insert(conversationId, senderId, content, undefined, kind));
+    // Notifications show a label, not the file link.
+    const preview = kind === 'image' ? '📷 Photo' : kind === 'voice' ? '🎤 Voice message' : content;
     await ConversationRepository.touch(conversationId, message.createdAt);
 
     const io = getSocketServer();
@@ -122,9 +128,9 @@ export class ChatService {
       io.to(`conversation:${conversationId}`).emit('new_message', message);
       io.to(`user:${conv.other_user_id}`).emit('message_notification', { conversationId, message });
     }
-    await NotificationService.messageReceived(conv.other_user_id, senderId, conversationId, content);
+    await NotificationService.messageReceived(conv.other_user_id, senderId, conversationId, preview);
     ProfileRepository.findByUserIds([senderId])
-      .then((profiles) => PushService.message(conv.other_user_id, profiles.get(senderId)?.display_name || 'New message', conversationId, content.slice(0, 120)))
+      .then((profiles) => PushService.message(conv.other_user_id, profiles.get(senderId)?.display_name || 'New message', conversationId, preview.slice(0, 120)))
       .catch(() => undefined);
 
     return message;

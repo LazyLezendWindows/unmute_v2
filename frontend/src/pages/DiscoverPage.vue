@@ -42,7 +42,7 @@
       <div class="hero-text">
         <h1 class="hero-title">Find<br />Real Connections</h1>
         <p class="hero-sub">Meaningful people. Genuine conversations.<br />Your story, without filters.</p>
-        <button type="button" class="upgrade-btn" @click="comingSoon('Unmute Premium')">
+        <button type="button" class="upgrade-btn" @click="$router.push('/upgrade')">
           <i class="ri-vip-crown-2-fill" aria-hidden="true"></i> Upgrade
         </button>
       </div>
@@ -98,7 +98,7 @@
           <router-link to="/discover/swipe" class="see-all">See All <i class="ri-arrow-right-s-line" aria-hidden="true"></i></router-link>
         </div>
         <div class="rail">
-          <router-link v-for="p in forYou" :key="p.id" :to="`/people/${p.id}`" class="rail-card">
+          <router-link v-for="(p, i) in forYou" :key="p.id" :to="`/people/${p.id}`" class="rail-card enter-rise" :style="{ '--i': i }">
             <span class="rail-photo" :style="photoBackground(p.avatarUrl)">
               <span v-if="!p.avatarUrl" class="initial">{{ p.displayName.charAt(0) }}</span>
               <span v-if="p.isOnline" class="dot" aria-label="Online"></span>
@@ -132,7 +132,7 @@
 
         <p v-if="!people.length" class="none">{{ TAB_EMPTY[view] }}</p>
         <div class="grid">
-          <article v-for="p in people" :key="p.id" class="person">
+          <article v-for="(p, i) in people" :key="p.id" class="person enter-rise" :style="{ '--i': i }">
             <router-link :to="`/people/${p.id}`" class="person-link" :aria-label="`${p.displayName}, ${p.age}`">
               <span class="person-photo" :style="photoBackground(p.avatarUrl)">
                 <span v-if="!p.avatarUrl" class="initial">{{ p.displayName.charAt(0) }}</span>
@@ -167,7 +167,7 @@ import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { photoBackground } from '../services/media';
 import { formatDistance } from '../services/directory';
-import { comingSoon, matchPercent } from '../utils/profileFormat';
+import { matchPercent } from '../utils/profileFormat';
 import { DiscoveryCandidate } from '../types';
 import heroPhoto from '../assets/welcome-couple.webp';
 

@@ -17,7 +17,7 @@
     </ScreenBar>
 
     <h1 class="page-title">Matches</h1>
-    <p class="page-sub">People who liked you</p>
+    <p class="page-sub">{{ SUBTITLES[view] }}</p>
 
     <div class="pill-tabs" role="group" aria-label="Match views">
       <button v-for="tab in tabs" :key="tab.value" type="button" :aria-pressed="view === tab.value" @click="view = tab.value">
@@ -25,58 +25,143 @@
       </button>
     </div>
 
-    <div v-if="chatStore.matchesLoading && chatStore.matches.length === 0" class="match-grid" aria-busy="true">
-      <USkeleton v-for="n in 4" :key="n" type="card" height="19rem" class="card-skeleton" />
-    </div>
-
-    <UEmptyState
-      v-else-if="visibleMatches.length === 0"
-      :title="emptyText.title"
-      :description="emptyText.description"
-    >
-      <template #icon><i class="ri-heart-3-fill fs-2"></i></template>
-      <template v-if="view === 'all'" #action>
-        <UButton variant="primary" size="md" @click="$router.push('/discover')">Discover People</UButton>
-      </template>
-    </UEmptyState>
-
-    <div v-else class="match-grid">
-      <article v-for="match in visibleMatches" :key="match.matchId" class="match-card">
-        <div class="card-photo" :style="photoBackground(match.user.avatarUrl)" role="link" tabindex="0" :aria-label="`View ${match.user.displayName}'s profile`" @click="$router.push(`/people/${match.user.id}`)" @keydown.enter="$router.push(`/people/${match.user.id}`)">
-          <span v-if="!match.user.avatarUrl" class="photo-initial">{{ match.user.displayName.charAt(0) }}</span>
-          <span v-if="statusOf(match)" class="status" :class="statusOf(match)!.tone">
-            <span class="status-dot" aria-hidden="true"></span>{{ statusOf(match)!.label }}
-          </span>
-          <button type="button" class="photo-more" :aria-label="`Report or block ${match.user.displayName}`" @click="safetyTarget = match.user">
-            <i class="ri-more-fill" aria-hidden="true"></i>
-          </button>
-        </div>
-        <div class="card-body">
-          <div class="card-line">
-            <h2 class="card-name">
-              {{ match.user.displayName }}, {{ match.user.age }}
-              <i v-if="match.user.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
-            </h2>
-            <span v-if="match.user.distanceKm !== null" class="card-distance">
-              <i class="ri-map-pin-line" aria-hidden="true"></i>{{ match.user.distanceKm }} km
-            </span>
+    <!-- Liked You: like back to match, or pass -->
+    <template v-if="view === 'likesYou'">
+      <div v-if="chatStore.likedLoading && !chatStore.likesReceived.length" class="match-grid" aria-busy="true">
+        <USkeleton v-for="n in 4" :key="n" type="card" height="19rem" class="card-skeleton" />
+      </div>
+      <UEmptyState
+        v-else-if="chatStore.likesReceived.length === 0"
+        title="No new likes yet"
+        description="When someone likes you, they'll show up here. Like them back to match."
+      >
+        <template #icon><i class="ri-heart-3-fill fs-2"></i></template>
+      </UEmptyState>
+      <div v-else class="match-grid">
+        <article v-for="(person, i) in chatStore.likesReceived" :key="person.id" class="match-card enter-rise" :style="{ '--i': i }">
+          <div class="card-photo" :style="photoBackground(person.avatarUrl)" role="link" tabindex="0" :aria-label="`View ${person.displayName}'s profile`" @click="$router.push(`/people/${person.id}`)" @keydown.enter="$router.push(`/people/${person.id}`)">
+            <span v-if="!person.avatarUrl" class="photo-initial">{{ person.displayName.charAt(0) }}</span>
+            <span v-if="person.superLike" class="status is-super"><i class="ri-star-fill" aria-hidden="true"></i>Super Like</span>
+            <span v-else class="status is-liked"><span class="status-dot" aria-hidden="true"></span>Liked You</span>
           </div>
-          <div v-if="match.user.interests.length" class="card-chips">
-            <span v-for="name in match.user.interests.slice(0, 3)" :key="name" class="card-chip" :title="name">
-              <i :class="interestIcon(name)" aria-hidden="true"></i>{{ shortName(name) }}
-            </span>
+          <div class="card-body">
+            <div class="card-line">
+              <h2 class="card-name">
+                {{ person.displayName }}, {{ person.age }}
+                <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+              </h2>
+            </div>
+            <div v-if="person.interests.length" class="card-chips">
+              <span v-for="name in person.interests.slice(0, 3)" :key="name" class="card-chip" :title="name">
+                <i :class="interestIcon(name)" aria-hidden="true"></i>{{ shortName(name) }}
+              </span>
+            </div>
+            <div class="card-actions">
+              <button type="button" class="act-hide" :aria-label="`Pass on ${person.displayName}`" :disabled="answering === person.id" @click="answer(person, 'pass')">
+                <i class="ri-close-line" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="act-chat" :aria-label="`Like ${person.displayName} back`" :disabled="answering === person.id" @click="answer(person, 'like')">
+                <i class="ri-heart-3-fill" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
-          <div class="card-actions">
-            <button type="button" class="act-hide" :aria-label="`Hide ${match.user.displayName}`" @click="hide(match.matchId)">
-              <i class="ri-close-line" aria-hidden="true"></i>
+        </article>
+      </div>
+    </template>
+
+    <!-- Liked: people you liked, waiting for them -->
+    <template v-else-if="view === 'liked'">
+      <div v-if="chatStore.likedLoading" class="match-grid" aria-busy="true">
+        <USkeleton v-for="n in 4" :key="n" type="card" height="19rem" class="card-skeleton" />
+      </div>
+      <UEmptyState
+        v-else-if="chatStore.likedProfiles.length === 0"
+        title="No likes sent yet"
+        description="Profiles you like will appear here until they like you back."
+      >
+        <template #icon><i class="ri-heart-add-fill fs-2"></i></template>
+        <template #action>
+          <UButton variant="primary" size="md" @click="$router.push('/discover')">Discover People</UButton>
+        </template>
+      </UEmptyState>
+      <div v-else class="match-grid">
+        <article v-for="(person, i) in chatStore.likedProfiles" :key="person.id" class="match-card enter-rise" :style="{ '--i': i }">
+          <div class="card-photo" :style="photoBackground(person.avatarUrl)" role="link" tabindex="0" :aria-label="`View ${person.displayName}'s profile`" @click="$router.push(`/people/${person.id}`)" @keydown.enter="$router.push(`/people/${person.id}`)">
+            <span v-if="!person.avatarUrl" class="photo-initial">{{ person.displayName.charAt(0) }}</span>
+            <span class="status is-new"><span class="status-dot" aria-hidden="true"></span>Waiting</span>
+          </div>
+          <div class="card-body">
+            <div class="card-line">
+              <h2 class="card-name">
+                {{ person.displayName }}, {{ person.age }}
+                <i v-if="person.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+              </h2>
+            </div>
+            <div v-if="person.interests.length" class="card-chips">
+              <span v-for="name in person.interests.slice(0, 3)" :key="name" class="card-chip" :title="name">
+                <i :class="interestIcon(name)" aria-hidden="true"></i>{{ shortName(name) }}
+              </span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </template>
+
+    <!-- Matches tabs -->
+    <template v-else>
+      <div v-if="chatStore.matchesLoading && chatStore.matches.length === 0" class="match-grid" aria-busy="true">
+        <USkeleton v-for="n in 4" :key="n" type="card" height="19rem" class="card-skeleton" />
+      </div>
+
+      <UEmptyState
+        v-else-if="visibleMatches.length === 0"
+        :title="emptyText.title"
+        :description="emptyText.description"
+      >
+        <template #icon><i class="ri-heart-3-fill fs-2"></i></template>
+        <template v-if="view === 'all'" #action>
+          <UButton variant="primary" size="md" @click="$router.push('/discover')">Discover People</UButton>
+        </template>
+      </UEmptyState>
+
+      <div v-else class="match-grid">
+        <article v-for="(match, i) in visibleMatches" :key="match.matchId" class="match-card enter-rise" :style="{ '--i': i }">
+          <div class="card-photo" :style="photoBackground(match.user.avatarUrl)" role="link" tabindex="0" :aria-label="`View ${match.user.displayName}'s profile`" @click="$router.push(`/people/${match.user.id}`)" @keydown.enter="$router.push(`/people/${match.user.id}`)">
+            <span v-if="!match.user.avatarUrl" class="photo-initial">{{ match.user.displayName.charAt(0) }}</span>
+            <span v-if="statusOf(match)" class="status" :class="statusOf(match)!.tone">
+              <span class="status-dot" aria-hidden="true"></span>{{ statusOf(match)!.label }}
+            </span>
+            <button type="button" class="photo-more" :aria-label="`Report or block ${match.user.displayName}`" @click="safetyTarget = match.user">
+              <i class="ri-more-fill" aria-hidden="true"></i>
             </button>
-            <router-link :to="`/chat/${match.conversationId}`" class="act-chat" :aria-label="`Chat with ${match.user.displayName}`">
-              <i class="ri-heart-3-fill" aria-hidden="true"></i>
-            </router-link>
           </div>
-        </div>
-      </article>
-    </div>
+          <div class="card-body">
+            <div class="card-line">
+              <h2 class="card-name">
+                {{ match.user.displayName }}, {{ match.user.age }}
+                <i v-if="match.user.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
+              </h2>
+              <span v-if="match.user.distanceKm !== null" class="card-distance">
+                <i class="ri-map-pin-line" aria-hidden="true"></i>{{ match.user.distanceKm }} km
+              </span>
+            </div>
+            <div v-if="match.user.interests.length" class="card-chips">
+              <span v-for="name in match.user.interests.slice(0, 3)" :key="name" class="card-chip" :title="name">
+                <i :class="interestIcon(name)" aria-hidden="true"></i>{{ shortName(name) }}
+              </span>
+            </div>
+            <div class="card-actions">
+              <button type="button" class="act-hide" :aria-label="`Hide ${match.user.displayName}`" @click="hide(match.matchId)">
+                <i class="ri-close-line" aria-hidden="true"></i>
+              </button>
+              <router-link :to="`/chat/${match.conversationId}`" class="act-chat" :aria-label="`Chat with ${match.user.displayName}`">
+                <i class="ri-heart-3-fill" aria-hidden="true"></i>
+              </router-link>
+            </div>
+          </div>
+        </article>
+      </div>
+    </template>
 
     <SafetyModal
       v-if="safetyTarget"
@@ -91,6 +176,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import { photoBackground } from '../services/media';
 import SafetyModal from '../components/safety/SafetyModal.vue';
@@ -101,13 +187,24 @@ import { useAuthStore } from '../stores/auth';
 import { useChatStore } from '../stores/chat';
 import { interestIcon } from '../utils/interestIcon';
 import { Match } from '../types';
+import { api } from '../services/api';
+import { useToastStore } from '../stores/toast';
 
 /** Matches within this many km count as Nearby. */
 const NEARBY_KM = 25;
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
-const view = ref<'all' | 'new' | 'nearby'>('all');
+const router = useRouter();
+type View = 'all' | 'new' | 'nearby' | 'likesYou' | 'liked';
+const view = ref<View>('all');
+const SUBTITLES: Record<View, string> = {
+  all: 'People who liked you back',
+  new: 'Matches you haven’t messaged yet',
+  nearby: 'Matches close to you',
+  likesYou: 'Like them back to match',
+  liked: 'Waiting for them to like you back',
+};
 const safetyTarget = ref<{ id: string; displayName: string } | null>(null);
 
 // Hiding a card is a per-viewer convenience kept on this device; the match itself stays.
@@ -139,15 +236,43 @@ const tabs = computed(() => [
   { value: 'all' as const, label: 'All Matches', count: shown.value.length },
   { value: 'new' as const, label: 'New', count: newMatches.value.length },
   { value: 'nearby' as const, label: 'Nearby', count: nearby.value.length },
+  { value: 'likesYou' as const, label: 'Liked You', count: chatStore.likesReceived.length },
+  { value: 'liked' as const, label: 'Liked', count: chatStore.likedProfiles.length },
 ]);
 
-const visibleMatches = computed(() => ({ all: shown.value, new: newMatches.value, nearby: nearby.value })[view.value]);
+const visibleMatches = computed(() => {
+  if (view.value === 'new') return newMatches.value;
+  if (view.value === 'nearby') return nearby.value;
+  return shown.value;
+});
 
-const emptyText = computed(() => ({
+const EMPTY = {
   all: { title: 'No matches yet', description: 'When someone you like also likes you back, they will appear here.' },
   new: { title: 'No new matches', description: 'You have said hello to all your matches.' },
   nearby: { title: 'No one nearby yet', description: `Matches within ${NEARBY_KM} km show up here once you both set your area.` },
-})[view.value]);
+};
+const emptyText = computed(() => (view.value === 'new' || view.value === 'nearby' ? EMPTY[view.value] : EMPTY.all));
+
+const answering = ref<string | null>(null);
+
+/** Liking back makes a match (the match screen opens); passing hides them. */
+async function answer(person: { id: string; displayName: string }, action: 'like' | 'pass') {
+  answering.value = person.id;
+  try {
+    const res = await api.post(`/interactions/${action}`, { targetUserId: person.id });
+    chatStore.likesReceived = chatStore.likesReceived.filter((p) => p.id !== person.id);
+    if (action === 'like' && res.data.data.matched) {
+      await chatStore.loadMatches();
+      const match = chatStore.matches.find((m) => m.user.id === person.id);
+      if (match) router.push(`/chat/${match.conversationId}`);
+      useToastStore().success(`It's a match with ${person.displayName}! Say hello.`);
+    }
+  } catch (err: any) {
+    useToastStore().error(err.message);
+  } finally {
+    answering.value = null;
+  }
+}
 
 /** Cards are narrow: "Reading & Books" shows as "Reading" (the full name is the tooltip). */
 function shortName(name: string) {
@@ -169,7 +294,10 @@ function onSafetyCompleted() {
   chatStore.loadMatches();
 }
 
-onMounted(() => chatStore.loadMatches());
+onMounted(() => {
+  chatStore.loadMatches();
+  chatStore.loadLikedProfiles();
+});
 </script>
 
 <style scoped lang="scss">
@@ -215,9 +343,12 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.25rem;
   border-radius: var(--unmute-radius-pill);
   background: #f3effc;
+  overflow-x: auto;
+  scrollbar-width: none;
 
   button {
-    flex: 1;
+    flex: 1 0 auto;
+    padding: 0 0.9rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -227,7 +358,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     border-radius: var(--unmute-radius-pill);
     background: transparent;
     color: #4b3fb8;
-    font-size: 1.05rem;
+    font-size: 0.92rem;
     white-space: nowrap;
   }
 
@@ -303,6 +434,16 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
   &.is-online {
     background: #1b9e4b;
+  }
+
+  &.is-liked {
+    background: #f21872;
+  }
+
+  &.is-super {
+    background: linear-gradient(95deg, #8a1fe0, #f21872);
+
+    i { font-size: 0.8rem; }
   }
 
   &.is-new {

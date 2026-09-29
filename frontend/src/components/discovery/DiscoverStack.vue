@@ -229,14 +229,17 @@ defineExpose({ fling });
   z-index: 20;
   cursor: grab;
   transition: transform 420ms cubic-bezier(0.2, 0.9, 0.25, 1.1);
+  animation: pop-in 380ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 
   &.is-dragging {
     cursor: grabbing;
     transition: none;
+    animation: none;
   }
 
   &.is-flying {
     transition: transform 320ms cubic-bezier(0.5, 0, 0.75, 0);
+    animation: none;
   }
 }
 
@@ -417,5 +420,11 @@ defineExpose({ fling });
     conic-gradient(#f21872 calc(var(--pct) * 1%), #fbd3e7 0);
   color: #f21872;
   font-size: 1.3rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack-card-top {
+    animation: none;
+  }
 }
 </style>

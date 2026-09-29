@@ -60,7 +60,7 @@
     <div v-if="isCandidate" class="person-actions">
       <button type="button" class="act act-pass" aria-label="Pass" @click="decide('pass')"><i class="ri-close-line" aria-hidden="true"></i></button>
       <button type="button" class="act act-like" aria-label="Like" @click="decide('like')"><i class="ri-heart-3-fill" aria-hidden="true"></i></button>
-      <button type="button" class="act act-star" aria-label="Super like" @click="comingSoon('Super Like')"><i class="ri-star-fill" aria-hidden="true"></i></button>
+      <button type="button" class="act act-star" aria-label="Super like" @click="handleSuperLike"><i class="ri-star-fill" aria-hidden="true"></i></button>
     </div>
     <router-link v-else-if="conversationId" :to="`/chat/${conversationId}`" class="message-btn">
       <i class="ri-send-plane-fill" aria-hidden="true"></i> Send a Message
@@ -86,7 +86,8 @@ import { useDiscoverStore } from '../stores/discover';
 import { useChatStore } from '../stores/chat';
 import { useAuthStore } from '../stores/auth';
 import { photoBackground, photosOf } from '../services/media';
-import { comingSoon, educationLine, matchPercent } from '../utils/profileFormat';
+import { educationLine, matchPercent } from '../utils/profileFormat';
+import { useToastStore } from '../stores/toast';
 
 /** Thumbnails shown beside the main photo; the last one says how many more there are. */
 const THUMBS = 3;
@@ -138,6 +139,13 @@ function decide(action: 'like' | 'pass') {
   if (action === 'like') discoverStore.like(candidate.value);
   else discoverStore.pass(candidate.value);
   leave();
+}
+
+async function handleSuperLike() {
+  const person = candidate.value;
+  if (!person) return;
+  leave();
+  if (await discoverStore.superLike(person)) useToastStore().success(`⭐ Super Like sent. ${person.displayName} will see it's from you.`);
 }
 
 function onSafetyCompleted() {

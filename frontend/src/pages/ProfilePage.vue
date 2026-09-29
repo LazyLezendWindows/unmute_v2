@@ -92,16 +92,52 @@
         <i class="ri-shield-check-line" aria-hidden="true"></i><span>Privacy Settings</span><em></em>
         <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
       </router-link>
-      <button type="button" class="row" @click="comingSoon('Notification settings')">
+      <button type="button" class="row" @click="openAlerts">
         <i class="ri-notification-3-line" aria-hidden="true"></i><span>Notifications</span><em></em>
         <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
       </button>
     </nav>
+
+    <!-- Alerts while Unmute is closed (push notifications on this device) -->
+    <UModal :is-open="alertsOpen" title="Notifications" max-width="sm" @close="alertsOpen = false">
+      <div class="d-flex flex-column gap-3">
+        <label class="alert-row">
+          <span class="alert-text">
+            <strong>Calls &amp; messages on this device</strong>
+            <span>Receive call and message alerts while Unmute is closed.</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="alert-switch"
+            :checked="alertsOn"
+            :disabled="alertsBusy || pushState === 'unsupported' || pushState === 'denied'"
+            @change="toggleAlerts"
+          />
+        </label>
+        <p v-if="pushState === 'unsupported'" class="small mb-0 u-text-muted">
+          This browser can't show alerts. On iPhone, add Unmute to your Home Screen first (Share → Add to Home Screen).
+        </p>
+        <p v-else-if="pushState === 'denied'" class="small mb-0 u-text-muted">
+          Notifications are blocked for Unmute. Allow them in your browser's site settings, then come back here.
+        </p>
+        <fieldset :disabled="preferencesBusy" class="border-0 p-0 d-grid gap-3">
+          <legend class="small fw-bold">Push preferences for your account</legend>
+          <label class="alert-row"><span>Incoming calls</span><input v-model="preferences.calls" type="checkbox" role="switch" @change="savePreferences" /></label>
+          <label class="alert-row"><span>New messages</span><input v-model="preferences.messages" type="checkbox" role="switch" @change="savePreferences" /></label>
+        </fieldset>
+        <p v-if="preferencesError" role="alert" class="text-danger small">{{ preferencesError }}</p>
+        <p class="small mb-0 u-text-muted">While Unmute is open, calls and messages always show inside the app.</p>
+      </div>
+      <template #footer>
+        <UButton variant="primary" size="md" @click="alertsOpen = false">Done</UButton>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import UAvatar from '../components/ui/UAvatar.vue';
 import { useAuthStore } from '../stores/auth';
@@ -110,7 +146,11 @@ import { useDiscoverStore } from '../stores/discover';
 import { useProfileStrength } from '../composables/useProfileStrength';
 import { photoBackground, photosOf } from '../services/media';
 import { interestIcon } from '../utils/interestIcon';
-import { comingSoon } from '../utils/profileFormat';
+import UModal from '../components/ui/UModal.vue';
+import UButton from '../components/ui/UButton.vue';
+import { useToastStore } from '../stores/toast';
+import { api } from '../services/api';
+import { disablePush, enablePush, pushState, pushSubscribed } from '../services/push';
 
 /** Photos in the strip; the last one shows how many more there are. */
 const STRIP = 6;
@@ -144,6 +184,47 @@ const lookingFor = computed(
 /** 1200 → 1.2K, as in the stats row. */
 function compact(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n);
+}
+
+const alertsOpen = ref(false);
+const alertsOn = ref(false);
+const alertsBusy = ref(false);
+
+const preferences = ref({ calls: true, messages: true });
+const preferencesBusy = ref(false);
+const preferencesError = ref('');
+async function openAlerts() {
+  alertsOpen.value = true;
+  preferencesBusy.value = true;
+  preferencesError.value = '';
+  try {
+    alertsOn.value = await pushSubscribed();
+    preferences.value = (await api.get('/notifications/preferences')).data.data;
+  } catch (err) { preferencesError.value = (err as Error).message; }
+  finally { preferencesBusy.value = false; }
+}
+async function savePreferences() {
+  preferencesBusy.value = true; preferencesError.value = '';
+  try { await api.put('/notifications/preferences', preferences.value); }
+  catch (err) {
+    preferencesError.value = `Preferences were not saved. ${(err as Error).message}`;
+    try { preferences.value = (await api.get('/notifications/preferences')).data.data; } catch { /* Keep the error visible. */ }
+  } finally { preferencesBusy.value = false; }
+}
+
+async function toggleAlerts() {
+  alertsBusy.value = true;
+  try {
+    if (alertsOn.value) {
+      await disablePush();
+      alertsOn.value = false;
+    } else {
+      alertsOn.value = await enablePush();
+      if (!alertsOn.value && pushState.value !== 'denied') useToastStore().error("Couldn't turn on alerts. Please try again.");
+    }
+  } finally {
+    alertsBusy.value = false;
+  }
 }
 </script>
 
@@ -498,5 +579,57 @@ $soft: #4b4fa6;
 .strength-next {
   font-size: 0.85rem;
   color: $soft;
+}
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  cursor: pointer;
+}
+
+.alert-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--unmute-text-secondary);
+
+  strong {
+    color: var(--unmute-text-heading);
+    font-size: 0.98rem;
+  }
+}
+
+.alert-switch {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 3.2rem;
+  height: 1.9rem;
+  border-radius: 9999px;
+  background: #e5dff2;
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0.2rem;
+    left: 0.2rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform var(--unmute-transition-fast);
+  }
+
+  &:checked {
+    background: linear-gradient(90deg, #ff4f8e, #f21872);
+
+    &::after { transform: translateX(1.3rem); }
+  }
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 </style>

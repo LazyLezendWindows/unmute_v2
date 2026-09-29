@@ -32,8 +32,12 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
+const verificationRoutes_1 = __importDefault(require("./verificationRoutes"));
 const profileController_1 = require("../controllers/profileController");
 const locationController_1 = require("../controllers/locationController");
 const educationController_1 = require("../controllers/educationController");
@@ -50,6 +54,9 @@ router.patch('/me', (0, validate_1.validateBody)(profileValidator_1.updateProfil
 router.get('/interests', profileController_1.ProfileController.getInterests);
 // The photo is the request body itself (no multipart), up to 5 MB; its bytes decide the type.
 router.post('/me/photos', express_1.default.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '5mb' }), profileController_1.ProfileController.uploadPhoto);
+// A voice message recording, up to 3 MB; its bytes decide the format.
+router.post('/me/voice', express_1.default.raw({ type: ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'video/webm'], limit: '3mb' }), profileController_1.ProfileController.uploadVoice);
+router.use('/me/verification', verificationRoutes_1.default);
 router.put('/me/location', rateLimiter_1.locationRateLimiter, (0, validate_1.validateBody)(locationValidator_1.setLocationSchema), locationController_1.LocationController.setMyLocation);
 router.patch('/me/location', (0, validate_1.validateBody)(locationValidator_1.updatePrecisionSchema), locationController_1.LocationController.updateMyPrecision);
 router.delete('/me/location', locationController_1.LocationController.clearMyLocation);

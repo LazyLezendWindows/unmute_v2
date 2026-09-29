@@ -9,6 +9,10 @@ import { Conversation, Match, Message } from '../types';
 export const useChatStore = defineStore('chat', () => {
   const conversations = ref<Conversation[]>([]);
   const matches = ref<Match[]>([]);
+  const likedProfiles = ref<any[]>([]);
+  const likedLoading = ref(false);
+  /** People who liked you and are waiting for your answer. */
+  const likesReceived = ref<any[]>([]);
   const activeConversationId = ref<string | null>(null);
   const activeMessages = ref<Message[]>([]);
   const activeOtherUser = ref<any | null>(null);
@@ -21,6 +25,20 @@ export const useChatStore = defineStore('chat', () => {
   const totalUnreadCount = computed(() =>
     conversations.value.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0)
   );
+
+  /** Loads both likes lists: who you liked, and who liked you. */
+  async function loadLikedProfiles() {
+    likedLoading.value = true;
+    try {
+      const [sent, received] = await Promise.all([api.get('/interactions/liked'), api.get('/interactions/likes-received')]);
+      likedProfiles.value = sent.data.data;
+      likesReceived.value = received.data.data;
+    } catch (err: any) {
+      useToastStore().error(`Couldn't load liked profiles. ${err.message}`);
+    } finally {
+      likedLoading.value = false;
+    }
+  }
 
   async function loadMatches() {
     matchesLoading.value = true;
@@ -87,12 +105,14 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  async function sendMessage(content: string) {
+  /** A text message, or (`kind` image / voice) the URL of a photo or recording just uploaded. */
+  async function sendMessage(content: string, kind: 'text' | 'image' | 'voice' = 'text') {
     if (!activeConversationId.value || !content.trim()) return;
     sending.value = true;
     try {
       const res = await api.post(`/conversations/${activeConversationId.value}/messages`, {
         content: content.trim(),
+        ...(kind !== 'text' ? { kind } : {}),
       });
       // Append sent message if not already added by socket
       const msg = res.data.data;
@@ -140,8 +160,19 @@ export const useChatStore = defineStore('chat', () => {
           activeMessages.value.push(message);
         }
       }
-      // Refresh conversation preview
-      loadConversations();
+      // Update conversation preview in-place; fall back to a full reload only if not found.
+      const conv = conversations.value.find((c) => c.id === message.conversationId);
+      if (conv) {
+        conv.lastMessage = message;
+        conv.lastMessageAt = message.createdAt;
+        if (activeConversationId.value !== message.conversationId) {
+          conv.unreadCount = (conv.unreadCount || 0) + 1;
+        }
+        // Move to top
+        conversations.value = [conv, ...conversations.value.filter((c) => c.id !== message.conversationId)];
+      } else {
+        loadConversations();
+      }
     });
 
     // Listen for messages read receipt
@@ -173,6 +204,10 @@ export const useChatStore = defineStore('chat', () => {
     conversationsLoading,
     sending,
     totalUnreadCount,
+    likedProfiles,
+    likedLoading,
+    likesReceived,
+    loadLikedProfiles,
     loadMatches,
     loadConversations,
     openConversation,

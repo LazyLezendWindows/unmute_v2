@@ -94,7 +94,10 @@ async function answer() {
   const mode = call.mode;
   stopRinging();
   await call.accept();
-  if (id && call.status !== 'ended') router.push(`/chat/${id}/call?mode=${mode}`);
+  // Only navigate if the call is still alive (media permission denied sets status to 'ended').
+  if (id && call.status !== 'ended' && call.status !== 'idle') {
+    router.push(`/chat/${id}/call?mode=${mode}`);
+  }
 }
 
 onBeforeUnmount(stopRinging);

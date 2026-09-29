@@ -207,17 +207,19 @@ export const useDiscoverStore = defineStore('discover', () => {
    * Likes or passes anyone in the feed (the top card, or a person picked from the grid). They leave
    * the feed straight away; if the server rejects it they come back, so a failed like is never lost.
    */
-  async function interact(target: DiscoveryCandidate, action: 'like' | 'pass') {
+  async function interact(target: DiscoveryCandidate, action: 'like' | 'pass', superLike = false): Promise<boolean> {
     const index = feed.value.findIndex((p) => p.id === target.id);
-    if (index === -1) return;
+    if (index === -1) return false;
     feed.value = feed.value.filter((p) => p.id !== target.id);
     if (index < currentIndex.value) currentIndex.value--;
 
     try {
-      const res = await api.post(`/interactions/${action}`, { targetUserId: target.id });
+      const res = await api.post(`/interactions/${action}`, { targetUserId: target.id, ...(superLike ? { superLike: true } : {}) });
       if (action === 'like' && res.data.data.matched) {
         activeMatch.value = { conversationId: res.data.data.conversationId, person: target };
       }
+      lastPassed.value = action === 'pass' ? target : null;
+      return true;
     } catch (err: any) {
       if (!feed.value.some((p) => p.id === target.id)) {
         const at = Math.min(index, feed.value.length);
@@ -229,6 +231,7 @@ export const useDiscoverStore = defineStore('discover', () => {
           ? `Couldn't connect with ${target.displayName}. ${err.message}`
           : `Couldn't skip ${target.displayName}. ${err.message}`
       );
+      return false;
     }
   }
 
@@ -236,6 +239,30 @@ export const useDiscoverStore = defineStore('discover', () => {
   const passCurrent = () => currentCandidate.value && interact(currentCandidate.value, 'pass');
   const like = (person: DiscoveryCandidate) => interact(person, 'like');
   const pass = (person: DiscoveryCandidate) => interact(person, 'pass');
+  /** A like the other person sees as special (and who it's from); limited per day by the server. */
+  const superLike = (person: DiscoveryCandidate) => interact(person, 'like', true);
+
+  /** The last person passed on, for Rewind (only passes can be taken back; a like may already be a match). */
+  const lastPassed = ref<DiscoveryCandidate | null>(null);
+
+  /** Rewind: takes back the last pass on the server and puts that card back on top. */
+  const undoing = ref(false);
+  async function undoPass() {
+    if (undoing.value) return;
+    const person = lastPassed.value;
+    if (!person) return;
+    undoing.value = true;
+    try {
+      await api.delete('/interactions/pass', { data: { targetUserId: person.id } });
+      lastPassed.value = null;
+      if (!feed.value.some((p) => p.id === person.id)) {
+        const at = currentIndex.value;
+        feed.value = [...feed.value.slice(0, at), person, ...feed.value.slice(at)];
+      }
+    } catch (err: any) {
+      useToastStore().error(err.message);
+    } finally { undoing.value = false; }
+  }
 
   async function blockUser(targetUserId: string, reason = '') {
     await api.post('/safety/block', { targetUserId, reason });
@@ -272,6 +299,10 @@ export const useDiscoverStore = defineStore('discover', () => {
     passCurrent,
     like,
     pass,
+    superLike,
+    lastPassed,
+    undoPass,
+    undoing,
     blockUser,
     reportUser,
     dismissMatchModal,

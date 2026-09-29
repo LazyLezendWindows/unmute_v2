@@ -22,7 +22,7 @@ export function toMessage(row: MessageRow) {
     content: row.content,
     status: row.status,
     createdAt: row.created_at,
-    kind: row.kind === 'call' ? ('call' as const) : ('text' as const),
+    kind: (['call', 'image', 'voice'].includes(row.kind ?? '') ? row.kind : 'text') as 'text' | 'call' | 'image' | 'voice',
     ...(row.kind === 'call'
       ? { call: { mode: row.call_mode as 'voice' | 'video', outcome: row.call_outcome as CallOutcome, seconds: row.call_seconds ?? 0 } }
       : {}),

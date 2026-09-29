@@ -98,6 +98,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/admin/verifications',
+      name: 'admin-verifications',
+      component: () => import('../pages/AdminVerificationsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/verify',
       name: 'verify',
       component: () => import('../pages/VerifyPage.vue'),
@@ -170,7 +176,8 @@ router.beforeEach(async (to) => {
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return '/discover';
   }
-  if (to.meta.requiresAuth && !['upgrade', 'safety', 'settings', 'settings-appearance'].includes(String(to.name))) {
+  const SUBSCRIPTION_FREE = ['upgrade', 'safety', 'settings', 'settings-appearance', 'profile', 'profile-edit', 'profile-interests', 'profile-photos', 'profile-location', 'notifications', 'verify'];
+  if (to.meta.requiresAuth && !SUBSCRIPTION_FREE.includes(String(to.name))) {
     try { if (!(await useSubscriptionStore().fetchStatus()).active) return '/upgrade'; }
     catch { return '/upgrade'; }
   }

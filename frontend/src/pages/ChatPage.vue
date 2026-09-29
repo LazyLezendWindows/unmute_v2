@@ -63,7 +63,7 @@
             <span class="conv-preview">
               <template v-if="conv.lastMessage">
                 <template v-if="conv.lastMessage.kind === 'call'"><i :class="conv.lastMessage.call?.mode === 'video' ? 'ri-vidicon-line' : 'ri-phone-line'" aria-hidden="true"></i> {{ callLabel(conv.lastMessage) }}</template>
-                <template v-else><template v-if="conv.lastMessage.senderId === authStore.user?.id">You: </template>{{ conv.lastMessage.content }}</template>
+                <template v-else><template v-if="conv.lastMessage.senderId === authStore.user?.id">You: </template>{{ conv.lastMessage.kind === 'image' ? '📷 Photo' : conv.lastMessage.kind === 'voice' ? '🎤 Voice message' : conv.lastMessage.content }}</template>
               </template>
               <template v-else>New match · say hello 👋</template>
             </span>
@@ -143,7 +143,14 @@
           <div v-else class="message-row" :class="{ 'is-mine': isMine(msg) }">
             <UAvatar v-if="!isMine(msg)" :src="activeOtherUser?.avatarUrl" :name="activeOtherUser?.displayName" size="md" class="message-avatar" />
             <div class="message-col">
-              <div class="bubble">{{ msg.content }}</div>
+              <a v-if="msg.kind === 'image'" :href="mediaUrl(msg.content)" target="_blank" rel="noopener" class="bubble is-photo" aria-label="Photo, open full size">
+                <img :src="mediaUrl(msg.content)" alt="Photo" loading="lazy" @load="nearBottomScroll" />
+              </a>
+              <div v-else-if="msg.kind === 'voice'" class="bubble is-voice">
+                <i class="ri-mic-fill" aria-hidden="true"></i>
+                <audio :src="mediaUrl(msg.content)" controls preload="metadata" aria-label="Voice message"></audio>
+              </div>
+              <div v-else class="bubble">{{ msg.content }}</div>
               <div class="message-meta">
                 <span>{{ formatMessageTime(msg.createdAt) }}</span>
                 <i v-if="isMine(msg)" class="ri-check-double-line" :class="{ 'is-read': msg.status === 'read' }" :aria-label="msg.status === 'read' ? 'Read' : 'Sent'"></i>
@@ -156,10 +163,23 @@
       <div v-if="emojiOpen" class="emoji-row" role="group" aria-label="Emoji">
         <button v-for="emoji in EMOJIS" :key="emoji" type="button" @click="addEmoji(emoji)">{{ emoji }}</button>
       </div>
-      <form class="composer" @submit.prevent="handleSend">
-        <button type="button" class="composer-round" aria-label="Add a photo" @click="comingSoon('Sending photos')">
-          <i class="ri-add-line" aria-hidden="true"></i>
+      <p v-if="!voiceSupported" class="small px-3 u-text-muted" role="status">Voice messages are not available in this browser. You can still send text and photos.</p>
+      <!-- Recording a voice message -->
+      <div v-if="recording" class="composer is-recording" role="group" aria-label="Recording voice message">
+        <button type="button" class="composer-round is-cancel" aria-label="Cancel recording" @click="stopRecording(false)">
+          <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
         </button>
+        <span class="rec-status" role="status"><span class="rec-dot" aria-hidden="true"></span>Recording… {{ recordLabel }}</span>
+        <button type="button" class="composer-round is-send" aria-label="Send voice message" @click="stopRecording(true)">
+          <i class="ri-send-plane-fill" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form v-else class="composer" @submit.prevent="handleSend">
+        <button type="button" class="composer-round" aria-label="Send a photo" :disabled="uploading" @click="photoInput?.click()">
+          <span v-if="uploading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <i v-else class="ri-image-add-line" aria-hidden="true"></i>
+        </button>
+        <input ref="photoInput" type="file" accept="image/jpeg,image/png,image/webp" class="d-none" @change="pickPhoto" />
         <label class="composer-field">
           <input v-model="inputContent" type="text" placeholder="Type a message..." aria-label="Message" />
           <button type="button" class="emoji-btn" :aria-pressed="emojiOpen" aria-label="Emoji" @click="emojiOpen = !emojiOpen">
@@ -169,7 +189,7 @@
         <button v-if="inputContent.trim()" type="submit" class="composer-round is-send" aria-label="Send" :disabled="chatStore.sending">
           <i class="ri-send-plane-fill" aria-hidden="true"></i>
         </button>
-        <button v-else type="button" class="composer-round is-send" aria-label="Record a voice message" @click="comingSoon('Voice messages')">
+        <button v-else type="button" class="composer-round is-send" aria-label="Record a voice message" :disabled="uploading || !voiceSupported" @click="startRecording">
           <i class="ri-mic-fill" aria-hidden="true"></i>
         </button>
       </form>
@@ -181,6 +201,14 @@
       <p class="mb-0">Select a conversation to start chatting</p>
     </section>
 
+    <UModal :is-open="Boolean(photoPreview)" title="Send photo" max-width="sm" @close="clearPhoto">
+      <img v-if="photoPreview" :src="photoPreview" alt="Photo preview before sending" class="w-100 rounded" />
+      <p v-if="photoError" role="alert" class="text-danger mt-2">{{ photoError }}</p>
+      <template #footer>
+        <UButton variant="secondary" :disabled="uploading" @click="clearPhoto">Cancel</UButton>
+        <UButton :loading="uploading" @click="confirmPhoto">Send photo</UButton>
+      </template>
+    </UModal>
     <SafetyModal
       v-if="activeOtherUser"
       :is-open="isSafetyOpen"
@@ -195,6 +223,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import UModal from '../components/ui/UModal.vue';
+import UButton from '../components/ui/UButton.vue';
 import SafetyModal from '../components/safety/SafetyModal.vue';
 import AlertsPrompt from '../components/layout/AlertsPrompt.vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
@@ -203,7 +233,7 @@ import USkeleton from '../components/ui/USkeleton.vue';
 import { useAuthStore } from '../stores/auth';
 import { useChatStore } from '../stores/chat';
 import { useToastStore } from '../stores/toast';
-import { comingSoon } from '../utils/profileFormat';
+import { mediaUrl, photoProblem, uploadPhoto, uploadVoice } from '../services/media';
 import { Message } from '../types';
 
 const EMOJIS = ['😊', '😂', '❤️', '😍', '👋', '👍', '🙏', '✨', '☕', '✈️'];
@@ -291,7 +321,10 @@ async function openFromRoute(id: string) {
   }
 }
 
-onUnmounted(() => chatStore.leaveCurrentConversation());
+onUnmounted(() => {
+  stopRecording(false);
+  chatStore.leaveCurrentConversation();
+});
 
 watch(
   () => route.params.id,
@@ -313,6 +346,102 @@ function selectConversation(id: string) {
 
 function addEmoji(emoji: string) {
   inputContent.value += emoji;
+}
+
+// ---- Photos ----
+const photoInput = ref<HTMLInputElement | null>(null);
+const uploading = ref(false);
+
+const photoPreview = ref('');
+const photoError = ref('');
+let selectedPhoto: File | null = null;
+let photoConversation: string | null = null;
+function clearPhoto() {
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value);
+  photoPreview.value = ''; selectedPhoto = null; photoError.value = '';
+}
+function pickPhoto(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0]; input.value = '';
+  if (!file) return;
+  const problem = photoProblem(file);
+  if (problem) return useToastStore().error(problem);
+  clearPhoto(); selectedPhoto = file; photoConversation = activeConversationId.value;
+  photoPreview.value = URL.createObjectURL(file);
+}
+async function confirmPhoto() {
+  if (!selectedPhoto || uploading.value) return;
+  uploading.value = true; photoError.value = '';
+  try {
+    const url = await uploadPhoto(selectedPhoto);
+    if (photoConversation !== activeConversationId.value) throw new Error('The conversation changed. Select the photo again in the intended chat.');
+    await chatStore.sendMessage(url, 'image');
+    clearPhoto(); scrollToBottom();
+  } catch (err) { photoError.value = `Photo not sent. ${(err as Error).message}`; }
+  finally { uploading.value = false; }
+}
+onUnmounted(clearPhoto);
+watch(activeConversationId, clearPhoto);
+const voiceSupported = typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
+
+function nearBottomScroll() {
+  const el = messagesContainer.value;
+  if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 400) scrollToBottom();
+}
+
+// ---- Voice messages ----
+const MAX_RECORD_SECONDS = 120;
+const recording = ref(false);
+const recordSeconds = ref(0);
+let recorder: MediaRecorder | null = null;
+let recordChunks: Blob[] = [];
+let recordTimer: ReturnType<typeof setInterval> | undefined;
+let sendWhenStopped = false;
+
+const recordLabel = computed(() => `${Math.floor(recordSeconds.value / 60)}:${String(recordSeconds.value % 60).padStart(2, '0')}`);
+
+async function startRecording() {
+  if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return useToastStore().error('Voice messages need a newer browser.');
+  }
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  } catch {
+    return useToastStore().error('Allow microphone access in your browser to record a voice message.');
+  }
+  const type = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
+  recorder = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 48_000 } : undefined);
+  recordChunks = [];
+  recorder.ondataavailable = (e) => e.data.size && recordChunks.push(e.data);
+  recorder.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());
+    clearInterval(recordTimer);
+    recording.value = false;
+    const blob = new Blob(recordChunks, { type: recorder?.mimeType || 'audio/webm' });
+    if (!sendWhenStopped || recordSeconds.value < 1 || !blob.size) return;
+    uploading.value = true;
+    try {
+      await chatStore.sendMessage(await uploadVoice(blob), 'voice');
+      scrollToBottom();
+    } catch (err: any) {
+      useToastStore().error(`Voice message not sent. ${err.message}`);
+    } finally {
+      uploading.value = false;
+    }
+  };
+  recorder.start();
+  recording.value = true;
+  recordSeconds.value = 0;
+  recordTimer = setInterval(() => {
+    recordSeconds.value++;
+    if (recordSeconds.value >= MAX_RECORD_SECONDS) stopRecording(true);
+  }, 1000);
+}
+
+function stopRecording(send: boolean) {
+  sendWhenStopped = send;
+  if (recorder?.state === 'recording') recorder.stop();
 }
 
 async function handleSend() {
@@ -828,6 +957,76 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin-left: 0.4rem;
   color: #e5147c;
   font-size: 1.2rem;
+}
+
+.bubble.is-photo {
+  display: block;
+  padding: 0.3rem;
+  background: #fff;
+
+  img {
+    display: block;
+    min-width: 8rem;
+    min-height: 6rem;
+    max-width: min(15rem, 60vw);
+    max-height: 18rem;
+    background: #f3effc;
+    border-radius: 1.1rem;
+    object-fit: cover;
+  }
+
+  .is-mine & {
+    background: $gradient;
+  }
+}
+
+.bubble.is-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+
+  i {
+    font-size: 1.2rem;
+  }
+
+  audio {
+    width: min(14rem, 55vw);
+    height: 2.2rem;
+  }
+}
+
+.composer.is-recording {
+  justify-content: space-between;
+}
+
+.composer-round.is-cancel {
+  background: #f3effc;
+  color: #e0334a;
+}
+
+.composer-round:disabled {
+  opacity: 0.6;
+}
+
+.rec-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $ink;
+  font-weight: 600;
+}
+
+.rec-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #e0334a;
+  animation: rec-blink 1s ease-in-out infinite;
+}
+
+@keyframes rec-blink {
+  50% { opacity: 0.25; }
 }
 
 .bubble-skeleton {

@@ -38,7 +38,9 @@ export async function enablePush(): Promise<boolean> {
   pushState.value = permission;
   if (permission !== 'granted') return false;
   try {
-    return await register();
+    const enabled = await register();
+    if (enabled) { try { localStorage.removeItem('unmute.push.disabled'); } catch { /* Optional persistence. */ } }
+    return enabled;
   } catch {
     return false;
   }
@@ -48,7 +50,23 @@ export async function enablePush(): Promise<boolean> {
 export async function syncPush(): Promise<void> {
   pushState.value = currentState();
   if (pushState.value !== 'granted') return;
+  try { if (localStorage.getItem('unmute.push.disabled') === 'true') return; } catch { /* Storage can be unavailable. */ }
   await register().catch(() => undefined);
+}
+
+/** Turns alerts off for this device (the browser permission itself stays as it is). */
+export async function disablePush(): Promise<void> {
+  try { localStorage.setItem('unmute.push.disabled', 'true'); } catch { /* Optional persistence. */ }
+  await unregisterPush();
+  const registration = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+  await (await registration?.pushManager.getSubscription())?.unsubscribe().catch(() => undefined);
+}
+
+/** Whether this device is currently subscribed. */
+export async function pushSubscribed(): Promise<boolean> {
+  if (pushState.value !== 'granted') return false;
+  const registration = await navigator.serviceWorker.getRegistration().catch(() => undefined);
+  return Boolean(await registration?.pushManager.getSubscription());
 }
 
 /** Before signing out, so the next person on this device doesn't get your calls. */

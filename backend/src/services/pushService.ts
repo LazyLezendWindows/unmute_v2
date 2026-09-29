@@ -1,3 +1,4 @@
+import { getNotificationPreferences } from './notificationPreferences';
 import { SubscriptionService } from './subscriptionService';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -45,6 +46,9 @@ function vapidKeys() {
 
 async function sendTo(userId: string, payload: object, options: webpush.RequestOptions = {}) {
   if (!vapidKeys() || !(await SubscriptionService.status(userId)).active) return;
+  const prefs = await getNotificationPreferences(userId);
+  const type = (payload as { type?: string }).type;
+  if ((type === 'call' && !prefs.calls) || (type === 'message' && !prefs.messages)) return;
   const db = getDatabase();
   const subs = await db.query<SubscriptionRow>('SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?', [userId]);
   await Promise.all(

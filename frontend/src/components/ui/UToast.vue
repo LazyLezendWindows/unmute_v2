@@ -6,10 +6,10 @@
         v-for="toast in toastStore.toasts"
         :key="toast.id"
         class="u-toast d-flex align-items-start gap-2"
-        :class="`u-toast-${toast.tone}`"
+        :class="[`u-toast-${toast.tone}`, { 'is-super-like': toast.message.startsWith('⭐') }]"
         :role="toast.tone === 'error' ? 'alert' : 'status'"
       >
-        <i class="u-toast-icon" :class="ICONS[toast.tone]" aria-hidden="true"></i>
+        <i class="u-toast-icon" :class="toast.message.startsWith('⭐') ? 'ri-star-fill' : ICONS[toast.tone]" aria-hidden="true"></i>
         <p class="u-toast-message mb-0 flex-grow-1">{{ toast.message }}</p>
         <button type="button" class="u-toast-close" aria-label="Dismiss notification" @click="toastStore.dismiss(toast.id)">
           <i class="ri-close-line" aria-hidden="true"></i>
@@ -105,15 +105,17 @@ const ICONS: Record<ToastTone, string> = {
   }
 }
 
-.u-toast-enter-active,
-.u-toast-leave-active {
-  transition: opacity var(--unmute-transition-normal), transform var(--unmute-transition-normal);
+.u-toast-enter-active {
+  animation: slide-down 340ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
-.u-toast-enter-from,
+.u-toast-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
 .u-toast-leave-to {
   opacity: 0;
-  transform: translateY(-0.5rem);
+  transform: translateY(-0.5rem) scale(0.95);
 }
 
 @media (min-width: 768px) {
@@ -130,4 +132,10 @@ const ICONS: Record<ToastTone, string> = {
     transition: none;
   }
 }
+</style>
+
+<style scoped>
+.is-super-like .u-toast-icon { color: #c07b00; animation: star-pop 550ms ease-out; }
+@keyframes star-pop { from { transform: scale(.4) rotate(-60deg); } 65% { transform: scale(1.3) rotate(12deg); } to { transform: scale(1) rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .is-super-like .u-toast-icon { animation: none; } }
 </style>

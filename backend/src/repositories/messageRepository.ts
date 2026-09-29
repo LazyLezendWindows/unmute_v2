@@ -11,7 +11,8 @@ export class MessageRepository {
     conversationId: string,
     senderId: string,
     content: string,
-    call?: { mode: string; outcome: string; seconds: number }
+    call?: { mode: string; outcome: string; seconds: number },
+    kind: 'text' | 'image' | 'voice' = 'text'
   ): Promise<MessageRow> {
     const row: MessageRow = {
       id: crypto.randomUUID(),
@@ -20,7 +21,7 @@ export class MessageRepository {
       content,
       status: 'sent',
       created_at: new Date().toISOString(),
-      kind: call ? 'call' : 'text',
+      kind: call ? 'call' : kind,
       call_mode: call?.mode ?? null,
       call_outcome: call?.outcome ?? null,
       call_seconds: call?.seconds ?? null,
