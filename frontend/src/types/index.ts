@@ -4,8 +4,6 @@ export interface User {
   email: string | null;
   /** The number the member signs in with (E.164), if any. */
   phone?: string | null;
-  /** Moderators can review photo and ID verifications. */
-  isAdmin?: boolean;
   profile: Profile | null;
 }
 

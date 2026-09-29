@@ -13,7 +13,8 @@
     "migrate:prod": "node dist/config/migrate.js",
     "import:data": "tsx src/importers/cli.ts",
     "import:data:prod": "node dist/importers/cli.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "admin:create": "tsx scripts/createAdmin.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

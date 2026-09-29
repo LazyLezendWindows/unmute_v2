@@ -48,10 +48,6 @@ async function removePrivate(name: string | null) {
 }
 
 export class VerificationService {
-  static isAdmin(email: string | null | undefined): boolean {
-    return Boolean(email && config.adminEmails.includes(email.toLowerCase()));
-  }
-
   /** Everything the Verify screen shows. */
   static async status(userId: string) {
     const db = getDatabase();
@@ -73,8 +69,8 @@ export class VerificationService {
       phone: { number: phone, verified: Boolean(phone) },
       selfie: state(Boolean(user?.is_verified), selfie),
       id: state(Boolean(user?.id_verified), id),
-      /** False until moderators are set (ADMIN_EMAILS); submissions then wait until someone is. */
-      reviewersAvailable: config.adminEmails.length > 0,
+      /** False until an admin account exists (npm run admin:create); submissions wait until then. */
+      reviewersAvailable: Number((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM admins'))?.n ?? 0) > 0,
     };
   }
 

@@ -71,8 +71,6 @@ export const config = {
       from: process.env.EMAIL_FROM || '',
     },
   },
-  /** Moderators (by account email) who review photo and ID verifications. Comma-separated. */
-  adminEmails: (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean),
   /** Verification selfies and ID photos: private, never served publicly. */
   privateUploadDir: process.env.PRIVATE_UPLOAD_DIR || path.resolve(__dirname, '../../data/private'),
   /** SMS delivery for phone sign-in codes (see services/auth/smsSender.ts). */

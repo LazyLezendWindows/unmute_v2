@@ -8,7 +8,6 @@ const testEnv = {
   AUTH_RATE_LIMIT: '500',
   SMS_RATE_LIMIT: '500',
   API_RATE_LIMIT: '5000',
-  ADMIN_EMAILS: 'moderator@example.com',
   EMAIL_PROVIDER: 'console',
   MARIADB_DATABASE: 'unmute_test_db',
   GOOGLE_CLIENT_ID: 'test-client-id.apps.googleusercontent.com',

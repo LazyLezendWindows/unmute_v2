@@ -15,6 +15,7 @@
 import { computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppLayout from './layouts/AppLayout.vue';
+import AdminLayout from './layouts/AdminLayout.vue';
 import UToast from './components/ui/UToast.vue';
 import GlobalLoader from './components/layout/GlobalLoader.vue';
 import OfflineScreen from './components/layout/OfflineScreen.vue';
@@ -44,6 +45,7 @@ watch(
 );
 
 const layout = computed(() => {
+  if (route.meta.admin && !route.meta.adminPublic) return AdminLayout;
   return route.meta.requiresAuth ? AppLayout : 'div';
 });
 </script>

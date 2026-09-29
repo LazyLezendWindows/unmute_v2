@@ -1,3 +1,4 @@
+import { adminSession } from '../services/adminApi';
 import { ApiError } from '../services/api';
 import { useSubscriptionStore } from '../stores/subscription';
 import { createRouter, createWebHistory } from 'vue-router';
@@ -98,12 +99,13 @@ const router = createRouter({
       component: () => import('../pages/InterestsPage.vue'),
       meta: { requiresAuth: true },
     },
-    {
-      path: '/admin/verifications',
-      name: 'admin-verifications',
-      component: () => import('../pages/AdminVerificationsPage.vue'),
-      meta: { requiresAuth: true },
-    },
+    // Admin panel: its own sign-in and layout, separate from member accounts.
+    { path: '/admin/login', name: 'admin-login', component: () => import('../pages/admin/AdminLoginPage.vue'), meta: { admin: true, adminPublic: true } },
+    { path: '/admin', name: 'admin-dashboard', component: () => import('../pages/admin/AdminDashboardPage.vue'), meta: { admin: true } },
+    { path: '/admin/users', name: 'admin-users', component: () => import('../pages/admin/AdminUsersPage.vue'), meta: { admin: true } },
+    { path: '/admin/users/:id', name: 'admin-user', component: () => import('../pages/admin/AdminUserPage.vue'), meta: { admin: true } },
+    { path: '/admin/admins', name: 'admin-admins', component: () => import('../pages/admin/AdminAdminsPage.vue'), meta: { admin: true } },
+    { path: '/admin/verifications', name: 'admin-verifications', component: () => import('../pages/admin/AdminVerificationsPage.vue'), meta: { admin: true } },
     {
       path: '/verify',
       name: 'verify',
@@ -166,6 +168,13 @@ router.onError(() => {
 });
 
 router.beforeEach(async (to) => {
+  // Admin panel: its own session, none of the member checks.
+  if (to.meta.admin) {
+    const admin = await adminSession();
+    if (to.meta.adminPublic) return admin ? '/admin' : true;
+    return admin ? true : { path: '/admin/login', query: to.fullPath !== '/admin' ? { redirect: to.fullPath } : {} };
+  }
+
   const authStore = useAuthStore();
   await authStore.ensureSession();
   // Offline before we could check: stay on this screen (the offline screen covers it) and let

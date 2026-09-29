@@ -32,6 +32,16 @@ async function registerAgent(email: string, displayName: string, dateOfBirth = '
   return { agent, id: res.body.data.user.id as string };
 }
 
+/** An admin-panel session (a separate admin account, created directly). */
+async function adminAgent(email = `admin.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@example.com`) {
+  const { AdminAuthService } = await import('../src/services/adminAuthService');
+  await AdminAuthService.createAdmin(email, 'Test Admin', 'AdminPassword123!');
+  const agent = request.agent(app);
+  const res = await agent.post('/api/v1/admin/login').send({ email, password: 'AdminPassword123!' });
+  expect(res.status).toBe(200);
+  return agent;
+}
+
 /** Gives a test member an active paid plan (Premium). */
 async function makePremium(userId: string, days = 30) {
   await getDatabase().run(
@@ -719,7 +729,7 @@ describe('Unmute API', () => {
 
     it('sends selfies and IDs to moderators privately, and approval verifies the profile', async () => {
       const member = await registerAgent('verify-selfie@example.com', 'Selfie');
-      const mod = await registerAgent('moderator@example.com', 'Mod');
+      const mod = { agent: await adminAgent() };
       const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
 
       const { requestId, gesture } = (await member.agent.post('/api/v1/users/me/verification/selfie/start')).body.data;
@@ -729,14 +739,14 @@ describe('Unmute API', () => {
       expect(sent.body.data.selfie.status).toBe('pending');
       expect((await member.agent.post('/api/v1/users/me/verification/id').set('Content-Type', 'image/png').send(png)).status).toBe(201);
 
-      // Only moderators see the queue and the private images; to others it doesn't exist.
-      expect((await member.agent.get('/api/v1/admin/verifications')).status).toBe(404);
+      // Only admins see the queue and the private images.
+      expect((await member.agent.get('/api/v1/admin/verifications')).status).toBe(401);
       const queue = (await mod.agent.get('/api/v1/admin/verifications')).body.data.filter((r: any) => r.user.id === member.id);
       expect(queue.map((r: any) => r.kind).sort()).toEqual(['id', 'selfie']);
       const selfie = queue.find((r: any) => r.kind === 'selfie');
       expect(selfie.gesture).toBe(gesture);
       expect((await mod.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(200);
-      expect((await member.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(404);
+      expect((await member.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(401);
 
       await mod.agent.post(`/api/v1/admin/verifications/${selfie.id}/decision`).send({ approve: true });
       const idReq = queue.find((r: any) => r.kind === 'id');
@@ -798,6 +808,71 @@ describe('Unmute API', () => {
       expect((await traveller.agent.get('/api/v1/discover?radiusKm=50')).status).toBe(200);
       await traveller.agent.delete('/api/v1/users/me/premium/travel');
       expect((await traveller.agent.get('/api/v1/users/me')).body.data.travellingTo).toBeNull();
+    });
+  });
+
+  describe('Admin panel', () => {
+    it('needs an admin sign-in; members and wrong passwords get nothing', async () => {
+      const member = await registerAgent('admin-probe@example.com', 'Probe');
+      expect((await member.agent.get('/api/v1/admin/users')).status).toBe(401);
+      expect((await request(app).get('/api/v1/admin/stats')).status).toBe(401);
+      const { AdminAuthService } = await import('../src/services/adminAuthService');
+      await AdminAuthService.createAdmin('boss@example.com', 'Boss', 'AdminPassword123!');
+      expect((await request(app).post('/api/v1/admin/login').send({ email: 'boss@example.com', password: 'wrong-password' })).status).toBe(401);
+    });
+
+    it('creates and removes admins from the panel, but never yourself or the last one', async () => {
+      const admin = await adminAgent('admins-owner@example.com');
+      expect((await admin.post('/api/v1/admin/admins').send({ email: 'second@example.com', name: 'Second', password: 'short' })).status).toBe(400);
+      const made = await admin.post('/api/v1/admin/admins').send({ email: 'second@example.com', name: 'Second Admin', password: 'SecondPassword1!' });
+      expect(made.status).toBe(200);
+      expect((await admin.post('/api/v1/admin/admins').send({ email: 'second@example.com', name: 'Again', password: 'SecondPassword1!' })).status).toBe(409);
+      expect((await request(app).post('/api/v1/admin/login').send({ email: 'second@example.com', password: 'SecondPassword1!' })).status).toBe(200);
+
+      const list = (await admin.get('/api/v1/admin/admins')).body.data;
+      const me = list.find((a: any) => a.isYou);
+      expect((await admin.delete(`/api/v1/admin/admins/${me.id}`)).status).toBe(400);
+      expect((await admin.delete(`/api/v1/admin/admins/${made.body.data.id}`)).status).toBe(200);
+      expect((await request(app).post('/api/v1/admin/login').send({ email: 'second@example.com', password: 'SecondPassword1!' })).status).toBe(401);
+      // Setup is only for the very first admin.
+      expect((await request(app).post('/api/v1/admin/setup').send({ email: 'x@example.com', name: 'X Admin', password: 'SetupPassword1!' })).status).toBe(409);
+    });
+
+    it('lists and searches members, and shows all of one member\'s data', async () => {
+      const admin = await adminAgent();
+      const member = await registerAgent('admin-list@example.com', 'Kavitha');
+      const list = (await admin.get('/api/v1/admin/users?q=Kavitha')).body.data;
+      expect(list.users.map((u: any) => u.id)).toEqual([member.id]);
+      expect(list.users[0]).toMatchObject({ email: 'admin-list@example.com', isActive: true, isVerified: false });
+      const detail = (await admin.get(`/api/v1/admin/users/${member.id}`)).body.data;
+      expect(detail.profile.displayName).toBe('Kavitha');
+      expect(detail.profile.dateOfBirth).toBeTruthy();
+      expect(detail.subscription.state).toBe('trial');
+      expect((await admin.get('/api/v1/admin/stats')).body.data.total).toBeGreaterThan(0);
+    });
+
+    it('disables a member (signed out, can\'t sign in, hidden from Discover) and enables them again', async () => {
+      const admin = await adminAgent();
+      const member = await registerAgent('admin-disable@example.com', 'Disable Me');
+      const viewer = await registerAgent('admin-viewer@example.com', 'Viewer');
+      const off = await admin.post(`/api/v1/admin/users/${member.id}/status`).send({ active: false, reason: 'Spam' });
+      expect(off.body.data).toMatchObject({ isActive: false, disabledReason: 'Spam' });
+      expect((await member.agent.get('/api/v1/auth/me')).status).toBe(401);
+      expect((await request(app).post('/api/v1/auth/login').send({ email: 'admin-disable@example.com', password: 'Password123!' })).status).toBe(401);
+      expect((await viewer.agent.get('/api/v1/discover?limit=50')).body.data.map((p: any) => p.id)).not.toContain(member.id);
+
+      await admin.post(`/api/v1/admin/users/${member.id}/status`).send({ active: true });
+      expect((await request(app).post('/api/v1/auth/login').send({ email: 'admin-disable@example.com', password: 'Password123!' })).status).toBe(200);
+      const history = (await admin.get(`/api/v1/admin/users/${member.id}`)).body.data.adminHistory.map((h: any) => h.action);
+      expect(history).toEqual(['enabled', 'disabled']);
+    });
+
+    it('verifies a member with one button', async () => {
+      const admin = await adminAgent();
+      const member = await registerAgent('admin-verify@example.com', 'Verify Me');
+      await admin.post(`/api/v1/admin/users/${member.id}/verified`).send({ verified: true });
+      expect((await member.agent.get('/api/v1/users/me')).body.data.isVerified).toBe(true);
+      expect((await admin.get('/api/v1/admin/users?filter=verified&q=Verify')).body.data.users.map((u: any) => u.id)).toContain(member.id);
     });
   });
 

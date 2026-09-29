@@ -11,6 +11,8 @@ export function mariaConnectionOptions({ withDatabase = true } = {}): mysql.Conn
       const opts: mysql.ConnectionOptions = {
         host: parsed.hostname,
         port: parseInt(parsed.port || '3306', 10),
+        // Stored times are UTC (UTC_TIMESTAMP()); read and write them as UTC, whatever the server's own time zone.
+        timezone: 'Z',
         user: decodeURIComponent(parsed.username || ''),
         password: decodeURIComponent(parsed.password || ''),
         ...(withDatabase && parsed.pathname && parsed.pathname !== '/'
@@ -32,6 +34,8 @@ export function mariaConnectionOptions({ withDatabase = true } = {}): mysql.Conn
   }
 
   const opts: mysql.ConnectionOptions = {
+    // Stored times are UTC (UTC_TIMESTAMP()); read and write them as UTC, whatever the server's own time zone.
+    timezone: 'Z',
     user: config.mariadb.user,
     password: config.mariadb.password,
     ...(withDatabase ? { database: config.mariadb.database } : {}),

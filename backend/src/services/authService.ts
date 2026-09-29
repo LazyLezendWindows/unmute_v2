@@ -9,7 +9,6 @@ import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { verifyGoogleCredential } from './auth/googleIdentity';
 import { PhoneAuthService } from './phoneAuthService';
-import { VerificationService } from './verificationService';
 import { PhoneCodeRepository } from '../repositories/phoneCodeRepository';
 import { RegisterInput, LoginInput, GoogleAuthInput } from '../validators/authValidator';
 
@@ -151,7 +150,6 @@ export class AuthService {
       id: user.id,
       email: user.email,
       phone,
-      isAdmin: VerificationService.isAdmin(user.email),
       profile: profile ? toOwnProfile(profile, interests) : null,
     };
   }
