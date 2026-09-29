@@ -1,16 +1,19 @@
 <template>
   <div class="call-screen" :style="backdropStyle">
+    <!-- Their camera, full screen, once it arrives; their photo shows until then -->
+    <video v-show="showRemoteVideo" ref="remoteVideo" class="remote-video" autoplay playsinline></video>
+    <audio v-if="!isVideo" ref="remoteAudio" autoplay></audio>
     <div class="call-shade" aria-hidden="true"></div>
 
     <div class="call-top">
       <ScreenBar>
         <template #start>
-          <button type="button" class="glass-btn" aria-label="Back to chat" @click="endCall">
+          <button type="button" class="glass-btn" aria-label="End call and go back" @click="endCall">
             <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
           </button>
         </template>
         <template #actions>
-          <button type="button" class="glass-btn" aria-label="More" @click="comingSoon('Call options')">
+          <button type="button" class="glass-btn" aria-label="Report or block" @click="safetyOpen = true">
             <i class="ri-more-fill" aria-hidden="true"></i>
           </button>
         </template>
@@ -21,67 +24,96 @@
           {{ other?.displayName || '…' }}<template v-if="other">, {{ other.age }}</template>
           <i v-if="other?.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i>
         </h1>
-        <p class="call-status">{{ isVideo ? 'Video Call' : 'Voice Call' }} • Coming soon</p>
+        <p class="call-status" role="status" aria-live="polite">{{ statusLine }}</p>
       </div>
 
-      <!-- Your camera preview (your photo until calling is live) -->
-      <div v-if="isVideo" class="self-view" :class="{ 'is-off': cameraOff }">
-        <UAvatar :src="me?.avatarUrl" :name="me?.displayName || 'You'" size="2xl" />
-        <button type="button" class="self-flip" aria-label="Flip camera" @click="comingSoon('Flipping the camera')">
+      <!-- Your camera -->
+      <div v-if="isVideo" class="self-view" :class="{ 'is-off': call.cameraOff }">
+        <video ref="localVideo" class="self-video" :class="{ 'is-mirrored': !flipped }" autoplay playsinline muted></video>
+        <UAvatar v-if="call.cameraOff || !call.localStream" :src="me?.avatarUrl" :name="me?.displayName || 'You'" size="2xl" class="self-avatar" />
+        <button type="button" class="self-flip" aria-label="Flip camera" @click="flip">
           <i class="ri-camera-switch-line" aria-hidden="true"></i>
         </button>
       </div>
     </div>
 
-    <!-- Voice calls show their photo in the middle instead of video -->
-    <div v-if="!isVideo" class="voice-avatar">
+    <!-- Voice calls show their photo in the middle -->
+    <div v-if="!isVideo" class="voice-avatar" :class="{ 'is-ringing': call.status === 'outgoing' }">
       <UAvatar :src="other?.avatarUrl" :name="other?.displayName" size="2xl" />
     </div>
 
-    <p class="call-note" role="status">
-      {{ isVideo ? 'Video' : 'Voice' }} calls are coming soon. You can keep chatting in the meantime.
-    </p>
+    <p v-if="call.status === 'ended' && call.endReason" class="call-note" role="alert">{{ call.endReason }}</p>
+    <div v-else class="call-spacer"></div>
+
+    <div v-if="effectsOpen && isVideo" id="effects" class="effects" role="radiogroup" aria-label="Camera effect">
+      <button
+        v-for="e in EFFECTS"
+        :key="e.id"
+        type="button"
+        role="radio"
+        class="effect"
+        :aria-checked="call.effect === e.id"
+        @click="pickEffect(e.id)"
+      >
+        <span class="effect-swatch" :style="{ filter: e.filter }"></span>{{ e.label }}
+      </button>
+    </div>
 
     <div class="reactions">
-      <button v-for="reaction in REACTIONS" :key="reaction.label" type="button" class="reaction" :class="reaction.tone" :aria-label="reaction.label" @click="burst(reaction.emoji)">
+      <button v-for="reaction in REACTIONS" :key="reaction.label" type="button" class="reaction" :class="reaction.tone" :aria-label="reaction.label" :disabled="call.status !== 'active'" @click="react(reaction.emoji)">
         {{ reaction.emoji }}
       </button>
     </div>
     <span v-for="bubble in bubbles" :key="bubble.id" class="burst" :style="{ left: `${bubble.x}%` }" aria-hidden="true">{{ bubble.emoji }}</span>
 
     <div class="controls">
-      <button type="button" class="control" :aria-pressed="muted" @click="muted = !muted">
-        <span class="control-ring"><i :class="muted ? 'ri-mic-off-fill' : 'ri-mic-fill'" aria-hidden="true"></i></span>
-        {{ muted ? 'Unmute' : 'Mute' }}
+      <button type="button" class="control" :aria-pressed="call.muted" @click="call.toggleMute()">
+        <span class="control-ring"><i :class="call.muted ? 'ri-mic-off-fill' : 'ri-mic-fill'" aria-hidden="true"></i></span>
+        {{ call.muted ? 'Unmute' : 'Mute' }}
       </button>
-      <button v-if="isVideo" type="button" class="control" :aria-pressed="cameraOff" @click="cameraOff = !cameraOff">
-        <span class="control-ring"><i :class="cameraOff ? 'ri-vidicon-line' : 'ri-vidicon-fill'" aria-hidden="true"></i></span>
-        {{ cameraOff ? 'Camera On' : 'Camera Off' }}
+      <button v-if="isVideo" type="button" class="control" :aria-pressed="call.cameraOff" @click="call.toggleCamera()">
+        <span class="control-ring"><i :class="call.cameraOff ? 'ri-vidicon-line' : 'ri-vidicon-fill'" aria-hidden="true"></i></span>
+        {{ call.cameraOff ? 'Camera On' : 'Camera Off' }}
       </button>
       <button type="button" class="control is-end" @click="endCall">
         <span class="control-ring"><i class="ri-phone-fill" aria-hidden="true"></i></span>
         End Call
       </button>
-      <button v-if="isVideo" type="button" class="control" @click="comingSoon('Flipping the camera')">
+      <button v-if="isVideo" type="button" class="control" @click="flip">
         <span class="control-ring"><i class="ri-camera-switch-line" aria-hidden="true"></i></span>
         Flip
       </button>
-      <button type="button" class="control" @click="comingSoon(isVideo ? 'Video effects' : 'Speaker mode')">
-        <span class="control-ring"><i :class="isVideo ? 'ri-sparkling-2-fill' : 'ri-volume-up-fill'" aria-hidden="true"></i></span>
-        {{ isVideo ? 'Effects' : 'Speaker' }}
+      <button v-if="isVideo" type="button" class="control" :aria-pressed="effectsOpen" aria-controls="effects" @click="effectsOpen = !effectsOpen">
+        <span class="control-ring"><i class="ri-sparkling-2-fill" aria-hidden="true"></i></span>
+        Effects
+      </button>
+      <button v-else type="button" class="control" :aria-pressed="speaker" @click="toggleSpeaker">
+        <span class="control-ring"><i :class="speaker ? 'ri-volume-up-fill' : 'ri-volume-down-fill'" aria-hidden="true"></i></span>
+        Speaker
       </button>
     </div>
+
+    <SafetyModal
+      v-if="other"
+      :is-open="safetyOpen"
+      :target-user-id="other.id"
+      :target-name="other.displayName"
+      @close="safetyOpen = false"
+      @action-completed="afterBlock"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import UAvatar from '../components/ui/UAvatar.vue';
+import SafetyModal from '../components/safety/SafetyModal.vue';
 import { useAuthStore } from '../stores/auth';
 import { useChatStore } from '../stores/chat';
-import { comingSoon } from '../utils/profileFormat';
+import { CallEffect, CallMode, EFFECTS, useCallStore } from '../stores/call';
+import { useToastStore } from '../stores/toast';
 import { photoBackground } from '../services/media';
 
 const REACTIONS = [
@@ -94,27 +126,162 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const call = useCallStore();
 
 const conversationId = computed(() => route.params.id as string);
-const isVideo = computed(() => route.query.mode !== 'voice');
+const isVideo = computed(() => call.mode === 'video');
 const me = computed(() => authStore.profile);
 const other = computed(() => chatStore.conversations.find((c) => c.id === conversationId.value)?.otherUser ?? null);
 
-const muted = ref(false);
-const cameraOff = ref(false);
-const bubbles = ref<{ id: number; emoji: string; x: number }[]>([]);
-let nextBubble = 0;
+const remoteVideo = ref<HTMLVideoElement | null>(null);
+const remoteAudio = ref<HTMLAudioElement | null>(null);
+const localVideo = ref<HTMLVideoElement | null>(null);
+const flipped = ref(false);
+const speaker = ref(true);
+const safetyOpen = ref(false);
+const effectsOpen = ref(false);
 
-onMounted(async () => {
-  if (!other.value) await chatStore.loadConversations();
-  if (!other.value) router.replace('/chat');
+async function pickEffect(id: CallEffect) {
+  if (!(await call.setEffect(id))) useToastStore().show('Effects aren’t available in this browser.');
+}
+const bubbles = ref<{ id: number; emoji: string; x: number }[]>([]);
+const now = ref(Date.now());
+let nextBubble = 0;
+let clock: ReturnType<typeof setInterval> | undefined;
+let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+const showRemoteVideo = computed(() => isVideo.value && call.status === 'active' && Boolean(call.remoteStream?.getVideoTracks().length));
+
+const elapsed = computed(() => {
+  if (!call.startedAt) return '';
+  const s = Math.max(0, Math.floor((now.value - call.startedAt) / 1000));
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return s >= 3600 ? `${Math.floor(s / 3600)}:${mm.slice(-2)}:${ss}` : `${mm}:${ss}`;
+});
+
+const statusLine = computed(() => {
+  const kind = isVideo.value ? 'Video Call' : 'Voice Call';
+  switch (call.status) {
+    case 'outgoing': return 'Calling…';
+    case 'connecting': return 'Connecting…';
+    case 'active': return `${kind} • ${elapsed.value}`;
+    case 'ended': return call.endReason ? kind : 'Call ended';
+    default: return kind;
+  }
 });
 
 const backdropStyle = computed(() =>
-  isVideo.value && other.value?.avatarUrl
-    ? photoBackground(other.value.avatarUrl)
-    : {}
+  isVideo.value && other.value?.avatarUrl ? photoBackground(other.value.avatarUrl) : {}
 );
+
+// Streams go into the video and audio elements whenever they change (new call, flipped camera…).
+watch(
+  () => [call.localStream, localVideo.value] as const,
+  ([stream, el]) => {
+    if (el && el.srcObject !== stream) el.srcObject = stream;
+  }
+);
+watch(
+  () => [call.remoteStream, remoteVideo.value, remoteAudio.value] as const,
+  ([stream, video, audio]) => {
+    if (video && video.srcObject !== stream) video.srcObject = stream;
+    if (audio && audio.srcObject !== stream) audio.srcObject = stream;
+  }
+);
+
+// Their reactions float up on your screen too.
+watch(
+  () => call.incomingReaction,
+  (reaction) => reaction && burst(reaction.emoji)
+);
+
+// When the call ends, show why for a moment, then go back to the chat.
+watch(
+  () => call.status,
+  (status) => {
+    if (status === 'ended' || status === 'idle') {
+      clearTimeout(leaveTimer);
+      leaveTimer = setTimeout(backToChat, status === 'ended' ? 1800 : 0);
+    }
+  }
+);
+
+onMounted(async () => {
+  clock = setInterval(() => (now.value = Date.now()), 1000);
+  if (!other.value) await chatStore.loadConversations();
+  if (!other.value) {
+    router.replace('/chat');
+    return;
+  }
+  // Answered calls arrive here already set up; anything else is a new call you're making.
+  if (call.conversationId !== conversationId.value || !call.inCall) {
+    const mode: CallMode = route.query.mode === 'voice' ? 'voice' : 'video';
+    await call.start(conversationId.value, mode);
+  }
+  await nextTick();
+  if (localVideo.value) localVideo.value.srcObject = call.localStream;
+  if (remoteVideo.value) remoteVideo.value.srcObject = call.remoteStream;
+  if (remoteAudio.value) remoteAudio.value.srcObject = call.remoteStream;
+});
+
+onBeforeUnmount(() => {
+  clearInterval(clock);
+  clearTimeout(leaveTimer);
+  // Leaving the screen any other way (tab bar, browser back) also hangs up.
+  if (call.inCall && call.conversationId === conversationId.value) call.hangUp();
+  if (call.status === 'ended') call.reset();
+});
+
+function backToChat() {
+  call.reset();
+  router.replace(`/chat/${conversationId.value}`);
+}
+
+function endCall() {
+  if (call.inCall) call.hangUp();
+  else backToChat();
+}
+
+async function flip() {
+  await call.flipCamera();
+  flipped.value = !flipped.value;
+}
+
+type SinkElement = HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
+let outputIndex = 0;
+
+/**
+ * Moves the call's sound to the next output (speakers, headphones, Bluetooth) where the browser
+ * allows choosing one. Phones don't expose earpiece vs loudspeaker to web pages, so there it
+ * switches between full and quieter volume instead.
+ */
+async function toggleSpeaker() {
+  const el = (remoteAudio.value ?? remoteVideo.value) as SinkElement | null;
+  if (!el) return;
+  const outputs = el.setSinkId
+    ? (await navigator.mediaDevices.enumerateDevices().catch(() => [])).filter((d) => d.kind === 'audiooutput' && d.deviceId !== 'communications')
+    : [];
+  if (outputs.length > 1 && el.setSinkId) {
+    outputIndex = (outputIndex + 1) % outputs.length;
+    const device = outputs[outputIndex];
+    try {
+      await el.setSinkId(device.deviceId);
+      speaker.value = outputIndex === 0;
+      useToastStore().show(`Sound: ${device.label || (outputIndex === 0 ? 'Default output' : `Output ${outputIndex + 1}`)}`);
+      return;
+    } catch {
+      // Fall back to volume below.
+    }
+  }
+  speaker.value = !speaker.value;
+  el.volume = speaker.value ? 1 : 0.4;
+}
+
+function react(emoji: string) {
+  call.sendReaction(emoji);
+  burst(emoji);
+}
 
 /** A reaction floats up the screen and fades. */
 function burst(emoji: string) {
@@ -123,8 +290,10 @@ function burst(emoji: string) {
   setTimeout(() => (bubbles.value = bubbles.value.filter((b) => b.id !== id)), 1600);
 }
 
-function endCall() {
-  router.push(`/chat/${conversationId.value}`);
+function afterBlock() {
+  safetyOpen.value = false;
+  if (call.inCall) call.hangUp();
+  router.replace('/chat');
 }
 </script>
 
@@ -143,6 +312,15 @@ function endCall() {
   background-position: center 30%;
 }
 
+.remote-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
 .call-shade {
   position: absolute;
   inset: 0;
@@ -156,6 +334,8 @@ function endCall() {
 
   :deep(.bar-logo) {
     visibility: visible;
+    // A soft white glow keeps the dark "Un" readable over the photo.
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.45));
   }
 }
 
@@ -193,7 +373,7 @@ function endCall() {
 
 .self-view {
   position: absolute;
-  top: 6.8rem;
+  top: 8.6rem;
   right: 1.1rem;
   width: 7rem;
   height: 9.5rem;
@@ -212,6 +392,42 @@ function endCall() {
   &.is-off :deep(.u-avatar) {
     opacity: 0;
   }
+}
+
+.self-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  &.is-mirrored {
+    transform: scaleX(-1);
+  }
+
+  .is-off & {
+    visibility: hidden;
+  }
+}
+
+.self-avatar {
+  position: absolute !important;
+  inset: 0;
+}
+
+.call-spacer {
+  margin-top: auto;
+}
+
+.voice-avatar.is-ringing :deep(.u-avatar) {
+  animation: calling 1.6s ease-out infinite;
+}
+
+@keyframes calling {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35), 0 0 0 0 rgba(255, 255, 255, 0.2); }
+  100% { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0), 0 0 0 44px rgba(255, 255, 255, 0); }
+}
+
+.reaction:disabled {
+  opacity: 0.5;
 }
 
 .self-flip {
@@ -250,6 +466,40 @@ function endCall() {
   -webkit-backdrop-filter: blur(8px);
   font-size: 0.9rem;
   text-align: center;
+}
+
+.effects {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+  overflow-x: auto;
+}
+
+.effect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 0.75rem;
+
+  &[aria-checked='true'] .effect-swatch {
+    box-shadow: 0 0 0 3px #fff;
+  }
+}
+
+// A little sample picture, run through the same filter.
+.effect-swatch {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd1b3 0 28%, transparent 30%), linear-gradient(135deg, #ff8a65, #c2185b 55%, #4a148c);
+  border: 2px solid rgba(255, 255, 255, 0.6);
 }
 
 .reactions {
@@ -292,6 +542,7 @@ function endCall() {
   display: flex;
   justify-content: space-around;
   align-items: flex-end;
+  gap: 0.25rem;
   padding: 0 0.5rem calc(1.6rem + env(safe-area-inset-bottom, 0px));
 }
 
@@ -299,25 +550,28 @@ function endCall() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 0.5rem;
   border: 0;
   background: transparent;
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .control-ring {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border: 1.5px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  font-size: 1.7rem;
+  font-size: 1.5rem;
 
   [aria-pressed='true'] & {
     background: rgba(255, 255, 255, 0.85);
@@ -326,8 +580,8 @@ function endCall() {
 }
 
 .is-end .control-ring {
-  width: 5rem;
-  height: 5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   border: 0;
   background: #f21872;
   font-size: 2.2rem;

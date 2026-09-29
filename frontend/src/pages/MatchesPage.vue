@@ -2,7 +2,6 @@
   <div class="matches-page">
     <ScreenBar back>
       <template #actions>
-        <NotificationBell />
         <button
           type="button"
           class="round-btn"
@@ -22,7 +21,7 @@
 
     <div class="pill-tabs" role="group" aria-label="Match views">
       <button v-for="tab in tabs" :key="tab.value" type="button" :aria-pressed="view === tab.value" @click="view = tab.value">
-        {{ tab.label }}<span class="tab-count">{{ tab.count }}</span>
+        {{ tab.label }}<span v-if="tab.count" class="tab-count">{{ tab.count }}</span>
       </button>
     </div>
 
@@ -63,7 +62,7 @@
             </span>
           </div>
           <div v-if="match.user.interests.length" class="card-chips">
-            <span v-for="name in match.user.interests.slice(0, 2)" :key="name" class="card-chip" :title="name">
+            <span v-for="name in match.user.interests.slice(0, 3)" :key="name" class="card-chip" :title="name">
               <i :class="interestIcon(name)" aria-hidden="true"></i>{{ shortName(name) }}
             </span>
           </div>
@@ -93,7 +92,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
-import NotificationBell from '../components/layout/NotificationBell.vue';
 import { photoBackground } from '../services/media';
 import SafetyModal from '../components/safety/SafetyModal.vue';
 import UButton from '../components/ui/UButton.vue';
@@ -369,30 +367,30 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   font-size: 0.95rem;
 }
 
+// One row of whole chips: any that don't fit drop out of sight rather than being cut mid-word.
 .card-chips {
   display: flex;
-  gap: 0.3rem;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  height: 1.6rem;
   overflow: hidden;
 }
 
 .card-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 1;
-  min-width: 0;
-  padding: 0.25rem 0.55rem;
+  gap: 0.2rem;
+  height: 1.6rem;
+  padding: 0 0.45rem;
   border-radius: 9999px;
   background: #faf1fb;
   color: $ink;
-  font-size: 0.8rem;
-  overflow: hidden;
+  font-size: 0.72rem;
   white-space: nowrap;
-  text-overflow: ellipsis;
 
   i {
     color: #e5147c;
-    font-size: 1rem;
+    font-size: 0.85rem;
   }
 }
 

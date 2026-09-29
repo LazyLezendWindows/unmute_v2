@@ -118,6 +118,8 @@ export interface DiscoveryCandidate extends ProfileDetails {
   interests: Interest[];
   commonInterestsCount: number;
   commonInterests: string[];
+  /** The day they joined (YYYY-MM-DD). */
+  joinedOn?: string | null;
   isVerified: boolean;
   education: PublicEducation | null;
   /** Bucketed upper bound in km (never exact); null when either side has no area. */
@@ -172,6 +174,9 @@ export interface Message {
   content: string;
   status: 'sent' | 'delivered' | 'read';
   createdAt: string;
+  /** 'call' messages record a call ("Missed video call", "Voice call · 3:12"). */
+  kind?: 'text' | 'call';
+  call?: { mode: 'voice' | 'video'; outcome: 'completed' | 'missed' | 'declined'; seconds: number };
 }
 
 export interface BlockedUser {

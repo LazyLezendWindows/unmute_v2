@@ -36,7 +36,9 @@ describe('Schema migrations', () => {
          ('u-pass', 'pass@example.com', NULL, '$2a$12$legacyhashlegacyhashlegacyhashlegacyhashlegacyhash12', 1, '2025-01-01T00:00:00.000Z'),
          ('u-goog', 'goog@example.com', 'google-sub-legacy', NULL, 1, '2025-01-01T00:00:00.000Z');
        INSERT INTO auth_accounts (id, user_id, provider, provider_account_id, created_at, updated_at) VALUES
-         ('stale', 'u-pass', 'local', 'pass@example.com', 'x', 'x');`
+         ('stale', 'u-pass', 'local', 'pass@example.com', 'x', 'x');
+       INSERT INTO interests (id, name, category, icon) VALUES ('i-old', 'Coffee Brewing', 'Lifestyle', 'Coffee');
+       INSERT INTO user_interests (user_id, interest_id) VALUES ('u-pass', 'i-old');`
     );
   });
 
@@ -64,6 +66,15 @@ describe('Schema migrations', () => {
     const userColumns = await columns('users');
     expect(userColumns).not.toContain('password_hash');
     expect(userColumns).not.toContain('google_id');
+  });
+
+  it('merges the older overlapping interests into the new ones, keeping members\' choices', async () => {
+    const [rows] = await conn.query(
+      `SELECT i.name FROM user_interests ui JOIN interests i ON i.id = ui.interest_id WHERE ui.user_id = 'u-pass'`
+    );
+    expect(rows).toEqual([{ name: 'Coffee' }]);
+    const [old] = await conn.query("SELECT id FROM interests WHERE name = 'Coffee Brewing'");
+    expect(old).toEqual([]);
   });
 
   it('records every migration once and is a no-op when re-run', async () => {

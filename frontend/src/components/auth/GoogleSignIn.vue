@@ -1,5 +1,5 @@
 <template>
-  <div class="google-sign-in w-100 d-flex flex-column align-items-center gap-2">
+  <div class="google-sign-in w-100 d-flex flex-column align-items-center gap-2" :class="{ 'is-gis': state !== 'unavailable' }">
     <!-- No client ID configured: keep the button's place, disabled, so the screen still reads as designed. -->
     <button
       v-if="state === 'unavailable'"

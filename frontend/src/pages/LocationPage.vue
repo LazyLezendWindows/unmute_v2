@@ -3,7 +3,7 @@
     <template v-if="!setup.step.value" #aside><ProfileSummary /></template>
     <div class="location-page d-flex flex-column w-100">
       <template v-if="setup.step.value">
-        <PageHeader title="Set Your Location" subtitle="Find people near you and get better matches" :back="'/profile/interests?setup=1'">
+        <PageHeader title="Set Your Location" subtitle="Find people near you and get better matches" :back="setup.previous.value ?? undefined">
           <template #actions><router-link :to="setup.next.value" class="pill-skip">Skip</router-link></template>
         </PageHeader>
         <SetupProgress :step="setup.step.value" />

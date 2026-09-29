@@ -8,6 +8,8 @@ import { AuthAccountRepository } from '../repositories/authAccountRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { verifyGoogleCredential } from './auth/googleIdentity';
+import { PhoneAuthService } from './phoneAuthService';
+import { PhoneCodeRepository } from '../repositories/phoneCodeRepository';
 import { RegisterInput, LoginInput, GoogleAuthInput } from '../validators/authValidator';
 
 export type GoogleAuthResult =
@@ -27,8 +29,12 @@ async function createUserWithProfile(
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('unmute-timing-equaliser', 12);
 
 export class AuthService {
-  /** Registers an email/password account and returns the new user's ID. */
-  static async register(input: RegisterInput): Promise<string> {
+  /**
+   * Registers an email/password account and returns the new user's ID. With a phone number, the
+   * first call (no code) only checks the details and answers `requiresPhoneCode`; the client then
+   * texts a code (POST /auth/phone/start) and repeats the call with it, which links the number.
+   */
+  static async register(input: RegisterInput): Promise<string | { requiresPhoneCode: true }> {
     if (!isAtLeast18YearsOld(input.dateOfBirth)) {
       throw new AppError('You must be at least 18 years of age to join Unmute', 400);
     }
@@ -39,10 +45,23 @@ export class AuthService {
       throw new AppError('An account with this email address already exists', 409);
     }
 
+    const { phone, code } = input;
+    if (phone) {
+      if (await AuthAccountRepository.findUser('phone', phone)) {
+        throw new AppError('This phone number is already registered. Sign in with Phone instead.', 409);
+      }
+      if (!code) return { requiresPhoneCode: true };
+    }
+    const phoneCode = phone && code ? await PhoneAuthService.checkCode(phone, code) : null;
+
     const passwordHash = await bcrypt.hash(input.password, 12);
     return db.transaction(async (tx) => {
+      if (phoneCode && !(await PhoneCodeRepository.consume(tx, phoneCode.id))) {
+        throw new AppError('This code has already been used. Request a new one.', 400);
+      }
       const userId = await createUserWithProfile(tx, { email, displayName: input.displayName, dateOfBirth: input.dateOfBirth });
       await AuthAccountRepository.insert(tx, { userId, provider: 'password', passwordHash });
+      if (phone) await AuthAccountRepository.insert(tx, { userId, provider: 'phone', providerAccountId: phone });
       return userId;
     });
   }

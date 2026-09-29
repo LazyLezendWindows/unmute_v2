@@ -43,6 +43,10 @@ export class DiscoverService {
       interestIds: query.interestIds,
       educationLevel: query.educationLevel,
       professionField: query.professionField,
+      verifiedOnly: query.verifiedOnly,
+      drinking: query.drinking,
+      smoking: query.smoking,
+      workout: query.workout,
       lookingFor: query.lookingFor ? LOOKING_FOR_GROUPS[query.lookingFor] : undefined,
       searchTerms: query.q?.length ? query.q : undefined,
     };
@@ -66,6 +70,8 @@ export class DiscoverService {
         ...toPublicProfile(candidate.user_id, candidate),
         interactionPreferences: parsePreferences(candidate.interaction_preferences),
         interests,
+        // The day they joined (no time), for the "New" sort.
+        joinedOn: candidate.created_at ? String(candidate.created_at).slice(0, 10) : null,
         commonInterestsCount: common.length,
         commonInterests: common.map((i) => i.name),
         // Bucketed upper bound, never the computed figure.

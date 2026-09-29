@@ -37,17 +37,14 @@
           <input v-model.number="ageLow" type="range" :min="AGE_MIN" :max="AGE_MAX" aria-label="Youngest age" @input="keepAgeOrder('low')" />
           <input v-model.number="ageHigh" type="range" :min="AGE_MIN" :max="AGE_MAX" aria-label="Oldest age" :aria-valuetext="ageHigh === AGE_MAX ? `${AGE_MAX} or older` : `${ageHigh}`" @input="keepAgeOrder('high')" />
         </div>
-        <div class="thumb-labels">
-          <span :style="{ left: ageTrackStyle['--from'] }">{{ ageLow }}</span>
-          <span :style="{ left: ageTrackStyle['--to'] }">{{ ageHigh === AGE_MAX ? `${AGE_MAX}+` : ageHigh }}</span>
-        </div>
+        <div class="ends"><span>{{ AGE_MIN }}</span><span>{{ AGE_MAX }}+</span></div>
       </fieldset>
 
       <!-- Distance -->
       <fieldset class="f-card">
         <legend class="f-head">
           <i class="ri-map-pin-line" aria-hidden="true"></i><span>Distance</span>
-          <span class="f-value is-muted">{{ draft.radiusKm === null ? 'Anywhere' : `Within ${draft.radiusKm} km` }}</span>
+          <span class="f-value">{{ draft.radiusKm === null ? 'Anywhere' : `Within ${draft.radiusKm} km` }}</span>
         </legend>
         <input
           v-model.number="radiusIndex"
@@ -60,56 +57,25 @@
           aria-label="Maximum distance"
           :aria-valuetext="draft.radiusKm === null ? 'Anywhere' : `${draft.radiusKm} kilometres`"
         />
-        <div class="ticks">
-          <span v-for="(stop, index) in DISTANCE_STOPS" :key="index" :class="{ 'is-on': index === radiusIndex }">
-            {{ stop === null ? 'Any' : `${stop} km` }}
-          </span>
-        </div>
+        <div class="ends"><span>{{ DISTANCE_STOPS[0] }} km</span><span>Anywhere</span></div>
         <p v-if="!hasLocation" class="f-hint">
           <router-link to="/profile/location">Set your area</router-link> to filter by distance.
         </p>
       </fieldset>
 
-      <!-- Education -->
+      <!-- Gender -->
       <fieldset class="f-card">
-        <legend class="f-head"><i class="ri-graduation-cap-line" aria-hidden="true"></i><span>Education</span></legend>
-        <div class="chips">
-          <button type="button" class="f-chip" :aria-pressed="!draft.educationLevel" @click="draft.educationLevel = null">
-            Any<i v-if="!draft.educationLevel" class="ri-check-line" aria-hidden="true"></i>
-          </button>
+        <legend class="f-head"><i class="ri-user-3-line" aria-hidden="true"></i><span>Gender</span></legend>
+        <div class="row-3">
           <button
-            v-for="level in EDUCATION_LEVELS"
-            :key="level.value"
+            v-for="option in SHOW_ME"
+            :key="option.label"
             type="button"
-            class="f-chip"
-            :aria-pressed="draft.educationLevel === level.value"
-            @click="draft.educationLevel = level.value"
+            class="opt"
+            :aria-pressed="draft.showMe === option.value"
+            @click="draft.showMe = option.value"
           >
-            {{ level.label }}<i v-if="draft.educationLevel === level.value" class="ri-check-line" aria-hidden="true"></i>
-          </button>
-        </div>
-        <label v-if="hasEducation" class="college-toggle">
-          <input v-model="sameCollege" type="checkbox" />
-          <span>Only people from my college</span>
-        </label>
-      </fieldset>
-
-      <!-- Profession -->
-      <fieldset class="f-card">
-        <legend class="f-head"><i class="ri-briefcase-4-line" aria-hidden="true"></i><span>Profession</span></legend>
-        <div class="chips">
-          <button type="button" class="f-chip" :aria-pressed="!draft.professionField" @click="draft.professionField = null">
-            Any<i v-if="!draft.professionField" class="ri-check-line" aria-hidden="true"></i>
-          </button>
-          <button
-            v-for="field in PROFESSION_FIELDS"
-            :key="field.value"
-            type="button"
-            class="f-chip"
-            :aria-pressed="draft.professionField === field.value"
-            @click="draft.professionField = field.value"
-          >
-            {{ field.label }}<i v-if="draft.professionField === field.value" class="ri-check-line" aria-hidden="true"></i>
+            <i :class="option.icon" aria-hidden="true"></i>{{ option.label }}
           </button>
         </div>
       </fieldset>
@@ -117,42 +83,82 @@
       <!-- Interests -->
       <fieldset class="f-card">
         <legend class="f-head">
-          <i class="ri-heart-3-line" aria-hidden="true"></i><span>Interests</span>
-          <button type="button" class="f-link" @click="showAllInterests = !showAllInterests">
-            {{ showAllInterests ? 'Show fewer' : 'Select interests' }} <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+          <i class="ri-star-line" aria-hidden="true"></i><span>Interest Preferences</span>
+          <button v-if="allInterests.length > INTERESTS_SHOWN" type="button" class="f-link" @click="showAllInterests = !showAllInterests">
+            {{ showAllInterests ? 'Fewer' : 'All' }}
           </button>
         </legend>
-        <div class="chips">
+        <div class="grid-4">
           <button
             v-for="interest in shownInterests"
             :key="interest.id"
             type="button"
-            class="f-chip has-icon"
+            class="opt is-small"
             :aria-pressed="isPicked(interest.id)"
             @click="toggleInterest(interest)"
           >
-            <i :class="interestIcon(interest.name)" class="chip-icon" aria-hidden="true"></i>
-            {{ interest.name }}<i v-if="isPicked(interest.id)" class="ri-check-line" aria-hidden="true"></i>
+            <i :class="interestIcon(interest.name)" aria-hidden="true"></i><span>{{ interest.name }}</span>
           </button>
         </div>
       </fieldset>
 
-      <!-- Show me -->
+      <!-- Lifestyle -->
       <fieldset class="f-card">
-        <legend class="f-head"><i class="ri-equalizer-line" aria-hidden="true"></i><span>Show me</span></legend>
-        <div class="chips is-row">
-          <button
-            v-for="option in SHOW_ME"
-            :key="option.label"
-            type="button"
-            class="f-chip has-icon is-wide"
-            :aria-pressed="draft.showMe === option.value"
-            @click="draft.showMe = option.value"
-          >
-            <i :class="option.icon" class="chip-icon" aria-hidden="true"></i>{{ option.label }}
-          </button>
+        <legend class="f-head"><i class="ri-cup-line" aria-hidden="true"></i><span>Lifestyle</span></legend>
+        <div class="row-3">
+          <label v-for="item in LIFESTYLE" :key="item.key" class="pick">
+            <i :class="item.icon" aria-hidden="true"></i>
+            <span class="pick-text">
+              <small>{{ item.label }}</small>
+              <span>{{ lifestyleLabel(item.key) }}</span>
+            </span>
+            <i class="ri-arrow-down-s-line pick-chev" aria-hidden="true"></i>
+            <select v-model="draft[item.key]" :aria-label="item.label">
+              <option :value="null">Any</option>
+              <option v-for="o in LIFESTYLE_OPTIONS[item.key]" :key="o.value" :value="o.value">{{ o.label }}</option>
+            </select>
+          </label>
         </div>
       </fieldset>
+
+      <!-- Education & work -->
+      <fieldset class="f-card">
+        <legend class="f-head"><i class="ri-graduation-cap-line" aria-hidden="true"></i><span>Education &amp; Work</span></legend>
+        <div class="row-2">
+          <label class="pick">
+            <i class="ri-graduation-cap-line" aria-hidden="true"></i>
+            <span class="pick-text"><small>Education</small><span>{{ labelOf(EDUCATION_LEVELS, draft.educationLevel) }}</span></span>
+            <i class="ri-arrow-down-s-line pick-chev" aria-hidden="true"></i>
+            <select v-model="draft.educationLevel" aria-label="Education">
+              <option :value="null">Any</option>
+              <option v-for="o in EDUCATION_LEVELS" :key="o.value" :value="o.value">{{ o.label }}</option>
+            </select>
+          </label>
+          <label class="pick">
+            <i class="ri-briefcase-4-line" aria-hidden="true"></i>
+            <span class="pick-text"><small>Profession</small><span>{{ labelOf(PROFESSION_FIELDS, draft.professionField) }}</span></span>
+            <i class="ri-arrow-down-s-line pick-chev" aria-hidden="true"></i>
+            <select v-model="draft.professionField" aria-label="Profession">
+              <option :value="null">Any</option>
+              <option v-for="o in PROFESSION_FIELDS" :key="o.value" :value="o.value">{{ o.label }}</option>
+            </select>
+          </label>
+        </div>
+        <label v-if="hasEducation" class="college-toggle">
+          <input v-model="sameCollege" type="checkbox" />
+          <span>Only people from my college</span>
+        </label>
+      </fieldset>
+
+      <!-- Verified only -->
+      <label class="f-card verified">
+        <i class="ri-verified-badge-fill" aria-hidden="true"></i>
+        <span class="verified-text">
+          <strong>Show only verified profiles</strong>
+          <span>See only people who have verified their profile</span>
+        </span>
+        <input v-model="draft.verifiedOnly" type="checkbox" role="switch" class="switch" />
+      </label>
     </form>
 
     <button type="submit" form="filters-form" class="apply-btn">
@@ -170,13 +176,20 @@ import { useAuthStore } from '../stores/auth';
 import { api } from '../services/api';
 import { interestIcon } from '../utils/interestIcon';
 import { Interest } from '../types';
-import { EDUCATION_LEVELS, PROFESSION_FIELDS } from '../utils/profileFormat';
+import { EDUCATION_LEVELS, LIFESTYLE_OPTIONS, PROFESSION_FIELDS } from '../utils/profileFormat';
+import { PHOTO_INTEREST_ORDER } from '../utils/interestPhoto';
 
 const LOOKING_FOR = [
-  { value: 'Relationship', label: 'Relationship', icon: 'ri-heart-3-line' },
+  { value: 'Relationship', label: 'Relationship', icon: 'ri-hearts-line' },
+  { value: 'Casual', label: 'Casual Dating', icon: 'ri-heart-3-line' },
   { value: 'Friendship', label: 'Friendship', icon: 'ri-group-line' },
-  { value: 'Casual', label: 'Casual', icon: 'ri-goblet-line' },
-  { value: null, label: 'Open to all', icon: 'ri-sparkling-line' },
+  { value: null, label: 'Open to Explore', icon: 'ri-vip-diamond-line' },
+] as const;
+
+const LIFESTYLE = [
+  { key: 'drinking', label: 'Drinks', icon: 'ri-goblet-line' },
+  { key: 'smoking', label: 'Smoking', icon: 'ri-forbid-line' },
+  { key: 'workout', label: 'Workout', icon: 'ri-leaf-line' },
 ] as const;
 
 const SHOW_ME = [
@@ -186,11 +199,11 @@ const SHOW_ME = [
 ] as const;
 
 /** The backend's allowed radii; the last stop means no distance limit. */
-const DISTANCE_STOPS = [5, 10, 25, 50, 100, null] as const;
-// The slider ends mean "no limit": 18 is the youngest anyone can be, and the top is "60 or older".
+const DISTANCE_STOPS = [5, 10, 25, 50, 100, 200, null] as const;
+// The slider ends mean "no limit": 18 is the youngest anyone can be, and the top is "50 or older".
 const AGE_MIN = 18;
-const AGE_MAX = 60;
-const INTERESTS_SHOWN = 8;
+const AGE_MAX = 50;
+const INTERESTS_SHOWN = 12;
 
 const router = useRouter();
 const discoverStore = useDiscoverStore();
@@ -217,8 +230,13 @@ onMounted(async () => {
 
 /** Picked ones first, so they stay visible when the list is collapsed. */
 const shownInterests = computed(() => {
-  const picked = allInterests.value.filter((i) => isPicked(i.id));
-  const rest = allInterests.value.filter((i) => !isPicked(i.id));
+  const rank = (name: string) => {
+    const i = PHOTO_INTEREST_ORDER.indexOf(name.toLowerCase());
+    return i === -1 ? Number.MAX_VALUE : i;
+  };
+  const sorted = [...allInterests.value].sort((a, b) => rank(a.name) - rank(b.name));
+  const picked = sorted.filter((i) => isPicked(i.id));
+  const rest = sorted.filter((i) => !isPicked(i.id));
   const ordered = [...picked, ...rest];
   return showAllInterests.value ? ordered : ordered.slice(0, Math.max(INTERESTS_SHOWN, picked.length));
 });
@@ -252,8 +270,16 @@ function keepAgeOrder(moved: 'low' | 'high') {
 
 const ageLabel = computed(() => {
   if (ageLow.value === AGE_MIN && ageHigh.value === AGE_MAX) return 'Any age';
-  return ageHigh.value === AGE_MAX ? `${ageLow.value}+` : `${ageLow.value} - ${ageHigh.value}`;
+  return ageHigh.value === AGE_MAX ? `${ageLow.value}+ years` : `${ageLow.value} – ${ageHigh.value} years`;
 });
+
+function lifestyleLabel(key: (typeof LIFESTYLE)[number]['key']) {
+  return LIFESTYLE_OPTIONS[key].find((o) => o.value === draft.value[key])?.label ?? 'Any';
+}
+
+function labelOf(options: readonly { value: string; label: string }[], value: string | null) {
+  return options.find((o) => o.value === value)?.label ?? 'Any';
+}
 
 const ageTrackStyle = computed(() => {
   const pct = (age: number) => `${((age - AGE_MIN) / (AGE_MAX - AGE_MIN)) * 100}%`;
@@ -281,9 +307,9 @@ function apply() {
 </script>
 
 <style scoped lang="scss">
-$ink: #10106b;
-$lilac-text: #5b4bc4;
-$gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
+$ink: var(--unmute-text-heading);
+$soft: var(--unmute-text-secondary);
+$pink: var(--unmute-cta);
 
 .filters-page {
   width: 100%;
@@ -297,177 +323,311 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   border: 0;
   border-radius: var(--unmute-radius-pill);
   background: #fff;
-  color: #e5147c;
-  font-size: 1.05rem;
+  color: $pink;
+  font-size: 1rem;
   font-weight: 600;
   box-shadow: 0 6px 18px -8px rgba(117, 48, 170, 0.35);
 }
 
 .page-title {
   margin: 0;
-  font-size: 2.3rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: $ink;
+  text-align: center;
 }
 
 .page-sub {
   margin-bottom: 1rem;
-  font-size: 1.25rem;
-  color: $lilac-text;
+  font-size: 1.1rem;
+  color: var(--unmute-text-muted);
+  text-align: center;
 }
 
 .f-card {
   min-width: 0;
   margin: 0;
-  padding: 1rem 1.1rem 1.1rem;
-  border: 0;
-  border-radius: 1.6rem;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10px 30px -22px rgba(117, 48, 170, 0.5);
+  padding: 1rem;
+  border: 1px solid rgba(74, 0, 91, 0.06);
+  border-radius: 1.4rem;
+  background: var(--unmute-surface);
+  box-shadow: 0 10px 30px -24px rgba(117, 48, 170, 0.5);
 }
 
 .f-head {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.65rem;
   width: 100%;
   float: left;
   margin: 0 0 0.8rem;
   padding: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: $ink;
 
   & + * {
     clear: both;
   }
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: $ink;
-
-  > i {
-    font-size: 1.6rem;
-    color: $ink;
-  }
 
   > i:first-child {
-    color: #e5147c;
+    font-size: 1.5rem;
+    color: $pink;
   }
 }
 
 .f-value {
   margin-left: auto;
-  font-size: 1.05rem;
-  font-weight: 500;
-  color: #4b3fb8;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: $pink;
 }
 
 .f-link {
-  display: inline-flex;
-  align-items: center;
   margin-left: auto;
   border: 0;
   background: transparent;
-  color: #5b5fb0;
-  font-size: 0.95rem;
-  font-weight: 500;
+  color: $pink;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .f-hint {
   margin: 0.6rem 0 0;
   font-size: 0.85rem;
-  color: $lilac-text;
+  color: $soft;
 
   a {
-    color: #e5147c;
+    color: $pink;
     font-weight: 600;
+  }
+}
+
+// Options: white with a hairline border; chosen ones turn soft pink with a pink edge.
+@mixin option {
+  border: 1.5px solid rgba(74, 0, 91, 0.1);
+  background: #fff;
+  color: $ink;
+
+  i {
+    color: $ink;
+  }
+
+  &[aria-pressed='true'] {
+    border-color: rgba(242, 24, 114, 0.6);
+    background: #fdeaf4;
+    color: $pink;
+
+    i {
+      color: $pink;
+    }
   }
 }
 
 .tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .tile {
+  @include option;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   min-width: 0;
-  padding: 0.75rem 0.2rem;
-  border: 0;
+  padding: 0.75rem 0.1rem;
   border-radius: 1rem;
-  background: #f5f1fc;
-  color: #4b3fb8;
-  font-size: clamp(0.72rem, 3vw, 0.95rem);
+  font-size: 0.72rem;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 
   i {
     font-size: 1.5rem;
   }
-
-  &[aria-pressed='true'] {
-    background: $gradient;
-    color: #fff;
-  }
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-.chips.is-row {
-  flex-wrap: nowrap;
-
-  .f-chip {
-    flex: 1;
-    justify-content: center;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-}
-
-.f-chip {
-  display: inline-flex;
-  align-items: center;
+.row-3,
+.row-2,
+.grid-4 {
+  display: grid;
   gap: 0.45rem;
-  padding: 0.6rem 1.1rem;
-  border: 0;
-  border-radius: var(--unmute-radius-pill);
-  background: #f5f1fc;
-  color: #4b3fb8;
-  font-size: 1rem;
+}
 
-  &.is-wide {
-    padding: 0.75rem clamp(0.9rem, 4vw, 1.6rem);
+.row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-4 { display: flex; flex-wrap: wrap; }
+
+.opt {
+  @include option;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.92rem;
+
+  i {
+    font-size: 1.2rem;
   }
 
-  .chip-icon {
-    font-size: 1.3rem;
-    color: #d31a8c;
-  }
+  &.is-small {
+    flex: 1 1 auto;
+    min-height: 2.5rem;
+    padding: 0 0.75rem;
+    border-radius: var(--unmute-radius-pill);
+    font-size: 0.82rem;
 
-  &[aria-pressed='true'] {
-    background: $gradient;
-    color: #fff;
+    i {
+      flex-shrink: 0;
+      font-size: 1rem;
+    }
 
-    .chip-icon {
-      color: #fff;
+    span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
   }
+}
 
-  &:disabled {
-    opacity: 0.45;
+// A native select laid invisibly over a card, so the phone's own picker opens.
+.pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.5rem 0.5rem 0.5rem 0.6rem;
+  border: 1.5px solid rgba(74, 0, 91, 0.1);
+  border-radius: 1rem;
+  color: $ink;
+
+  > i:first-child {
+    flex-shrink: 0;
+    font-size: 1.3rem;
+    color: $pink;
+  }
+
+  select {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
   }
 }
 
-// Shared slider look: pale track, brand-gradient fill, white thumbs with a pink ring.
-@mixin thumb {
-  width: 1.9rem;
+.pick-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+
+  small {
+    color: $soft;
+    font-size: 0.68rem;
+  }
+
+  span {
+    overflow: hidden;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.pick-chev {
+  flex-shrink: 0;
+  color: $ink;
+}
+
+.verified {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  cursor: pointer;
+
+  > i {
+    font-size: 1.7rem;
+    color: #5a4be0;
+  }
+}
+
+.verified-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  color: $soft;
+  font-size: 0.8rem;
+
+  strong {
+    color: $ink;
+    font-size: 1rem;
+  }
+}
+
+// Toggle switch: pink when on.
+.switch {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 3.2rem;
   height: 1.9rem;
+  border-radius: 9999px;
+  background: #e5dff2;
+  cursor: pointer;
+  transition: background var(--unmute-transition-fast);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0.2rem;
+    left: 0.2rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform var(--unmute-transition-fast);
+  }
+
+  &:checked {
+    background: linear-gradient(90deg, #ff4f8e, #f21872);
+
+    &::after {
+      transform: translateX(1.3rem);
+    }
+  }
+}
+
+.college-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+  color: $soft;
+  font-size: 0.9rem;
+
+  input {
+    width: 1.2rem;
+    height: 1.2rem;
+    accent-color: $pink;
+  }
+}
+
+// Sliders: pale track, gradient fill, white thumbs with a pink ring.
+@mixin thumb {
+  width: 1.7rem;
+  height: 1.7rem;
   border-radius: 50%;
-  border: 3px solid #e5147c;
+  border: 2px solid $pink;
   background: #fff;
   box-shadow: 0 2px 8px rgba(192, 0, 120, 0.3);
   cursor: pointer;
@@ -477,7 +637,7 @@ input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 44px;
+  height: 40px;
   margin: 0;
   background: transparent;
 
@@ -488,16 +648,16 @@ input[type='range'] {
 
 input.single-range {
   --fill: 0%;
-  background: linear-gradient(90deg, #ff3d8b, #8a1fe0) 0 50% / var(--fill) 8px no-repeat,
-    linear-gradient(#ece7f8, #ece7f8) 0 50% / 100% 8px no-repeat;
+  background: linear-gradient(90deg, #ff4f8e, #8a1fb0) 0 50% / var(--fill) 6px no-repeat,
+    linear-gradient(#ece7f4, #ece7f4) 0 50% / 100% 6px no-repeat;
 }
 
 // Two range inputs stacked on one track; only their thumbs take the pointer.
 .dual-range {
   position: relative;
-  height: 44px;
-  background: linear-gradient(90deg, #ff3d8b, #8a1fe0) var(--from) 50% / calc(var(--to) - var(--from)) 8px no-repeat,
-    linear-gradient(#ece7f8, #ece7f8) 0 50% / 100% 8px no-repeat;
+  height: 40px;
+  background: linear-gradient(90deg, #ff4f8e, #8a1fb0) var(--from) 50% / calc(var(--to) - var(--from)) 6px no-repeat,
+    linear-gradient(#ece7f4, #ece7f4) 0 50% / 100% 6px no-repeat;
 
   input {
     position: absolute;
@@ -509,43 +669,11 @@ input.single-range {
   }
 }
 
-.thumb-labels {
-  position: relative;
-  height: 1.4rem;
-  margin: 0 0.95rem;
-  color: $ink;
-  font-size: 1.05rem;
-
-  span {
-    position: absolute;
-    transform: translateX(-50%);
-  }
-}
-
-.ticks {
+.ends {
   display: flex;
   justify-content: space-between;
-  color: $lilac-text;
-  font-size: 0.95rem;
-
-  .is-on {
-    color: #e5147c;
-  }
-}
-
-.college-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin-top: 0.8rem;
-  color: #4b3fb8;
-  font-size: 0.95rem;
-
-  input {
-    width: 1.2rem;
-    height: 1.2rem;
-    accent-color: #e5147c;
-  }
+  color: $soft;
+  font-size: 0.9rem;
 }
 
 .apply-btn {
@@ -558,19 +686,19 @@ input.single-range {
   align-items: center;
   justify-content: center;
   width: min(32rem, calc(100% - 2rem));
-  min-height: 3.8rem;
+  min-height: 3.6rem;
   border: 0;
   border-radius: var(--unmute-radius-pill);
-  background: $gradient;
+  background: linear-gradient(100deg, #ff7a6e 0%, #f21872 35%, #c00078 65%, #4a005b 100%);
   color: #fff;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 600;
   box-shadow: 0 16px 34px -14px rgba(192, 0, 120, 0.75);
 
   i {
     position: absolute;
     right: 1.5rem;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   @media (min-width: 768px) {

@@ -10,6 +10,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get('/', ChatController.getConversations);
+router.get('/call-config', ChatController.iceServers);
 router.get(
   '/:id/messages',
   validateParams(idParamsSchema),

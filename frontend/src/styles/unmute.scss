@@ -144,12 +144,9 @@ h1, h2, h3, h4, .font-display, .brand-heading {
 
 .auth-link {
   font-weight: 700;
-  color: var(--unmute-accent-text);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
+  color: var(--unmute-cta);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 // White pill for social sign-in (Phone, and Google when its own button can't load).
@@ -185,8 +182,8 @@ h1, h2, h3, h4, .font-display, .brand-heading {
     box-shadow: var(--unmute-shadow-md);
   }
 
+  // Stays readable, as in the brand screens; only the cursor says it can't be used yet.
   &:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
   }
 }

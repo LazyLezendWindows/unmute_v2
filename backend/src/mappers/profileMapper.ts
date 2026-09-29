@@ -4,6 +4,7 @@ import { isOnline } from '../sockets/presence';
 
 export interface ProfileRow {
   user_id: string;
+  created_at?: string;
   id: string;
   display_name: string;
   date_of_birth: string;

@@ -21,6 +21,10 @@ export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = await AuthService.register(req.body);
+      if (typeof userId !== 'string') {
+        res.status(200).json({ success: true, data: userId });
+        return;
+      }
       const user = await startSession(req, res, userId);
       console.info(`[Auth] Registered user ${userId} (password)`);
       res.status(201).json({ success: true, data: { user } });
@@ -76,6 +80,17 @@ export class AuthController {
       }
       const user = await startSession(req, res, result.userId);
       res.status(200).json({ success: true, data: { requiresProfile: false, isNewUser: result.isNewUser, user } });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Adds a confirmed phone number to the signed-in account. */
+  static async phoneLink(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await PhoneAuthService.link(req.user!.userId, req.body);
+      const user = await AuthService.getCurrentUser(req.user!.userId);
+      res.status(200).json({ success: true, data: { user } });
     } catch (err) {
       next(err);
     }

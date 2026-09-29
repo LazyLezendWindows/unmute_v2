@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { api } from '../services/api';
 import { useToastStore } from './toast';
 import { useAuthStore } from './auth';
-import { DiscoveryCandidate, EducationLevel, Institution, Interest, Place, ProfessionField } from '../types';
+import { DiscoveryCandidate, EducationLevel, HabitFrequency, Institution, Interest, Place, ProfessionField, WorkoutFrequency } from '../types';
 
 /** Discovery filters as the viewer chose them; applied by the backend, never client-side. */
 export interface DiscoverFilters {
@@ -20,6 +20,10 @@ export interface DiscoverFilters {
   interests: Pick<Interest, 'id' | 'name'>[];
   educationLevel: EducationLevel | null;
   professionField: ProfessionField | null;
+  verifiedOnly: boolean;
+  drinking: HabitFrequency | null;
+  smoking: HabitFrequency | null;
+  workout: WorkoutFrequency | null;
 }
 
 export function emptyFilters(): DiscoverFilters {
@@ -35,6 +39,10 @@ export function emptyFilters(): DiscoverFilters {
     interests: [],
     educationLevel: null,
     professionField: null,
+    verifiedOnly: false,
+    drinking: null,
+    smoking: null,
+    workout: null,
   };
 }
 
@@ -44,7 +52,8 @@ export interface ActiveMatch {
   person: DiscoveryCandidate;
 }
 
-const STORAGE_PREFIX = 'unmute.discoverFilters.v1:';
+// v2: the older interests were merged away, so filters saved with their ids start fresh.
+const STORAGE_PREFIX = 'unmute.discoverFilters.v2:';
 
 // Per-viewer convenience only: storage can be unavailable (private mode, blocked site data).
 function readSavedFilters(userId: string): DiscoverFilters {
@@ -67,7 +76,7 @@ function saveFilters(userId: string, filters: DiscoverFilters): void {
 export const useDiscoverStore = defineStore('discover', () => {
   const feed = ref<DiscoveryCandidate[]>([]);
   const currentIndex = ref(0);
-  const sort = ref<'recommended' | 'distance' | 'interests' | 'online'>('recommended');
+  const sort = ref<'recommended' | 'distance' | 'interests' | 'online' | 'new'>('recommended');
   let recommendedOrder: string[] = [];
   function setSort(next: typeof sort.value) {
     sort.value = next;
@@ -77,6 +86,7 @@ export const useDiscoverStore = defineStore('discover', () => {
       ? (a.distanceKm ?? Number.MAX_VALUE) - (b.distanceKm ?? Number.MAX_VALUE)
       : next === 'interests' ? b.commonInterestsCount - a.commonInterestsCount
       : next === 'online' ? Number(b.isOnline) - Number(a.isOnline) || recommendedOrder.indexOf(a.id) - recommendedOrder.indexOf(b.id)
+      : next === 'new' ? (b.joinedOn ?? '').localeCompare(a.joinedOn ?? '') || recommendedOrder.indexOf(a.id) - recommendedOrder.indexOf(b.id)
       : recommendedOrder.indexOf(a.id) - recommendedOrder.indexOf(b.id));
     feed.value = [...feed.value.slice(0, currentIndex.value), ...remaining];
   }
@@ -119,6 +129,10 @@ export const useDiscoverStore = defineStore('discover', () => {
       f.interests.length,
       f.educationLevel,
       f.professionField,
+      f.verifiedOnly,
+      f.drinking,
+      f.smoking,
+      f.workout,
     ].filter(Boolean).length;
   });
 
@@ -140,6 +154,10 @@ export const useDiscoverStore = defineStore('discover', () => {
     if (f.showMe) params.showMe = f.showMe;
     if (f.educationLevel) params.educationLevel = f.educationLevel;
     if (f.professionField) params.professionField = f.professionField;
+    if (f.verifiedOnly) params.verifiedOnly = true;
+    if (f.drinking) params.drinking = f.drinking;
+    if (f.smoking) params.smoking = f.smoking;
+    if (f.workout) params.workout = f.workout;
     if (f.interests.length) params.interestIds = f.interests.map((i) => i.id).join(',');
     if (search.value.trim()) params.q = search.value.trim();
     return params;
@@ -186,14 +204,14 @@ export const useDiscoverStore = defineStore('discover', () => {
   }
 
   /**
-   * Advances optimistically; if the server rejects the action the card comes back
-   * (when the user hasn't moved on further) so a failed like is never silently lost.
+   * Likes or passes anyone in the feed (the top card, or a person picked from the grid). They leave
+   * the feed straight away; if the server rejects it they come back, so a failed like is never lost.
    */
-  async function interactWithCurrent(action: 'like' | 'pass') {
-    if (!currentCandidate.value) return;
-    const target = currentCandidate.value;
-    const index = currentIndex.value;
-    currentIndex.value++;
+  async function interact(target: DiscoveryCandidate, action: 'like' | 'pass') {
+    const index = feed.value.findIndex((p) => p.id === target.id);
+    if (index === -1) return;
+    feed.value = feed.value.filter((p) => p.id !== target.id);
+    if (index < currentIndex.value) currentIndex.value--;
 
     try {
       const res = await api.post(`/interactions/${action}`, { targetUserId: target.id });
@@ -201,7 +219,11 @@ export const useDiscoverStore = defineStore('discover', () => {
         activeMatch.value = { conversationId: res.data.data.conversationId, person: target };
       }
     } catch (err: any) {
-      if (currentIndex.value === index + 1) currentIndex.value = index;
+      if (!feed.value.some((p) => p.id === target.id)) {
+        const at = Math.min(index, feed.value.length);
+        feed.value = [...feed.value.slice(0, at), target, ...feed.value.slice(at)];
+        if (index < currentIndex.value) currentIndex.value++;
+      }
       useToastStore().error(
         action === 'like'
           ? `Couldn't connect with ${target.displayName}. ${err.message}`
@@ -210,8 +232,10 @@ export const useDiscoverStore = defineStore('discover', () => {
     }
   }
 
-  const likeCurrent = () => interactWithCurrent('like');
-  const passCurrent = () => interactWithCurrent('pass');
+  const likeCurrent = () => currentCandidate.value && interact(currentCandidate.value, 'like');
+  const passCurrent = () => currentCandidate.value && interact(currentCandidate.value, 'pass');
+  const like = (person: DiscoveryCandidate) => interact(person, 'like');
+  const pass = (person: DiscoveryCandidate) => interact(person, 'pass');
 
   async function blockUser(targetUserId: string, reason = '') {
     await api.post('/safety/block', { targetUserId, reason });
@@ -246,6 +270,8 @@ export const useDiscoverStore = defineStore('discover', () => {
     loadFeed,
     likeCurrent,
     passCurrent,
+    like,
+    pass,
     blockUser,
     reportUser,
     dismissMatchModal,

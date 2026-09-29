@@ -309,6 +309,48 @@ describe('Unmute API', () => {
       expect(sessionCookie(res)).toBeDefined();
     });
 
+    it('registers with email and a phone number only once the SMS code is given', async () => {
+      const phone = '+919800011122';
+      const details = { email: 'withphone@example.com', password: 'Password123!', displayName: 'Kavya', dateOfBirth: '1998-08-08', phone: '98000 11122' };
+
+      const first = await request(app).post('/api/v1/auth/register').send(details);
+      expect(first.status).toBe(200);
+      expect(first.body.data).toEqual({ requiresPhoneCode: true });
+      expect(sessionCookie(first)).toBeUndefined();
+      expect(await getDatabase().get('SELECT id FROM users WHERE email = ?', ['withphone@example.com'])).toBeNull();
+
+      expect((await request(app).post('/api/v1/auth/phone/start').send({ phone })).status).toBe(200);
+      const wrong = lastCode(phone) === '000000' ? '111111' : '000000';
+      expect((await request(app).post('/api/v1/auth/register').send({ ...details, code: wrong })).status).toBe(400);
+
+      const res = await request(app).post('/api/v1/auth/register').send({ ...details, code: lastCode(phone) });
+      expect(res.status).toBe(201);
+      expect(res.body.data.user.email).toBe('withphone@example.com');
+      expect(res.body.data.user.phone).toBe(phone);
+    });
+
+    it('refuses to register a phone number that already has an account', async () => {
+      const res = await request(app).post('/api/v1/auth/register').send({
+        email: 'taken@example.com', password: 'Password123!', displayName: 'Taken', dateOfBirth: '1998-08-08', phone: PHONE,
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error).toMatch(/already registered/);
+    });
+
+    it('adds a confirmed number to a signed-in account, and refuses one owned by someone else', async () => {
+      const { agent } = await registerAgent('linker@example.com', 'Linker');
+      const phone = '+919811122233';
+      expect((await request(app).post('/api/v1/auth/phone/start').send({ phone })).status).toBe(200);
+      const res = await agent.post('/api/v1/auth/phone/link').send({ phone, code: lastCode(phone) });
+      expect(res.status).toBe(200);
+      expect(res.body.data.user.phone).toBe(phone);
+
+      await skipResendWait(PHONE);
+      expect((await request(app).post('/api/v1/auth/phone/start').send({ phone: PHONE })).status).toBe(200);
+      const taken = await agent.post('/api/v1/auth/phone/link').send({ phone: PHONE, code: lastCode(PHONE) });
+      expect(taken.status).toBe(409);
+    });
+
     it('stops accepting a code after five wrong guesses', async () => {
       const phone = '+919812345678';
       expect((await request(app).post('/api/v1/auth/phone/start').send({ phone })).status).toBe(200);
@@ -544,6 +586,29 @@ describe('Unmute API', () => {
     });
   });
 
+  describe('Verified and lifestyle filters', () => {
+    it('narrows discovery to verified members and to lifestyle answers', async () => {
+      const viewer = await registerAgent('lifeviewer@example.com', 'Viewer');
+      const smoker = await registerAgent('smoker@example.com', 'Smoker');
+      const verified = await registerAgent('verifiedone@example.com', 'Verified');
+      await smoker.agent.patch('/api/v1/users/me').send({ lifestyle: { smoking: 'regularly' } });
+      await getDatabase().run('UPDATE profiles SET is_verified = 1 WHERE user_id = ?', [verified.id]);
+
+      const ids = async (query: string) =>
+        (await viewer.agent.get(`/api/v1/discover?${query}`)).body.data.map((p: { id: string }) => p.id);
+
+      const onlyVerified = await ids('verifiedOnly=true');
+      expect(onlyVerified).toContain(verified.id);
+      expect(onlyVerified).not.toContain(smoker.id);
+
+      const smokers = await ids('smoking=regularly');
+      expect(smokers).toContain(smoker.id);
+      expect(smokers).not.toContain(verified.id);
+
+      expect((await viewer.agent.get('/api/v1/discover?smoking=always')).status).toBe(400);
+    });
+  });
+
   describe('Discovery, matching & chat', () => {
     let a: { agent: request.Agent; id: string };
     let b: { agent: request.Agent; id: string };
@@ -584,6 +649,7 @@ describe('Unmute API', () => {
         content: 'Hello User B!',
         status: 'sent',
         createdAt: sent.body.data.createdAt,
+        kind: 'text',
       });
 
       const conversations = await b.agent.get('/api/v1/conversations');

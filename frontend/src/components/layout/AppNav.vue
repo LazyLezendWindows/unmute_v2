@@ -60,6 +60,8 @@ import { NAV_ITEMS, NavItem, isNavActive } from '../../navigation';
 import { useAuthStore } from '../../stores/auth';
 import { useChatStore } from '../../stores/chat';
 import { useNotificationStore } from '../../stores/notifications';
+import { useCallStore } from '../../stores/call';
+import { syncPush } from '../../services/push';
 
 defineProps<{ showMobileDock: boolean }>();
 
@@ -67,6 +69,7 @@ const route = useRoute();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
 const notificationStore = useNotificationStore();
+const callStore = useCallStore();
 const desktopItems = NAV_ITEMS.filter((item) => item.desktop);
 const mobileItems = NAV_ITEMS.filter((item) => item.mobile);
 
@@ -82,6 +85,8 @@ onMounted(() => {
   if (!chatStore.matches.length) chatStore.loadMatches();
   if (!chatStore.conversations.length) chatStore.loadConversations();
   notificationStore.bindSocket();
+  callStore.bindSocket();
+  syncPush();
   notificationStore.refreshCount();
 });
 

@@ -83,11 +83,11 @@
     </router-link>
 
     <nav class="me-card rows" aria-label="Account">
-      <button type="button" class="row" @click="profile?.isVerified || comingSoon('Profile verification')">
+      <router-link to="/verify" class="row">
         <i class="ri-star-line" aria-hidden="true"></i><span>Verified Profile</span>
         <em :class="{ 'is-ok': profile?.isVerified }">{{ profile?.isVerified ? '✓ Verified' : 'Not verified' }}</em>
         <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
-      </button>
+      </router-link>
       <router-link to="/safety" class="row">
         <i class="ri-shield-check-line" aria-hidden="true"></i><span>Privacy Settings</span><em></em>
         <i class="ri-arrow-right-s-line" aria-hidden="true"></i>

@@ -42,7 +42,11 @@ export default defineConfig({
           },
         ],
       },
+      // The service worker also runs in `npm run dev`, so push notifications can be tried locally.
+      devOptions: { enabled: true, navigateFallbackAllowlist: [/^\/$/] },
       workbox: {
+        // Shows call and message notifications while the app is closed.
+        importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ttf}'],
         // Deep links open the cached app shell offline, but API and realtime traffic must always
         // reach the network: personal data is never cached by the service worker.

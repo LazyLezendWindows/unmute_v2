@@ -8,7 +8,7 @@
   </component>
   <GlobalLoader />
   <UToast />
-  <OfflineBanner />
+  <OfflineScreen />
 </template>
 
 <script setup lang="ts">
@@ -17,7 +17,7 @@ import { useRoute, useRouter } from 'vue-router';
 import AppLayout from './layouts/AppLayout.vue';
 import UToast from './components/ui/UToast.vue';
 import GlobalLoader from './components/layout/GlobalLoader.vue';
-import OfflineBanner from './components/layout/OfflineBanner.vue';
+import OfflineScreen from './components/layout/OfflineScreen.vue';
 import { useAuthStore } from './stores/auth';
 
 const route = useRoute();

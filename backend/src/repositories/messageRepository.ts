@@ -3,10 +3,16 @@ import { getDatabase } from '../config/database';
 import { MessageRow } from '../mappers/messageMapper';
 import { placeholders } from './sql';
 
-const MESSAGE_COLUMNS = 'id, conversation_id, sender_id, content, status, created_at';
+const MESSAGE_COLUMNS = 'id, conversation_id, sender_id, content, status, created_at, kind, call_mode, call_outcome, call_seconds';
 
 export class MessageRepository {
-  static async insert(conversationId: string, senderId: string, content: string): Promise<MessageRow> {
+  /** A text message, or with `call` the record of a call (the caller is the sender). */
+  static async insert(
+    conversationId: string,
+    senderId: string,
+    content: string,
+    call?: { mode: string; outcome: string; seconds: number }
+  ): Promise<MessageRow> {
     const row: MessageRow = {
       id: crypto.randomUUID(),
       conversation_id: conversationId,
@@ -14,10 +20,17 @@ export class MessageRepository {
       content,
       status: 'sent',
       created_at: new Date().toISOString(),
+      kind: call ? 'call' : 'text',
+      call_mode: call?.mode ?? null,
+      call_outcome: call?.outcome ?? null,
+      call_seconds: call?.seconds ?? null,
     };
     await getDatabase().run(
-      `INSERT INTO messages (${MESSAGE_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?)`,
-      [row.id, row.conversation_id, row.sender_id, row.content, row.status, row.created_at]
+      `INSERT INTO messages (${MESSAGE_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        row.id, row.conversation_id, row.sender_id, row.content, row.status, row.created_at,
+        row.kind, row.call_mode, row.call_outcome, row.call_seconds,
+      ]
     );
     return row;
   }

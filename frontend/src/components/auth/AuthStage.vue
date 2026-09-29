@@ -1,11 +1,11 @@
 <template>
   <div class="auth-stage min-vh-100 d-flex align-items-center justify-content-center u-page">
-    <!-- Ambient blobs -->
-    <div class="auth-blob auth-blob-1" aria-hidden="true"></div>
-    <div class="auth-blob auth-blob-2" aria-hidden="true"></div>
+    <!-- Soft lavender circles, a thin ring and a heart around the edges, as in the brand screens -->
+    <span class="auth-orb auth-orb-1" aria-hidden="true"></span>
+    <span class="auth-orb auth-orb-2" aria-hidden="true"></span>
+    <span class="auth-orb auth-orb-3" aria-hidden="true"></span>
     <span class="auth-ring" aria-hidden="true"></span>
     <i class="ri-heart-3-fill auth-heart auth-heart-1" aria-hidden="true"></i>
-    <i class="ri-heart-3-fill auth-heart auth-heart-2" aria-hidden="true"></i>
     <!-- Soft lilac waves along the bottom, as in the brand screens -->
     <svg class="auth-wave" viewBox="0 0 390 120" preserveAspectRatio="none" aria-hidden="true">
       <path d="M0 60C70 20 140 90 220 60S340 20 390 40V120H0Z" fill="#f6d4f0" opacity="0.7" />
@@ -53,37 +53,46 @@ withDefaults(
   overflow: hidden;
 }
 
-.auth-blob {
+.auth-orb {
   position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
   z-index: 0;
-  filter: blur(80px);
-  opacity: 0.45;
+  border-radius: 50%;
+  background: rgba(233, 216, 250, 0.45);
+  pointer-events: none;
 }
 
-.auth-blob-1 {
-  width: 28rem;
-  height: 28rem;
-  top: -8rem;
-  left: -8rem;
-  background: radial-gradient(circle, rgba(242, 24, 114, 0.35) 0%, transparent 70%);
-}
-
-.auth-blob-2 {
+.auth-orb-1 {
+  top: -9rem;
+  left: -9rem;
   width: 22rem;
   height: 22rem;
-  bottom: -6rem;
+}
+
+.auth-orb-2 {
+  top: 38%;
+  left: -8rem;
+  width: 13rem;
+  height: 13rem;
+  background: rgba(233, 216, 250, 0.35);
+}
+
+.auth-orb-3 {
+  top: 26%;
   right: -6rem;
-  background: radial-gradient(circle, rgba(74, 0, 91, 0.3) 0%, transparent 70%);
+  width: 11rem;
+  height: 11rem;
+}
+
+:global([data-theme='dark']) .auth-orb {
+  background: rgba(121, 0, 110, 0.12);
 }
 
 .auth-ring {
   position: fixed;
-  top: 6rem;
-  right: -5rem;
-  width: 11rem;
-  height: 11rem;
+  top: 3rem;
+  right: -5.5rem;
+  width: 10rem;
+  height: 10rem;
   border: 1px solid rgba(192, 0, 120, 0.15);
   border-radius: 50%;
   pointer-events: none;
@@ -99,17 +108,11 @@ withDefaults(
 }
 
 .auth-heart-1 {
-  top: 9rem;
-  right: 8%;
-  font-size: 2.2rem;
+  top: 7.5rem;
+  right: 10%;
+  font-size: 2.1rem;
 }
 
-.auth-heart-2 {
-  top: 12.5rem;
-  left: 5%;
-  font-size: 1.6rem;
-  animation-delay: -3s;
-}
 
 @keyframes auth-heart-float {
   0%, 100% { transform: translateY(0) rotate(-8deg); }
@@ -136,6 +139,8 @@ withDefaults(
   z-index: 1;
 
   @media (min-width: 576px) {
+    // Full-bleed pieces (the welcome photo) stay inside the card's rounded corners.
+    overflow: hidden;
     padding: 2.5rem 2.25rem;
     border-radius: var(--unmute-radius-xl);
     background: var(--unmute-glass-strong);
@@ -147,6 +152,8 @@ withDefaults(
 }
 
 .auth-header {
+  position: relative;
+  z-index: 1;
   margin-bottom: 2rem;
 }
 
@@ -155,8 +162,8 @@ withDefaults(
 }
 
 .auth-tagline {
-  margin-bottom: 1.75rem !important;
-  font-size: 1.05rem;
+  margin-bottom: 1.9rem !important;
+  font-size: 1rem;
   line-height: 1.35;
   color: var(--unmute-text-secondary);
 }
@@ -192,27 +199,50 @@ withDefaults(
 }
 
 .auth-title {
-  font-size: clamp(1.75rem, 4vw, 2.2rem);
+  font-size: clamp(1.85rem, 4vw, 2.2rem);
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--unmute-text-heading);
 }
 
 .auth-subtitle {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--unmute-text-muted);
   line-height: 1.5;
 }
 
-:deep(.u-input) {
-  min-height: 3.25rem;
-  border-radius: var(--unmute-radius-sm);
-  font-size: 0.95rem;
+// White, softly rounded fields with plum icons.
+.auth-column :deep(.u-input) {
+  min-height: 3.3rem;
+  border-radius: 1.1rem;
+  border-color: rgba(74, 0, 91, 0.12);
+  background-color: var(--unmute-surface);
+  font-size: 0.98rem;
 }
 
-:deep(.u-btn-lg) {
-  min-height: 3.4rem;
-  font-size: 1rem;
+.auth-column :deep(.u-input-prefix),
+.auth-column :deep(.u-input-reveal) {
+  color: var(--unmute-brand-plum);
+}
+
+:global([data-theme='dark']) .auth-column :deep(.u-input-prefix),
+:global([data-theme='dark']) .auth-column :deep(.u-input-reveal) {
+  color: var(--unmute-text-secondary);
+}
+
+// The main call to action: coral into pink into deep plum, the arrow at the far right.
+.auth-column :deep(.u-btn-primary.u-btn-lg) {
+  min-height: 3.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  background: linear-gradient(100deg, #ff7a6e 0%, #f21872 35%, #c00078 65%, #4a005b 100%);
+  box-shadow: 0 16px 30px -14px rgba(192, 0, 120, 0.65);
+
+  .ri-arrow-right-line {
+    position: absolute;
+    right: 1.5rem;
+    margin: 0 !important;
+    font-size: 1.35rem;
+  }
 }
 </style>

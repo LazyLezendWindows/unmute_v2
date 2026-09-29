@@ -42,6 +42,24 @@ export const config = {
   corsOrigins,
   minAge: parseInt(process.env.MIN_AGE || '18', 10),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  /**
+   * WebRTC servers for calls. STUN finds a direct route between the two phones; a TURN server
+   * relays the call when no direct route exists (strict mobile networks and offices). Without
+   * TURN_URLS some calls on such networks won't connect.
+   */
+  ice: {
+    stunUrls: (process.env.STUN_URLS || 'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302')
+      .split(',').map((u) => u.trim()).filter(Boolean),
+    turnUrls: (process.env.TURN_URLS || '').split(',').map((u) => u.trim()).filter(Boolean),
+    turnUsername: process.env.TURN_USERNAME || '',
+    turnCredential: process.env.TURN_CREDENTIAL || '',
+  },
+  /** Web Push (calls ringing and messages while the app is closed). Keys: `npx web-push generate-vapid-keys`. */
+  push: {
+    publicKey: process.env.VAPID_PUBLIC_KEY || '',
+    privateKey: process.env.VAPID_PRIVATE_KEY || '',
+    subject: process.env.VAPID_SUBJECT || 'mailto:support@unmute.app',
+  },
   /** SMS delivery for phone sign-in codes (see services/auth/smsSender.ts). */
   sms: {
     provider: (process.env.SMS_PROVIDER || (isProduction ? '' : 'console')).toLowerCase(),

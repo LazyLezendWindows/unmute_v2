@@ -13,6 +13,8 @@
 
     <!-- Global mutual-match celebration -->
     <MatchModal :match="discoverStore.activeMatch" @dismiss="discoverStore.dismissMatchModal" />
+    <!-- Calls from matches ring on any screen -->
+    <IncomingCall />
   </div>
 </template>
 
@@ -21,6 +23,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import AppNav from '../components/layout/AppNav.vue';
 import MatchModal from '../components/matching/MatchModal.vue';
+import IncomingCall from '../components/matching/IncomingCall.vue';
 import { useDiscoverStore } from '../stores/discover';
 
 const route = useRoute();

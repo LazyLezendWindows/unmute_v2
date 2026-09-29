@@ -11,6 +11,7 @@ export function interestIcon(name: string): string {
     [/spirit|meditat/, 'sun'], [/fashion|shop/, 'shopping-bag'],
     [/podcast|radio/, 'mic'], [/writ|poet/, 'quill-pen'], [/design|ui\/ux/, 'pencil-ruler-2'],
     [/hik|trail/, 'walk'], [/bik|cycl/, 'riding'], [/astro|space|star/, 'star'],
+    [/anime/, 'emotion-happy'], [/\bcars?\b/, 'car'], [/diy/, 'tools'],
     [/jazz|lo-fi/, 'music-2'], [/philosoph/, 'lightbulb-flash'], [/language/, 'global'],
   ];
   return `ri-${icons.find(([pattern]) => pattern.test(value))?.[1] || 'sparkling-2'}-line`;

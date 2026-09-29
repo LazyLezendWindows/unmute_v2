@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { idSchema, paginationSchema } from './common';
 import { pincodeSchema } from './locationValidator';
 import { ALLOWED_RADII_KM } from '../services/location/distance.service';
-import { EDUCATION_LEVELS, PROFESSION_FIELDS } from './profileValidator';
+import { EDUCATION_LEVELS, HABIT_FREQUENCIES, PROFESSION_FIELDS, WORKOUT_FREQUENCIES } from './profileValidator';
 
 const booleanQuery = z.enum(['true', 'false']).transform((v) => v === 'true');
 /** "Looking for" groups in the filter, each covering one or more profile answers. */
@@ -38,6 +38,10 @@ export const discoverQuerySchema = paginationSchema(20, 50)
       .optional(),
     educationLevel: z.enum(EDUCATION_LEVELS).optional(),
     professionField: z.enum(PROFESSION_FIELDS).optional(),
+    verifiedOnly: booleanQuery.optional(),
+    drinking: z.enum(HABIT_FREQUENCIES).optional(),
+    smoking: z.enum(HABIT_FREQUENCIES).optional(),
+    workout: z.enum(WORKOUT_FREQUENCIES).optional(),
     // Free-text search, split into up to five words that must all match.
     q: z
       .string()

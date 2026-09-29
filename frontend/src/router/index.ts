@@ -37,6 +37,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/discover/swipe',
+      name: 'discover-swipe',
+      component: () => import('../pages/SwipePage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/matches',
       name: 'matches',
       component: () => import('../pages/MatchesPage.vue'),
@@ -88,6 +94,18 @@ const router = createRouter({
       path: '/profile/interests',
       name: 'profile-interests',
       component: () => import('../pages/InterestsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/verify',
+      name: 'verify',
+      component: () => import('../pages/VerifyPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/profile/photos',
+      name: 'profile-photos',
+      component: () => import('../pages/PhotosPage.vue'),
       meta: { requiresAuth: true },
     },
     {

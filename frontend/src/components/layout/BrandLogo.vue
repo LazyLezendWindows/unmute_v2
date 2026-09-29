@@ -87,7 +87,7 @@ const uid = `logo-${useId()}`;
 }
 
 .brand-logo-stacked .brand-logo-word {
-  font-size: calc(var(--logo-size) * 0.5);
+  font-size: calc(var(--logo-size) * 0.6);
 }
 
 .word-un {

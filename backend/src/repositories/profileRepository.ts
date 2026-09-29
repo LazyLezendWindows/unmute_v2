@@ -7,7 +7,7 @@ import { Coordinates, boundingBox, haversineParams, haversineSql } from '../serv
 const PROFILE_COLUMNS = `p.user_id, p.id, p.display_name, p.date_of_birth, p.bio, p.approximate_location,
   p.avatar_url, p.interaction_preferences, p.is_verified,
   p.gender, p.profession, p.height_cm, p.drinking, p.smoking, p.workout, p.photos,
-  p.education_level, p.profession_field,
+  p.education_level, p.profession_field, p.created_at,
   ul.place_id AS loc_place_id, ul.pincode AS loc_pincode, ul.source AS loc_source,
   ul.label_precision AS loc_precision, lp.kind AS loc_kind, lp.name AS loc_name,
   ld.name AS loc_district, ls.name AS loc_state,
@@ -41,6 +41,10 @@ export interface DiscoverFilters {
   lookingFor?: readonly string[];
   educationLevel?: string;
   professionField?: string;
+  verifiedOnly?: boolean;
+  drinking?: string;
+  smoking?: string;
+  workout?: string;
   /** Search words; each must appear in the name, work, bio, an interest, the college or the area. */
   searchTerms?: string[];
 }
@@ -151,6 +155,10 @@ export class ProfileRepository {
     if (filters.gender) where('p.gender = ?', filters.gender);
     if (filters.educationLevel) where('p.education_level = ?', filters.educationLevel);
     if (filters.professionField) where('p.profession_field = ?', filters.professionField);
+    if (filters.verifiedOnly) where('p.is_verified = 1');
+    if (filters.drinking) where('p.drinking = ?', filters.drinking);
+    if (filters.smoking) where('p.smoking = ?', filters.smoking);
+    if (filters.workout) where('p.workout = ?', filters.workout);
     if (filters.interestIds?.length) {
       where(
         `EXISTS (SELECT 1 FROM user_interests fi WHERE fi.user_id = u.id AND fi.interest_id IN (${placeholders(filters.interestIds.length)}))`,

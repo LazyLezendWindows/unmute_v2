@@ -3,16 +3,16 @@
     <div v-if="skipTo" class="d-flex justify-content-end mb-2">
       <router-link :to="skipTo" class="pill-skip">Skip</router-link>
     </div>
-    <ol class="setup-steps" :aria-label="`Step ${step + 1} of ${SETUP_LABELS.length}`">
+    <ol class="setup-steps" :aria-label="`Step ${current + 1} of ${SETUP_LABELS.length}`">
       <li
         v-for="(label, index) in SETUP_LABELS"
         :key="label"
-        :class="{ 'is-done': index < step, 'is-current': index === step }"
-        :aria-current="index === step ? 'step' : undefined"
+        :class="{ 'is-done': index < current, 'is-current': index === current }"
+        :aria-current="index === current ? 'step' : undefined"
       >
         <span class="step-dot">
           <template v-if="!compact">
-            <i v-if="index < step" class="ri-check-line" aria-hidden="true"></i>
+            <i v-if="index < current" class="ri-check-line" aria-hidden="true"></i>
             <template v-else>{{ index + 1 }}</template>
           </template>
         </span>
@@ -23,14 +23,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { SETUP_LABELS } from '../../onboarding';
 
 /**
- * The new-account stepper. `step` is the setup step being shown (1-based, as in `?setup=`);
- * 0 is the sign-up form itself, which comes before those steps. `compact` draws dots on a line
- * without numbers or labels (the sign-up screen).
+ * The new-account stepper. `step` is the setup step being shown (1-based, as in `?setup=`); the
+ * sign-up form passes 0 and shows the first step as next. `compact` draws dots on a line without
+ * numbers or labels (the sign-up screen).
  */
-defineProps<{ step: number; skipTo?: string; compact?: boolean }>();
+const props = defineProps<{ step: number; skipTo?: string; compact?: boolean }>();
+const current = computed(() => Math.max(0, props.step - 1));
 </script>
 
 <style scoped lang="scss">

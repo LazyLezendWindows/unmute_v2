@@ -93,6 +93,81 @@ describe('Realtime chat authorization', () => {
     expect(await outsiderReceives).toBeNull();
   });
 
+  it('relays call signals to the other participant only, and never while blocked', async () => {
+    const aSocket = await openSocket(a.cookie);
+    const bSocket = await openSocket(b.cookie);
+    const outsiderSocket = await openSocket(outsider.cookie);
+    const next = (socket: Socket, ms = 700) =>
+      new Promise<any | null>((resolve) => {
+        const timer = setTimeout(() => resolve(null), ms);
+        socket.once('call:signal', (msg) => {
+          clearTimeout(timer);
+          resolve(msg);
+        });
+      });
+
+    const bGets = next(bSocket);
+    const outsiderGets = next(outsiderSocket);
+    aSocket.emit('call:signal', { conversationId, type: 'invite', payload: { mode: 'video' } });
+    expect(await bGets).toEqual({ conversationId, from: a.id, type: 'invite', payload: { mode: 'video' } });
+    expect(await outsiderGets).toBeNull();
+
+    // An outsider can't ring into a conversation that isn't theirs, and unknown types are dropped.
+    const bIgnores = next(bSocket);
+    outsiderSocket.emit('call:signal', { conversationId, type: 'invite' });
+    aSocket.emit('call:signal', { conversationId, type: 'hack' });
+    expect(await bIgnores).toBeNull();
+
+    await request(app).post('/api/v1/safety/block').set('Cookie', b.cookie).send({ targetUserId: a.id });
+    const blocked = next(bSocket);
+    aSocket.emit('call:signal', { conversationId, type: 'invite' });
+    expect(await blocked).toBeNull();
+    await request(app).delete('/api/v1/safety/block').set('Cookie', b.cookie).send({ targetUserId: a.id });
+  });
+
+  it('records calls in the chat: missed when unanswered, with a duration when answered', async () => {
+    const aSocket = await openSocket(a.cookie);
+    const bSocket = await openSocket(b.cookie);
+    const wait = () => new Promise((r) => setTimeout(r, 250));
+
+    aSocket.emit('call:signal', { conversationId, type: 'invite', payload: { mode: 'voice' } });
+    await wait();
+    aSocket.emit('call:signal', { conversationId, type: 'cancel' });
+    await wait();
+
+    aSocket.emit('call:signal', { conversationId, type: 'invite', payload: { mode: 'video' } });
+    await wait();
+    bSocket.emit('call:signal', { conversationId, type: 'accept' });
+    await wait();
+    bSocket.emit('call:signal', { conversationId, type: 'end' });
+    await wait();
+
+    const history = await request(app).get(`/api/v1/conversations/${conversationId}/messages`).set('Cookie', a.cookie);
+    const calls = history.body.data.messages.filter((m: any) => m.kind === 'call').slice(-2);
+    expect(calls.map((m: any) => [m.senderId, m.call.mode, m.call.outcome, m.content.replace(/\d+:\d+/, 'T')])).toEqual([
+      [a.id, 'voice', 'missed', 'Missed voice call'],
+      [a.id, 'video', 'completed', 'Video call · T'],
+    ]);
+  });
+
+  it('ends a call and tells the other person when a caller\'s last app disconnects', async () => {
+    const aSocket = await openSocket(a.cookie);
+    const bSocket = await openSocket(b.cookie);
+    aSocket.emit('call:signal', { conversationId, type: 'invite', payload: { mode: 'voice' } });
+    await new Promise((r) => setTimeout(r, 250));
+    const ended = new Promise((resolve) => bSocket.on('call:signal', (s) => s.type === 'end' && resolve(s)));
+    // Every socket A has open must go for the call to count as abandoned.
+    sockets.filter((s) => s !== bSocket && s.connected).forEach((s) => s.disconnect());
+    await expect(ended).resolves.toMatchObject({ conversationId, type: 'end' });
+  });
+
+  it('gives signed-in members the call servers', async () => {
+    const res = await request(app).get('/api/v1/conversations/call-config').set('Cookie', a.cookie);
+    expect(res.status).toBe(200);
+    expect(res.body.data.iceServers[0].urls[0]).toMatch(/^stun:/);
+    expect((await request(app).get('/api/v1/conversations/call-config')).status).toBe(401);
+  });
+
   it('removes both users from shared conversation rooms when one blocks the other', async () => {
     const bSocket = await openSocket(b.cookie);
     bSocket.emit('join_conversation', conversationId);

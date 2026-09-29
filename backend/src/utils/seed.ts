@@ -9,21 +9,30 @@ import { SAMPLE_STATES, SAMPLE_SETTLEMENTS, SAMPLE_PINCODES } from './indianLoca
 import { SAMPLE_INSTITUTIONS } from './indianInstitutions';
 
 export const DEFAULT_INTERESTS = [
-  { name: 'Reading & Books', category: 'Culture', icon: 'BookOpen' },
-  { name: 'Philosophy', category: 'Mind', icon: 'Brain' },
-  { name: 'Indie Cinema', category: 'Cinema', icon: 'Film' },
-  { name: 'Coffee Brewing', category: 'Lifestyle', icon: 'Coffee' },
-  { name: 'Software & Tech', category: 'Tech', icon: 'Code' },
-  { name: 'Hiking & Trails', category: 'Outdoors', icon: 'Compass' },
-  { name: 'Board Games', category: 'Gaming', icon: 'Gamepad2' },
-  { name: 'Analog Photography', category: 'Arts', icon: 'Camera' },
-  { name: 'Writing & Poetry', category: 'Culture', icon: 'PenTool' },
-  { name: 'Jazz & Lo-Fi', category: 'Music', icon: 'Music' },
-  { name: 'Cooking & Recipes', category: 'Lifestyle', icon: 'Utensils' },
-  { name: 'Astrophotography', category: 'Science', icon: 'Sparkles' },
-  { name: 'Podcasts & Radio', category: 'Culture', icon: 'Mic' },
-  { name: 'Biking & Cycling', category: 'Outdoors', icon: 'Bike' },
-  { name: 'Design & UI/UX', category: 'Arts', icon: 'Palette' },
+  // The picture tiles on the Interests screen, in the order shown there.
+  { name: 'Travel', category: 'Lifestyle', icon: 'Plane' },
+  { name: 'Food', category: 'Lifestyle', icon: 'Utensils' },
+  { name: 'Movies', category: 'Cinema', icon: 'Film' },
+  { name: 'Music', category: 'Music', icon: 'Music' },
+  { name: 'Fitness', category: 'Health', icon: 'Dumbbell' },
+  { name: 'Reading', category: 'Culture', icon: 'BookOpen' },
+  { name: 'Photography', category: 'Arts', icon: 'Camera' },
+  { name: 'Pets', category: 'Lifestyle', icon: 'PawPrint' },
+  { name: 'Nature', category: 'Outdoors', icon: 'Mountain' },
+  { name: 'Tech', category: 'Tech', icon: 'Laptop' },
+  { name: 'Art', category: 'Arts', icon: 'Palette' },
+  { name: 'Gaming', category: 'Gaming', icon: 'Gamepad2' },
+  { name: 'Cooking', category: 'Lifestyle', icon: 'CookingPot' },
+  { name: 'Adventures', category: 'Outdoors', icon: 'Compass' },
+  { name: 'Coffee', category: 'Lifestyle', icon: 'Coffee' },
+  { name: 'Shopping', category: 'Lifestyle', icon: 'ShoppingBag' },
+  { name: 'Sports', category: 'Health', icon: 'Trophy' },
+  { name: 'Spirituality', category: 'Mind', icon: 'Sun' },
+  { name: 'Fashion', category: 'Lifestyle', icon: 'Shirt' },
+  { name: 'Dance', category: 'Music', icon: 'Music' },
+  { name: 'Anime', category: 'Culture', icon: 'Tv' },
+  { name: 'Cars', category: 'Lifestyle', icon: 'Car' },
+  { name: 'DIY', category: 'Arts', icon: 'Wrench' },
 ];
 
 export async function seedInterests() {
@@ -160,7 +169,7 @@ export async function seedDemoUsersIfEmpty() {
       heightCm: 162,
       lifestyle: { drinking: 'socially', smoking: 'never', workout: 'sometimes' },
       photos: ['https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=600&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80'],
-      interests: ['Reading & Books', 'Coffee Brewing', 'Philosophy', 'Writing & Poetry'],
+      interests: ['Reading', 'Coffee', 'Spirituality', 'Travel'],
     },
     {
       email: 'rohit.verma@example.com',
@@ -177,7 +186,7 @@ export async function seedDemoUsersIfEmpty() {
       heightCm: 178,
       lifestyle: { drinking: 'socially', smoking: 'never', workout: 'often' },
       photos: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80'],
-      interests: ['Indie Cinema', 'Software & Tech', 'Astrophotography', 'Podcasts & Radio'],
+      interests: ['Movies', 'Tech', 'Nature', 'Music'],
     },
     {
       email: 'meera.iyer@example.com',
@@ -194,7 +203,7 @@ export async function seedDemoUsersIfEmpty() {
       heightCm: 165,
       lifestyle: { drinking: 'never', smoking: 'never', workout: 'sometimes' },
       photos: ['https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&auto=format&fit=crop&q=80'],
-      interests: ['Analog Photography', 'Design & UI/UX', 'Jazz & Lo-Fi', 'Coffee Brewing'],
+      interests: ['Photography', 'Art', 'Music', 'Coffee'],
     },
     {
       email: 'kabir.patel@example.com',
@@ -228,7 +237,7 @@ export async function seedDemoUsersIfEmpty() {
       heightCm: 160,
       lifestyle: { drinking: 'never', smoking: 'never', workout: 'sometimes' },
       photos: ['https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600&auto=format&fit=crop&q=80'],
-      interests: ['Jazz & Lo-Fi', 'Podcasts & Radio', 'Reading & Books', 'Philosophy'],
+      interests: ['Music', 'Reading', 'Spirituality', 'Food'],
     },
   ];
 

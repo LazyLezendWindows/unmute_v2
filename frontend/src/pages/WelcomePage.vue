@@ -2,19 +2,21 @@
   <AuthStage tagline logo-size="6rem">
     <div class="d-flex flex-column gap-4">
       <div class="welcome-hero" aria-hidden="true">
-        <span class="hero-sun"></span>
-        <span class="hero-hills"></span>
-        <i class="ri-heart-3-fill hero-heart hero-heart-1"></i>
-        <i class="ri-heart-3-fill hero-heart hero-heart-2"></i>
-        <i class="ri-chat-heart-fill hero-bubble"></i>
+        <img :src="couplePhoto" alt="" class="hero-photo" fetchpriority="high" />
+        <svg class="hero-wave" viewBox="0 0 390 100" preserveAspectRatio="none">
+          <path d="M0 38C60 12 120 62 200 42S330 8 390 30V100H0Z" fill="#d9a8ef" opacity="0.55" />
+          <path d="M0 58C80 36 150 86 240 60S350 40 390 52V100H0Z" fill="#efd3f7" opacity="0.85" />
+          <path d="M0 78C90 62 180 98 270 80S360 70 390 76V100H0Z" fill="#fbf2fc" />
+        </svg>
+        <i class="ri-heart-3-fill hero-heart"></i>
       </div>
 
-      <UButton variant="primary" size="lg" block @click="$router.push('/register')">
+      <UButton class="welcome-actions" variant="primary" size="lg" block @click="$router.push('/register')">
         Get Started <i class="ri-arrow-right-line ms-2" aria-hidden="true"></i>
       </UButton>
 
       <div class="auth-divider" role="separator">or continue with</div>
-      <div class="d-flex flex-column gap-2">
+      <div class="social-row">
         <GoogleSignIn text="continue_with" @authenticated="onSignedIn" />
         <PhoneSignIn @authenticated="onSignedIn" />
       </div>
@@ -34,6 +36,7 @@ import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
 import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
 import { ONBOARDING_START } from '../onboarding';
+import couplePhoto from '../assets/welcome-couple.webp';
 
 const router = useRouter();
 
@@ -43,69 +46,90 @@ function onSignedIn(isNewUser: boolean) {
 </script>
 
 <style scoped lang="scss">
-// A sunset over hills: the mood of the brand photo, drawn so it needs no image.
+// The couple at sunset, edge to edge: its sky fades up behind the tagline and lilac waves wash
+// over its lower edge, just above Get Started.
 .welcome-hero {
   position: relative;
-  height: 11rem;
-  border-radius: var(--unmute-radius-xl);
+  z-index: 0;
+  height: 20rem;
+  margin: -8.5rem -1.25rem -2.75rem;
   overflow: hidden;
-  background: linear-gradient(180deg, #f6d6f0 0%, #fbc0cf 45%, #f7a7c0 70%, #d9a3e6 100%);
-  box-shadow: var(--unmute-shadow-md);
+  pointer-events: none;
+
+  @media (min-width: 576px) {
+    margin-inline: -2.25rem;
+  }
 }
 
-.hero-sun {
-  position: absolute;
-  left: 58%;
-  bottom: 3.2rem;
-  width: 3.2rem;
-  height: 3.2rem;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fffbe8 0%, #ffe3c2 55%, transparent 72%);
-  box-shadow: 0 0 60px 20px rgba(255, 236, 214, 0.7);
+.hero-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 72%;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 22%, #000 48%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 22%, #000 48%);
 }
 
-.hero-hills {
+.hero-wave {
   position: absolute;
-  inset: auto -10% -2.5rem;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
   height: 6.5rem;
-  border-radius: 50% 50% 0 0;
-  background: linear-gradient(180deg, #b58ad6 0%, #8e5fb8 100%);
-  box-shadow: -6rem 1.2rem 0 -1rem #a578cc, 7rem 1.6rem 0 -1.2rem #9a6cc2;
 }
 
-.hero-heart,
-.hero-bubble {
+.hero-heart {
   position: absolute;
-  color: #fff;
-  filter: drop-shadow(0 6px 14px rgba(192, 0, 120, 0.35));
+  right: 9%;
+  bottom: 4.2rem;
+  font-size: 1.5rem;
+  color: #ffc2dc;
+  filter: drop-shadow(0 4px 10px rgba(242, 24, 114, 0.3));
   animation: hero-float 5s ease-in-out infinite;
 }
 
-.hero-heart-1 {
-  top: 1.2rem;
-  left: 1.5rem;
-  font-size: 1.6rem;
-  color: #ff9fc2;
-}
-
-.hero-heart-2 {
-  top: 2.6rem;
-  right: 1.8rem;
-  font-size: 1.2rem;
-  color: #ffc6db;
-  animation-delay: -2s;
-}
-
-.hero-bubble {
-  top: 2.6rem;
-  left: 38%;
-  font-size: 2.6rem;
-  color: #fff;
-  animation-delay: -1s;
-}
-
 @keyframes hero-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-6px) rotate(4deg); }
+}
+
+.welcome-actions {
+  position: relative;
+  z-index: 1;
+}
+
+// Google and Phone side by side, as in the brand screen. Google's own button can't be narrower
+// than 200px, so once it loads the two stack instead.
+.social-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  &:has(.is-gis) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :deep(.social-btn) {
+    justify-content: flex-start;
+    min-height: 3.75rem;
+    padding: 0.5rem 0.9rem;
+    gap: 0.6rem;
+    font-size: 0.92rem;
+    line-height: 1.2;
+    text-align: left;
+    border-radius: 1.25rem;
+  }
+
+  &:has(.is-gis) :deep(.social-btn) {
+    justify-content: center;
+    min-height: 3.25rem;
+    border-radius: var(--unmute-radius-pill);
+  }
+}
+
+:global([data-theme='dark']) .hero-wave {
+  opacity: 0.35;
 }
 </style>

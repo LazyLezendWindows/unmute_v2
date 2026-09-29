@@ -102,8 +102,8 @@ const candidate = computed(() => discoverStore.feed.find((p) => p.id === id.valu
 const matchEntry = computed(() => chatStore.matches.find((m) => m.user.id === id.value) ?? null);
 const person = computed(() => candidate.value ?? matchEntry.value?.user ?? null);
 const conversationId = computed(() => matchEntry.value?.conversationId ?? null);
-// Only the card on top of the deck can be liked or passed from here.
-const isCandidate = computed(() => discoverStore.currentCandidate?.id === id.value);
+// Anyone still in Discover can be liked or passed from here.
+const isCandidate = computed(() => Boolean(candidate.value));
 
 const current = ref(0);
 const safetyOpen = ref(false);
@@ -127,17 +127,24 @@ const match = computed(() => matchPercent(common.value.length, myInterests.value
 const study = computed(() => (person.value ? educationLine(person.value) : ''));
 const detailsPerson = computed(() => ({ ...person.value!, commonInterests: common.value }));
 
+/** Back to where they came from (the grid or the swipe deck). */
+function leave() {
+  if (window.history.state?.back) router.back();
+  else router.push('/discover');
+}
+
 function decide(action: 'like' | 'pass') {
-  if (action === 'like') discoverStore.likeCurrent();
-  else discoverStore.passCurrent();
-  router.push('/discover');
+  if (!candidate.value) return;
+  if (action === 'like') discoverStore.like(candidate.value);
+  else discoverStore.pass(candidate.value);
+  leave();
 }
 
 function onSafetyCompleted() {
   safetyOpen.value = false;
-  if (isCandidate.value) discoverStore.currentIndex++;
+  if (discoverStore.currentCandidate?.id === id.value) discoverStore.currentIndex++;
   chatStore.loadMatches();
-  router.push('/discover');
+  leave();
 }
 </script>
 

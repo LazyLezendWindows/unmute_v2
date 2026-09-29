@@ -1,12 +1,21 @@
 import { AppError } from '../middleware/errorHandler';
 import { getSocketServer } from '../sockets/chatSocket';
 import { toPublicProfile } from '../mappers/profileMapper';
-import { toMessage } from '../mappers/messageMapper';
+import { CallOutcome, toMessage } from '../mappers/messageMapper';
 import { ConversationRepository } from '../repositories/conversationRepository';
 import { MessageRepository } from '../repositories/messageRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { NotificationService } from './notificationService';
+import { PushService } from './pushService';
+
+/** 5:12, or 1:02:09 for an hour or more. */
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = String(seconds % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
 
 export class ChatService {
   static async getConversations(userId: string) {
@@ -73,6 +82,35 @@ export class ChatService {
     };
   }
 
+  /** Adds a call to the chat history, as the caller's message; a missed call also notifies the other person. */
+  static async recordCall(
+    conversationId: string,
+    callerId: string,
+    call: { mode: 'voice' | 'video'; outcome: CallOutcome; seconds: number }
+  ) {
+    const conv = await ConversationRepository.findForParticipant(conversationId, callerId);
+    if (!conv) return null;
+    const kind = call.mode === 'video' ? 'video call' : 'voice call';
+    const content =
+      call.outcome === 'completed'
+        ? `${kind[0].toUpperCase()}${kind.slice(1)} · ${formatDuration(call.seconds)}`
+        : call.outcome === 'declined'
+          ? `Declined ${kind}`
+          : `Missed ${kind}`;
+    const message = toMessage(await MessageRepository.insert(conversationId, callerId, content, call));
+    await ConversationRepository.touch(conversationId, message.createdAt);
+    const io = getSocketServer();
+    if (io) {
+      io.to(`conversation:${conversationId}`).emit('new_message', message);
+      io.to(`user:${conv.other_user_id}`).emit('message_notification', { conversationId, message });
+      io.to(`user:${callerId}`).emit('message_notification', { conversationId, message });
+    }
+    if (call.outcome === 'missed') {
+      await NotificationService.messageReceived(conv.other_user_id, callerId, conversationId, content);
+    }
+    return message;
+  }
+
   static async sendMessage(conversationId: string, senderId: string, content: string) {
     const conv = await this.requireAccessible(conversationId, senderId, 'You cannot message this user');
 
@@ -85,6 +123,9 @@ export class ChatService {
       io.to(`user:${conv.other_user_id}`).emit('message_notification', { conversationId, message });
     }
     await NotificationService.messageReceived(conv.other_user_id, senderId, conversationId, content);
+    ProfileRepository.findByUserIds([senderId])
+      .then((profiles) => PushService.message(conv.other_user_id, profiles.get(senderId)?.display_name || 'New message', conversationId, content.slice(0, 120)))
+      .catch(() => undefined);
 
     return message;
   }

@@ -7,7 +7,7 @@ import { AuthAccountRepository } from '../repositories/authAccountRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { PhoneCodeRepository } from '../repositories/phoneCodeRepository';
 import { revealCodesToClient, sendSms } from './auth/smsSender';
-import { PhoneStartInput, PhoneVerifyInput } from '../validators/authValidator';
+import { PhoneLinkInput, PhoneStartInput, PhoneVerifyInput } from '../validators/authValidator';
 
 const CODE_TTL_SECONDS = 10 * 60;
 /** Wait before another code can be sent to the same number. */
@@ -50,21 +50,46 @@ export class PhoneAuthService {
   }
 
   /**
+   * The usable code for `phone` if `code` matches it (not yet consumed: the caller consumes it in
+   * the same transaction that uses it). Wrong guesses count towards the code's lockout.
+   */
+  static async checkCode(phone: string, code: string): Promise<{ id: string }> {
+    const active = await PhoneCodeRepository.active(phone);
+    if (!active || active.attempts >= MAX_ATTEMPTS) {
+      throw new AppError('This code has expired. Request a new one.', 400);
+    }
+    if (!sameHash(active.code_hash, hashCode(phone, code))) {
+      await PhoneCodeRepository.recordWrongGuess(active.id);
+      const left = MAX_ATTEMPTS - active.attempts - 1;
+      throw new AppError(left > 0 ? "That code isn't right. Check the SMS and try again." : 'Too many wrong codes. Request a new one.', 400);
+    }
+    return active;
+  }
+
+  /** Confirms a number for a signed-in member; it replaces any number they had and works for sign-in. */
+  static async link(userId: string, { phone, code }: PhoneLinkInput): Promise<void> {
+    const owner = await AuthAccountRepository.findUser('phone', phone);
+    if (owner && owner.id !== userId) {
+      throw new AppError('This phone number belongs to another account.', 409);
+    }
+    const active = await PhoneAuthService.checkCode(phone, code);
+    await getDatabase().transaction(async (tx) => {
+      if (!(await PhoneCodeRepository.consume(tx, active.id))) {
+        throw new AppError('This code has already been used. Request a new one.', 400);
+      }
+      await tx.run("DELETE FROM auth_accounts WHERE user_id = ? AND provider = 'phone'", [userId]);
+      await AuthAccountRepository.insert(tx, { userId, provider: 'phone', providerAccountId: phone });
+    });
+  }
+
+  /**
    * Checks the code. A known number signs in; a new number must also send a name and a date of
    * birth (18+), so the first answer for it is `requiresProfile` and the code stays valid for the
    * follow-up request, as with Google sign-up.
    */
   static async verify(input: PhoneVerifyInput): Promise<PhoneAuthResult> {
     const { phone } = input;
-    const active = await PhoneCodeRepository.active(phone);
-    if (!active || active.attempts >= MAX_ATTEMPTS) {
-      throw new AppError('This code has expired. Request a new one.', 400);
-    }
-    if (!sameHash(active.code_hash, hashCode(phone, input.code))) {
-      await PhoneCodeRepository.recordWrongGuess(active.id);
-      const left = MAX_ATTEMPTS - active.attempts - 1;
-      throw new AppError(left > 0 ? "That code isn't right. Check the SMS and try again." : 'Too many wrong codes. Request a new one.', 400);
-    }
+    const active = await PhoneAuthService.checkCode(phone, input.code);
 
     const db = getDatabase();
     const linked = await AuthAccountRepository.findUser('phone', phone);

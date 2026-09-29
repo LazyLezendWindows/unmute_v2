@@ -4,6 +4,8 @@ import { api, onUnauthorized } from '../services/api';
 import { connectSocket, disconnectSocket } from '../services/socket';
 import { useGoogleIdentity } from '../composables/useGoogleIdentity';
 import { useNotificationStore } from './notifications';
+import { useCallStore } from './call';
+import { unregisterPush } from '../services/push';
 import { User, Profile, LocationPrecision } from '../types';
 
 /**
@@ -40,6 +42,8 @@ export const useAuthStore = defineStore('auth', () => {
     status.value = 'UNAUTHENTICATED';
     disconnectSocket();
     useNotificationStore().reset();
+    // Signing out stops any call (camera and microphone included).
+    useCallStore().reset();
   }
 
   onUnauthorized(() => {
@@ -81,10 +85,23 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function register(data: { email: string; password: string; displayName: string; dateOfBirth: string }) {
+  /**
+   * Creates an email account. With a phone number but no code, nothing is created yet: the answer is
+   * `requiresPhoneCode`, and the call is repeated with the SMS code to finish.
+   */
+  function register(data: {
+    email: string;
+    password: string;
+    displayName: string;
+    dateOfBirth: string;
+    phone?: string;
+    code?: string;
+  }): Promise<{ requiresPhoneCode: boolean }> {
     return run(async () => {
       const res = await api.post('/auth/register', data);
+      if (res.data.data.requiresPhoneCode) return { requiresPhoneCode: true };
       setAuthenticated(res.data.data.user);
+      return { requiresPhoneCode: false };
     });
   }
 
@@ -122,6 +139,14 @@ export const useAuthStore = defineStore('auth', () => {
       if (result.requiresProfile) return { requiresProfile: true };
       setAuthenticated(result.user);
       return { requiresProfile: false, isNewUser: result.isNewUser };
+    });
+  }
+
+  /** Adds a confirmed phone number to the signed-in account. */
+  function linkPhone(phone: string, code: string) {
+    return run(async () => {
+      const res = await api.post('/auth/phone/link', { phone, code });
+      user.value = res.data.data.user;
     });
   }
 
@@ -183,6 +208,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
+      await unregisterPush();
       await api.post('/auth/logout');
     } finally {
       useGoogleIdentity().disableAutoSelect();
@@ -203,6 +229,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     requestPhoneCode,
     loginWithPhone,
+    linkPhone,
     fetchMe,
     refreshProfile,
     updateProfile,

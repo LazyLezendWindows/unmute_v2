@@ -4,6 +4,7 @@ import { config } from '../config/env';
 import { SessionService } from '../services/sessionService';
 import { ChatService } from '../services/chatService';
 import { markConnected, markDisconnected } from './presence';
+import { registerCallSignals } from './callSignals';
 
 let ioInstance: SocketIOServer | null = null;
 
@@ -42,6 +43,8 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
     socket.join(`session:${socket.data.sessionId}`);
     markConnected(userId);
     socket.on('disconnect', () => markDisconnected(userId));
+
+    registerCallSignals(ioInstance!, socket, userId);
 
     socket.on('join_conversation', async (conversationId: unknown) => {
       if (typeof conversationId !== 'string' || conversationId.length > 64) return;

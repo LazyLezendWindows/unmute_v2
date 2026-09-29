@@ -2,8 +2,18 @@ import { Response, NextFunction } from 'express';
 import { ChatService } from '../services/chatService';
 import { AuthRequest } from '../middleware/auth';
 import { Pagination } from '../validators/common';
+import { config } from '../config/env';
 
 export class ChatController {
+  /** WebRTC servers for calls; signed-in members only, since TURN credentials cost money if abused. */
+  static iceServers(_req: AuthRequest, res: Response): void {
+    const { stunUrls, turnUrls, turnUsername, turnCredential } = config.ice;
+    const iceServers: { urls: string[]; username?: string; credential?: string }[] = [];
+    if (stunUrls.length) iceServers.push({ urls: stunUrls });
+    if (turnUrls.length) iceServers.push({ urls: turnUrls, username: turnUsername, credential: turnCredential });
+    res.status(200).json({ success: true, data: { iceServers } });
+  }
+
   static async getConversations(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const convs = await ChatService.getConversations(req.user!.userId);

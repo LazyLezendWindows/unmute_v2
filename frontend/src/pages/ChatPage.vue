@@ -13,6 +13,8 @@
       <h1 class="list-title">Messages</h1>
       <p class="list-sub">Your conversations</p>
 
+      <AlertsPrompt />
+
       <label class="list-search">
         <i class="ri-search-line" aria-hidden="true"></i>
         <input v-model="search" type="search" placeholder="Search messages..." aria-label="Search messages" />
@@ -60,7 +62,8 @@
             </span>
             <span class="conv-preview">
               <template v-if="conv.lastMessage">
-                <template v-if="conv.lastMessage.senderId === authStore.user?.id">You: </template>{{ conv.lastMessage.content }}
+                <template v-if="conv.lastMessage.kind === 'call'"><i :class="conv.lastMessage.call?.mode === 'video' ? 'ri-vidicon-line' : 'ri-phone-line'" aria-hidden="true"></i> {{ callLabel(conv.lastMessage) }}</template>
+                <template v-else><template v-if="conv.lastMessage.senderId === authStore.user?.id">You: </template>{{ conv.lastMessage.content }}</template>
               </template>
               <template v-else>New match · say hello 👋</template>
             </span>
@@ -119,7 +122,25 @@
 
         <template v-for="(msg, index) in chatStore.activeMessages" :key="msg.id">
           <div v-if="startsNewDay(index)" class="day-pill"><span>{{ formatDay(msg.createdAt) }}</span></div>
-          <div class="message-row" :class="{ 'is-mine': isMine(msg) }">
+          <!-- A call: a centred line with a call-back button -->
+          <div v-if="msg.kind === 'call' && msg.call" class="call-row">
+            <router-link
+              :to="`/chat/${activeConversationId}/call?mode=${msg.call.mode}`"
+              class="call-pill"
+              :class="{ 'is-missed': msg.call.outcome !== 'completed' }"
+              :aria-label="`${callLabel(msg)}. Call back`"
+            >
+              <span class="call-icon" aria-hidden="true">
+                <i :class="callIcon(msg)"></i>
+              </span>
+              <span class="call-text">
+                <strong>{{ callLabel(msg) }}</strong>
+                <span>{{ formatMessageTime(msg.createdAt) }}<template v-if="msg.call.outcome === 'completed'"> · {{ formatSeconds(msg.call.seconds) }}</template></span>
+              </span>
+              <i class="ri-phone-line call-back" aria-hidden="true"></i>
+            </router-link>
+          </div>
+          <div v-else class="message-row" :class="{ 'is-mine': isMine(msg) }">
             <UAvatar v-if="!isMine(msg)" :src="activeOtherUser?.avatarUrl" :name="activeOtherUser?.displayName" size="md" class="message-avatar" />
             <div class="message-col">
               <div class="bubble">{{ msg.content }}</div>
@@ -175,6 +196,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import SafetyModal from '../components/safety/SafetyModal.vue';
+import AlertsPrompt from '../components/layout/AlertsPrompt.vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import UAvatar from '../components/ui/UAvatar.vue';
 import USkeleton from '../components/ui/USkeleton.vue';
@@ -197,9 +219,10 @@ const search = ref('');
 const listView = ref<'all' | 'matches' | 'unread'>('all');
 const newMatches = computed(() => chatStore.conversations.filter((c) => !c.lastMessage));
 const unreadConversations = computed(() => chatStore.conversations.filter((c) => c.unreadCount > 0));
+// Badges count what needs attention (unread chats), as in the brand screen; Matches has none.
 const listTabs = computed(() => [
-  { value: 'all' as const, label: 'All', count: chatStore.conversations.length },
-  { value: 'matches' as const, label: 'Matches', count: newMatches.value.length },
+  { value: 'all' as const, label: 'All', count: unreadConversations.value.length },
+  { value: 'matches' as const, label: 'Matches', count: 0 },
   { value: 'unread' as const, label: 'Unread', count: unreadConversations.value.length },
 ]);
 const emptyViewText = computed(() =>
@@ -218,6 +241,32 @@ const activeOtherUser = computed(() => chatStore.activeOtherUser);
 
 function isMine(msg: Message) {
   return msg.senderId === authStore.user?.id;
+}
+
+/** Worded for whoever is reading: your missed call is their "No answer". */
+function callLabel(msg: Message) {
+  const kind = msg.call?.mode === 'video' ? 'video call' : 'voice call';
+  const mine = isMine(msg);
+  switch (msg.call?.outcome) {
+    case 'completed': return mine ? `Outgoing ${kind}` : `Incoming ${kind}`;
+    case 'declined': return mine ? `${capital(kind)} declined` : `You declined a ${kind}`;
+    default: return mine ? `${capital(kind)} · no answer` : `Missed ${kind}`;
+  }
+}
+
+function capital(text: string) {
+  return text[0].toUpperCase() + text.slice(1);
+}
+
+function callIcon(msg: Message) {
+  if (msg.call?.outcome !== 'completed') return msg.call?.mode === 'video' ? 'ri-vidicon-line' : 'ri-phone-line';
+  return isMine(msg) ? 'ri-arrow-right-up-line' : 'ri-arrow-left-down-line';
+}
+
+function formatSeconds(total: number) {
+  const m = Math.floor(total / 60);
+  const s = String(total % 60).padStart(2, '0');
+  return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${s}` : `${m}:${s}`;
 }
 
 function startsNewDay(index: number) {
@@ -301,7 +350,7 @@ function formatListTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   const ago = daysAgo(d);
-  if (ago === 0) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (ago === 0) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
   if (ago === 1) return 'Yesterday';
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
@@ -316,7 +365,7 @@ function formatDay(iso: string): string {
 
 function formatMessageTime(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 </script>
 
@@ -678,7 +727,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     .bubble {
       background: $gradient;
       color: #fff;
-      border-radius: 1.4rem 1.4rem 0.4rem 1.4rem;
+      border-radius: 1.3rem;
     }
   }
 }
@@ -696,11 +745,11 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 }
 
 .bubble {
-  padding: 0.75rem 1.1rem;
-  border-radius: 1.4rem 1.4rem 1.4rem 0.4rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: 1.3rem;
   background: #fff;
   color: $ink;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.45;
   white-space: pre-line;
   overflow-wrap: anywhere;
@@ -723,6 +772,62 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
       color: #e5147c;
     }
   }
+}
+
+.call-row {
+  display: flex;
+  justify-content: center;
+  margin: 0.4rem 0;
+}
+
+.call-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+  border-radius: 1.2rem;
+  background: #fff;
+  color: $ink;
+  text-decoration: none;
+  box-shadow: 0 6px 16px -12px rgba(117, 48, 170, 0.35);
+
+  &.is-missed .call-icon {
+    background: #fde7e9;
+    color: #e0334a;
+  }
+
+  &.is-missed strong {
+    color: #e0334a;
+  }
+}
+
+.call-icon {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  background: #fbe4f2;
+  color: #e5147c;
+  font-size: 1.15rem;
+}
+
+.call-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.78rem;
+  color: #6c70a8;
+
+  strong {
+    font-size: 0.92rem;
+    color: $ink;
+  }
+}
+
+.call-back {
+  margin-left: 0.4rem;
+  color: #e5147c;
+  font-size: 1.2rem;
 }
 
 .bubble-skeleton {
