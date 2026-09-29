@@ -43,24 +43,24 @@
         </button>
       </li>
       <li>
-        <button type="button" class="step" disabled @click="openSelfie">
+        <button type="button" class="step" :disabled="info?.selfie.status === 'verified'" @click="openSelfie">
           <span class="step-icon" aria-hidden="true"><i class="ri-user-follow-line"></i></span>
           <span class="step-text">
             <strong>Photo Verification</strong>
             <span>{{ info?.selfie.status === 'rejected' ? info.selfie.reason : 'Take a live selfie to confirm you’re real' }}</span>
           </span>
-          <VerifyBadge v-if="info?.selfie.status === 'verified' || info?.selfie.status === 'pending'" :status="info.selfie.status" /><span v-else class="badge-soon">Coming soon</span>
+          <VerifyBadge :status="info?.selfie.status" />
           <i class="ri-arrow-right-s-line chev" aria-hidden="true"></i>
         </button>
       </li>
       <li>
-        <button type="button" class="step" disabled @click="openId">
+        <button type="button" class="step" :disabled="info?.id.status === 'verified'" @click="openId">
           <span class="step-icon" aria-hidden="true"><i class="ri-profile-line"></i></span>
           <span class="step-text">
             <strong>Government ID (Optional)</strong>
             <span>{{ info?.id.status === 'rejected' ? info.id.reason : 'Add ID for extra trust and visibility' }}</span>
           </span>
-          <VerifyBadge v-if="info?.id.status === 'verified' || info?.id.status === 'pending'" :status="info.id.status" /><span v-else class="badge-soon">Coming soon</span>
+          <VerifyBadge :status="info?.id.status" />
           <i class="ri-arrow-right-s-line chev" aria-hidden="true"></i>
         </button>
       </li>
@@ -122,6 +122,7 @@
     <!-- Live selfie copying a pose, checked by our team against your profile photos -->
     <UModal :is-open="selfieOpen" title="Photo Verification" max-width="sm" @close="selfieOpen = false">
       <p class="small u-text-secondary">Copy the pose below in a live selfie. Our team compares it with your profile photos, usually within a day; you'll then get the verified badge.</p>
+      <p v-if="info && info.reviewersAvailable === false" class="review-note small">Our review team is still being set up, so this may take a little longer. Your selfie is saved and will be checked.</p>
       <SelfieCapture v-if="selfieGesture" :gesture="selfieGesture" :busy="selfieBusy" @submit="submitSelfie" />
       <p v-if="selfieError" class="small text-danger mt-3 mb-0" role="alert">{{ selfieError }}</p>
     </UModal>
@@ -137,6 +138,7 @@
           <li><i class="ri-eye-off-fill" aria-hidden="true"></i>Seen only by our verification team</li>
           <li><i class="ri-delete-bin-6-fill" aria-hidden="true"></i>Deleted as soon as it's checked</li>
         </ul>
+        <p v-if="info && info.reviewersAvailable === false" class="review-note small mb-0">Our review team is still being set up, so this may take a little longer. Your ID stays private until it's checked.</p>
         <img v-if="idPreview" :src="idPreview" alt="Your ID photo" class="id-preview" />
         <label class="id-pick">
           <i class="ri-camera-line" aria-hidden="true"></i> {{ idPreview ? 'Choose a different photo' : 'Take or choose a photo' }}
@@ -180,7 +182,7 @@ const linking = ref(false);
 const linkError = ref<string | null>(null);
 
 interface CheckState { status: 'none' | 'pending' | 'verified' | 'rejected' | 'approved'; reason: string | null }
-const info = ref<{ email: { address: string | null; verified: boolean }; selfie: CheckState; id: CheckState } | null>(null);
+const info = ref<{ email: { address: string | null; verified: boolean }; selfie: CheckState; id: CheckState; reviewersAvailable?: boolean } | null>(null);
 
 async function loadInfo() {
   try {
@@ -645,5 +647,11 @@ $ink: var(--unmute-text-heading);
   color: var(--unmute-cta);
   font-weight: 600;
   cursor: pointer;
+}
+.review-note {
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.9rem;
+  background: #fff4dc;
+  color: #7a4d00;
 }
 </style>

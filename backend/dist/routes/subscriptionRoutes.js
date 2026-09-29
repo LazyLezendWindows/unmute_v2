@@ -34,6 +34,14 @@ router.post('/verify', (0, validate_1.validateBody)(zod_1.z.object({
         next(err);
     }
 });
+router.post('/test-purchase', (0, validate_1.validateBody)(zod_1.z.object({ planId: zod_1.z.string().max(20) })), async (req, res, next) => {
+    try {
+        res.json({ success: true, data: await billingService_1.BillingService.testPurchase(req.user.userId, req.body.planId) });
+    }
+    catch (err) {
+        next(err);
+    }
+});
 router.post('/reconcile', async (req, res, next) => {
     try {
         res.json({ success: true, data: await billingService_1.BillingService.reconcile(req.user.userId) });

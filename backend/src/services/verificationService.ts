@@ -73,6 +73,8 @@ export class VerificationService {
       phone: { number: phone, verified: Boolean(phone) },
       selfie: state(Boolean(user?.is_verified), selfie),
       id: state(Boolean(user?.id_verified), id),
+      /** False until moderators are set (ADMIN_EMAILS); submissions then wait until someone is. */
+      reviewersAvailable: config.adminEmails.length > 0,
     };
   }
 

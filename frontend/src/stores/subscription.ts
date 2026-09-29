@@ -10,6 +10,8 @@ export interface AccessState {
   trialEndsAt: string | null;
   plans: Plan[];
   paymentsAvailable: boolean;
+  /** 'test' only in local development without Razorpay keys: plans activate with no money taken. */
+  paymentMode?: 'razorpay' | 'test' | 'off';
 }
 export const useSubscriptionStore = defineStore('subscription', () => {
   const access = ref<AccessState | null>(null);

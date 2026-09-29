@@ -73,6 +73,32 @@ describe('Trials and billing', () => {
     expect((await request(app).get('/api/v1/subscriptions')).status).toBe(401);
   });
 
+  it('only allows no-money test purchases in local development without Razorpay keys', async () => {
+    const own = await request(app).post('/api/v1/auth/register').send(signup('testpay@example.com'));
+    const cookie = (own.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+    // Tests run as NODE_ENV=test: payments are off and test purchases are refused.
+    expect(BillingService.mode()).toBe('off');
+    expect((await request(app).post('/api/v1/subscriptions/test-purchase').set('Cookie', cookie).send({ planId: 'day' })).status).toBe(403);
+
+    // Development without keys: the plan activates through the normal fulfilment.
+    const { config } = await import('../src/config/env');
+    const env = config.env;
+    (config as { env: string }).env = 'development';
+    try {
+      expect(BillingService.mode()).toBe('test');
+      const res = await request(app).post('/api/v1/subscriptions/test-purchase').set('Cookie', cookie).send({ planId: 'week' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.plan).toBe('week');
+      // With real keys, test purchases stop even in development.
+      vi.stubEnv('RAZORPAY_KEY_ID', 'rzp_test_x');
+      vi.stubEnv('RAZORPAY_KEY_SECRET', 'secret');
+      expect(BillingService.mode()).toBe('razorpay');
+      expect((await request(app).post('/api/v1/subscriptions/test-purchase').set('Cookie', cookie).send({ planId: 'day' })).status).toBe(403);
+    } finally {
+      (config as { env: string }).env = env;
+    }
+  });
+
   it('uses calendar months with month-end clamping', () => {
     expect(planEnd(new Date('2028-01-31T12:00:00Z'), PLANS[2]).toISOString()).toBe('2028-02-29T12:00:00.000Z');
     expect(planEnd(new Date('2028-02-29T12:00:00Z'), PLANS[6]).toISOString()).toBe('2029-02-28T12:00:00.000Z');

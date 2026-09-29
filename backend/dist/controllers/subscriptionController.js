@@ -6,7 +6,7 @@ const billingService_1 = require("../services/billingService");
 class SubscriptionController {
     static async status(req, res, next) {
         try {
-            res.json({ success: true, data: { ...await subscriptionService_1.SubscriptionService.status(req.user.userId), plans: subscriptionService_1.PLANS, paymentsAvailable: billingService_1.BillingService.available() } });
+            res.json({ success: true, data: { ...await subscriptionService_1.SubscriptionService.status(req.user.userId), plans: subscriptionService_1.PLANS, paymentsAvailable: billingService_1.BillingService.mode() !== 'off', paymentMode: billingService_1.BillingService.mode() } });
         }
         catch (err) {
             next(err);

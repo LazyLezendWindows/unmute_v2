@@ -19,6 +19,9 @@ async function bootstrap() {
     if (!config.googleClientId) {
       console.warn('[Unmute] GOOGLE_CLIENT_ID is not set; Google sign-in will be unavailable.');
     }
+    if (config.adminEmails.length === 0) {
+      console.warn('[Unmute] ADMIN_EMAILS is not set; selfie and ID verifications will wait until a moderator is added.');
+    }
 
     // 3. Create app and HTTP server
     const app = createApp();

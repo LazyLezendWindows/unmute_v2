@@ -22,6 +22,10 @@ router.post('/verify', validateBody(z.object({
   try { res.json({ success: true, data: await BillingService.verify(req.user!.userId, req.body.razorpay_order_id, req.body.razorpay_payment_id, req.body.razorpay_signature) }); }
   catch (err) { next(err); }
 });
+router.post('/test-purchase', validateBody(z.object({ planId: z.string().max(20) })), async (req: AuthRequest, res, next) => {
+  try { res.json({ success: true, data: await BillingService.testPurchase(req.user!.userId, req.body.planId) }); }
+  catch (err) { next(err); }
+});
 router.post('/reconcile', async (req: AuthRequest, res, next) => {
   try { res.json({ success: true, data: await BillingService.reconcile(req.user!.userId) }); }
   catch (err) { next(err); }

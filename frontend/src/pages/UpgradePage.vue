@@ -14,10 +14,16 @@
         </label>
       </fieldset>
       <p v-if="sub.access && !sub.access.paymentsAvailable" role="status">Payments are not available yet. Please check again later.</p>
+      <p v-if="testMode" class="test-note" role="note">
+        <i class="ri-flask-line" aria-hidden="true"></i>
+        Test mode (local development): the plan is activated without taking any money. Add Razorpay keys to the server to take real payments.
+      </p>
       <p v-if="error" role="alert" class="text-danger">{{ error }}</p>
       <p v-if="message" role="status">{{ message }}</p>
-      <UButton block :disabled="!selected || !sub.access?.paymentsAvailable" :loading="busy" @click="pay">Pay ₹{{ price }} with Razorpay</UButton>
-      <UButton variant="secondary" :disabled="busy" @click="checkPayment">Already paid? Check payment status</UButton>
+      <UButton block :disabled="!selected || !sub.access?.paymentsAvailable" :loading="busy" @click="pay">
+        {{ testMode ? `Activate ${planLabel} (test, no charge)` : `Pay ₹${price} with Razorpay` }}
+      </UButton>
+      <UButton v-if="!testMode" variant="secondary" :disabled="busy" @click="checkPayment">Already paid? Check payment status</UButton>
       <router-link v-if="sub.access?.active" to="/discover">Continue to the app</router-link>
       <router-link to="/safety">Privacy &amp; safety</router-link>
       <button class="signout" :disabled="busy" @click="auth.logout()">Sign out</button>
@@ -39,6 +45,8 @@ const busy = ref(false);
 const error = ref('');
 const message = ref('');
 const price = computed(() => (sub.access?.plans.find(p => p.id === selected.value)?.amount || 0) / 100);
+const planLabel = computed(() => sub.access?.plans.find(p => p.id === selected.value)?.label || 'plan');
+const testMode = computed(() => sub.access?.paymentMode === 'test');
 const expiry = computed(() => sub.access?.expiresAt ? new Date(sub.access.expiresAt).toLocaleString() : '');
 onMounted(async () => { try { await sub.fetchStatus(); } catch (err) { error.value = (err as Error).message; } });
 async function refresh() {
@@ -54,6 +62,12 @@ async function checkPayment() {
 }
 async function pay() {
   busy.value = true; error.value = ''; message.value = '';
+  if (testMode.value) {
+    try { await api.post('/subscriptions/test-purchase', { planId: selected.value }); await refresh(); }
+    catch (err) { error.value = (err as Error).message; }
+    finally { busy.value = false; }
+    return;
+  }
   try {
     await loadCheckout();
     const { data } = await api.post('/subscriptions/orders', { planId: selected.value });
@@ -84,5 +98,6 @@ p { color: var(--unmute-text-muted); }
 .plan { display: flex; align-items: center; gap: .75rem; padding: 1rem; border: 2px solid var(--unmute-glass-border); border-radius: 1rem; cursor: pointer; }
 .plan strong { margin-left: auto; }
 .plan.selected { border-color: var(--unmute-primary, #e94057); }
+.test-note { display: flex; gap: .5rem; padding: .75rem 1rem; border-radius: 1rem; background: #fff4dc; color: #7a4d00; font-size: .88rem; }
 .signout { border: 0; background: transparent; color: inherit; padding: .5rem; }
 </style>

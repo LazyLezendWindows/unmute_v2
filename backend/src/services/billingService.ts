@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { getDatabase } from '../config/database';
+import { config } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
 import { PLANS, planEnd, SubscriptionService } from './subscriptionService';
 
@@ -13,6 +14,26 @@ export function verifySignature(body: string | Buffer, signature: string, secret
 
 export class BillingService {
   static available() { return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET); }
+
+  /**
+   * 'razorpay' with keys; 'test' in local development without keys (plans activate with no money
+   * taken, so the flow can be tried); otherwise 'off'. Test mode never runs in production or tests.
+   */
+  static mode(): 'razorpay' | 'test' | 'off' {
+    if (this.available()) return 'razorpay';
+    return config.env === 'development' ? 'test' : 'off';
+  }
+
+  /** Development-only purchase that goes through the same fulfilment as a real Razorpay payment. */
+  static async testPurchase(userId: string, planId: string) {
+    if (this.mode() !== 'test') throw new AppError('Test payments are only available in local development.', 403);
+    const plan = PLANS.find(p => p.id === planId);
+    if (!plan) throw new AppError('Choose a valid upgrade plan.', 400);
+    const orderId = `order_test${crypto.randomBytes(8).toString('hex')}`;
+    await getDatabase().run('INSERT INTO billing_orders (id, user_id, plan, amount) VALUES (?, ?, ?, ?)', [orderId, userId, plan.id, plan.amount]);
+    await this.fulfill({ id: `pay_test${crypto.randomBytes(8).toString('hex')}`, order_id: orderId, amount: plan.amount, currency: 'INR', status: 'captured' });
+    return SubscriptionService.status(userId);
+  }
 
   static async request<T>(path: string, body?: object): Promise<T> {
     if (!this.available()) throw new AppError('Payments are not available yet. Please try again later.', 503);

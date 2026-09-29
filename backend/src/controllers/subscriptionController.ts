@@ -5,7 +5,7 @@ import { BillingService } from '../services/billingService';
 
 export class SubscriptionController {
   static async status(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-    try { res.json({ success: true, data: { ...await SubscriptionService.status(req.user!.userId), plans: PLANS, paymentsAvailable: BillingService.available() } }); }
+    try { res.json({ success: true, data: { ...await SubscriptionService.status(req.user!.userId), plans: PLANS, paymentsAvailable: BillingService.mode() !== 'off', paymentMode: BillingService.mode() } }); }
     catch (err) { next(err); }
   }
 }

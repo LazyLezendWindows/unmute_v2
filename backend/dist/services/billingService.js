@@ -7,6 +7,7 @@ exports.BillingService = void 0;
 exports.verifySignature = verifySignature;
 const crypto_1 = __importDefault(require("crypto"));
 const database_1 = require("../config/database");
+const env_1 = require("../config/env");
 const errorHandler_1 = require("../middleware/errorHandler");
 const subscriptionService_1 = require("./subscriptionService");
 function verifySignature(body, signature, secret) {
@@ -16,6 +17,27 @@ function verifySignature(body, signature, secret) {
 }
 class BillingService {
     static available() { return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET); }
+    /**
+     * 'razorpay' with keys; 'test' in local development without keys (plans activate with no money
+     * taken, so the flow can be tried); otherwise 'off'. Test mode never runs in production or tests.
+     */
+    static mode() {
+        if (this.available())
+            return 'razorpay';
+        return env_1.config.env === 'development' ? 'test' : 'off';
+    }
+    /** Development-only purchase that goes through the same fulfilment as a real Razorpay payment. */
+    static async testPurchase(userId, planId) {
+        if (this.mode() !== 'test')
+            throw new errorHandler_1.AppError('Test payments are only available in local development.', 403);
+        const plan = subscriptionService_1.PLANS.find(p => p.id === planId);
+        if (!plan)
+            throw new errorHandler_1.AppError('Choose a valid upgrade plan.', 400);
+        const orderId = `order_test${crypto_1.default.randomBytes(8).toString('hex')}`;
+        await (0, database_1.getDatabase)().run('INSERT INTO billing_orders (id, user_id, plan, amount) VALUES (?, ?, ?, ?)', [orderId, userId, plan.id, plan.amount]);
+        await this.fulfill({ id: `pay_test${crypto_1.default.randomBytes(8).toString('hex')}`, order_id: orderId, amount: plan.amount, currency: 'INR', status: 'captured' });
+        return subscriptionService_1.SubscriptionService.status(userId);
+    }
     static async request(path, body) {
         if (!this.available())
             throw new errorHandler_1.AppError('Payments are not available yet. Please try again later.', 503);
