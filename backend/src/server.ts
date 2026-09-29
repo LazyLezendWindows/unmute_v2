@@ -1,3 +1,4 @@
+import { PlanReminderService } from './services/planReminderService';
 import http from 'http';
 import { createApp } from './app';
 import { config } from './config/env';
@@ -29,6 +30,9 @@ async function bootstrap() {
 
     // 4. Initialize real-time Socket.io server
     initSocketServer(server);
+
+    // Reminders about trials and plans ending (checked every few minutes).
+    PlanReminderService.start();
 
     // 5. Start listening
     server.listen(config.port, () => {

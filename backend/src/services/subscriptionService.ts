@@ -61,17 +61,24 @@ export class SubscriptionService {
   }
 
   static async status(userId: string) {
-    const row = await getDatabase().get<{ trialEnd: number; paidEnd: number | null; now: number; plan: string | null }>(
+    const row = await getDatabase().get<{ trialEnd: number; paidStart: number | null; paidEnd: number | null; now: number; plan: string | null }>(
       `SELECT TIMESTAMPDIFF(SECOND, '1970-01-01', DATE_ADD(trial_started_at, INTERVAL 7 DAY)) AS trialEnd,
+       TIMESTAMPDIFF(SECOND, '1970-01-01', plan_started_at) AS paidStart,
        TIMESTAMPDIFF(SECOND, '1970-01-01', plan_expires_at) AS paidEnd, TIMESTAMPDIFF(SECOND, '1970-01-01', UTC_TIMESTAMP()) AS now, plan
        FROM subscriptions WHERE user_id = ?`, [userId]);
-    if (!row) return { active: false, state: 'expired', expiresAt: null, trialEndsAt: null, plan: null };
+    if (!row) return { active: false, state: 'expired', expiresAt: null, trialEndsAt: null, plan: null, planStartsAt: null };
+    const now = Number(row.now);
     const end = Math.max(Number(row.trialEnd), Number(row.paidEnd || 0));
+    // 'paid' (with Premium) only once the plan period has begun; bought during the trial, it waits for it to end.
+    const paidNow = Number(row.paidEnd || 0) > now && Number(row.paidStart ?? now) <= now;
+    const upcoming = Number(row.paidEnd || 0) > now && !paidNow;
     return {
-      active: end > Number(row.now),
-      state: end <= Number(row.now) ? 'expired' : Number(row.paidEnd || 0) > Number(row.now) ? 'paid' : 'trial',
+      active: end > now,
+      state: end <= now ? 'expired' : paidNow ? 'paid' : 'trial',
       expiresAt: new Date(end * 1000).toISOString(),
       trialEndsAt: new Date(Number(row.trialEnd) * 1000).toISOString(), plan: row.plan,
+      /** A plan bought during the free trial: it (and Premium) starts at this time. */
+      planStartsAt: upcoming && row.paidStart ? new Date(Number(row.paidStart) * 1000).toISOString() : null,
     };
   }
 

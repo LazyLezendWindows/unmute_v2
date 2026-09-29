@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { IDatabase, getDatabase } from '../config/database';
 import { blockedBetween } from './sql';
 
-export type NotificationType = 'like' | 'match' | 'message';
+export type NotificationType = 'like' | 'match' | 'message' | 'plan';
 
 export interface NotificationRow {
   id: string;

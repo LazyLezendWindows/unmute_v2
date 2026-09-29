@@ -5,6 +5,8 @@ import { isOnline } from '../sockets/presence';
 export interface ProfileRow {
   user_id: string;
   is_premium?: number | null;
+  /** The running paid plan: day, week, month, 2months, 3months, 6months or year. */
+  premium_plan?: string | null;
   travel_label?: string | null;
   created_at?: string;
   id: string;
@@ -141,6 +143,7 @@ export function toOwnProfile(row: ProfileRow, interests: Interest[]) {
     interests,
     isVerified: Boolean(row.is_verified),
     isPremium: Boolean(row.is_premium),
+    premiumPlan: row.is_premium ? row.premium_plan ?? null : null,
     travellingTo: row.travel_label ?? null,
     gender: row.gender,
     ...profileDetails(row),
@@ -162,6 +165,8 @@ export function toPublicProfile(userId: string, row: ProfileRow | undefined | nu
     isOnline: isOnline(userId),
     /** A paid member (shown as a crown badge). */
     isPremium: Boolean(row?.is_premium),
+    /** Which paid plan, so its badge (Day Pass … Platinum) can be shown. */
+    premiumPlan: row?.is_premium ? row?.premium_plan ?? null : null,
     /** Travel mode: the place they're visiting, e.g. "Goa, Goa". */
     travellingTo: row?.travel_label ?? null,
   };

@@ -99,6 +99,42 @@ describe('Trials and billing', () => {
     }
   });
 
+  it('starts a plan bought during the trial when the trial ends, with Premium from then on', async () => {
+    const own = await request(app).post('/api/v1/auth/register').send(signup('queued@example.com'));
+    const id = own.body.data.user.id;
+    await db.run("INSERT INTO billing_orders (id, user_id, plan, amount) VALUES ('order_queued1', ?, 'month', 3000)", [id]);
+    await BillingService.fulfill({ id: 'pay_queued1', order_id: 'order_queued1', amount: 3000, currency: 'INR', status: 'captured' });
+    const status = await SubscriptionService.status(id);
+    expect(status.state).toBe('trial');
+    expect(Date.parse(status.planStartsAt!)).toBeCloseTo(Date.parse(status.trialEndsAt!), -4);
+    // Once the trial is over, the month is running and it counts as paid (Premium).
+    await db.run('UPDATE subscriptions SET trial_started_at = trial_started_at - INTERVAL 8 DAY, plan_started_at = plan_started_at - INTERVAL 8 DAY, plan_expires_at = plan_expires_at - INTERVAL 8 DAY WHERE user_id = ?', [id]);
+    expect((await SubscriptionService.status(id)).state).toBe('paid');
+  });
+
+  it('sends each trial and plan reminder once, and blocks everything once access ends', async () => {
+    const { PlanReminderService } = await import('../src/services/planReminderService');
+    const own = await request(app).post('/api/v1/auth/register').send(signup('reminder@example.com'));
+    const id = own.body.data.user.id;
+    const ownCookie = (own.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
+    const notes = async () => (await db.query<{ preview: string }>("SELECT preview FROM notifications WHERE user_id = ? AND type = 'plan' ORDER BY created_at", [id])).map(n => n.preview);
+
+    // A plan ending in 2 days: "3 days" reminder, once.
+    await db.run("UPDATE subscriptions SET trial_started_at = UTC_TIMESTAMP() - INTERVAL 30 DAY, plan = 'month', plan_started_at = UTC_TIMESTAMP() - INTERVAL 28 DAY, plan_expires_at = UTC_TIMESTAMP() + INTERVAL 2 DAY WHERE user_id = ?", [id]);
+    await PlanReminderService.runOnce();
+    await PlanReminderService.runOnce();
+    expect(await notes()).toEqual(['Your plan ends in 3 days. Renew now to keep your matches and chats going.']);
+
+    // It has ended: the "ended" reminder, and the app is locked on every request.
+    await db.run('UPDATE subscriptions SET plan_expires_at = UTC_TIMESTAMP() - INTERVAL 1 HOUR WHERE user_id = ?', [id]);
+    await PlanReminderService.runOnce();
+    expect((await notes()).at(-1)).toBe('Your plan has ended. Renew to continue.');
+    expect((await request(app).get('/api/v1/discover').set('Cookie', ownCookie)).status).toBe(402);
+    expect((await request(app).post('/api/v1/interactions/like').set('Cookie', ownCookie).send({ targetUserId: userId })).status).toBe(402);
+    // Billing stays open so they can renew.
+    expect((await request(app).get('/api/v1/subscriptions').set('Cookie', ownCookie)).status).toBe(200);
+  });
+
   it('uses calendar months with month-end clamping', () => {
     expect(planEnd(new Date('2028-01-31T12:00:00Z'), PLANS[2]).toISOString()).toBe('2028-02-29T12:00:00.000Z');
     expect(planEnd(new Date('2028-02-29T12:00:00Z'), PLANS[6]).toISOString()).toBe('2029-02-28T12:00:00.000Z');

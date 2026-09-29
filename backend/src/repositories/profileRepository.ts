@@ -8,8 +8,9 @@ const PROFILE_COLUMNS = `p.user_id, p.id, p.display_name, p.date_of_birth, p.bio
   p.avatar_url, p.interaction_preferences, p.is_verified,
   p.gender, p.profession, p.height_cm, p.drinking, p.smoking, p.workout, p.photos,
   p.education_level, p.profession_field, p.created_at,
-  EXISTS (SELECT 1 FROM subscriptions sp WHERE sp.user_id = p.user_id AND sp.plan_expires_at > UTC_TIMESTAMP()) AS is_premium,
-  (SELECT tm.label FROM travel_modes tm JOIN subscriptions st ON st.user_id = tm.user_id AND st.plan_expires_at > UTC_TIMESTAMP()
+  EXISTS (SELECT 1 FROM subscriptions sp WHERE sp.user_id = p.user_id AND sp.plan_expires_at > UTC_TIMESTAMP() AND sp.plan_started_at <= UTC_TIMESTAMP()) AS is_premium,
+  (SELECT spp.plan FROM subscriptions spp WHERE spp.user_id = p.user_id AND spp.plan_expires_at > UTC_TIMESTAMP() AND spp.plan_started_at <= UTC_TIMESTAMP()) AS premium_plan,
+  (SELECT tm.label FROM travel_modes tm JOIN subscriptions st ON st.user_id = tm.user_id AND st.plan_expires_at > UTC_TIMESTAMP() AND st.plan_started_at <= UTC_TIMESTAMP()
    WHERE tm.user_id = p.user_id) AS travel_label,
   ul.place_id AS loc_place_id, ul.pincode AS loc_pincode, ul.source AS loc_source,
   ul.label_precision AS loc_precision, lp.kind AS loc_kind, lp.name AS loc_name,

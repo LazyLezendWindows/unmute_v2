@@ -101,6 +101,11 @@ export class NotificationService {
     );
   }
 
+  /** A reminder that the free trial or a plan is ending or has ended (opens the Upgrade page). */
+  static async planReminder(userId: string, text: string) {
+    await this.deliver(userId, () => NotificationRepository.insert(userId, 'plan', { preview: text }));
+  }
+
   static async conversationRead(userId: string, conversationId: string) {
     await NotificationRepository.markConversationRead(userId, conversationId).catch(logFailure);
   }

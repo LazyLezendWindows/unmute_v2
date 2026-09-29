@@ -761,7 +761,7 @@ describe('Unmute API', () => {
       await paidFan.agent.post('/api/v1/interactions/like').send({ targetUserId: me.id });
 
       const received = (await me.agent.get('/api/v1/interactions/likes-received')).body.data;
-      expect(received.map((p: any) => [p.id, p.isPremium])).toEqual([[paidFan.id, true], [freeFan.id, false]]);
+      expect(received.map((p: any) => [p.id, p.isPremium, p.premiumPlan])).toEqual([[paidFan.id, true, 'month'], [freeFan.id, false, null]]);
 
       const overview = (await paidFan.agent.get('/api/v1/users/me/premium')).body.data;
       expect(overview.isPremium).toBe(true);

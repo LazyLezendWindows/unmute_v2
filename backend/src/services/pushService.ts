@@ -45,9 +45,10 @@ function vapidKeys() {
 }
 
 async function sendTo(userId: string, payload: object, options: webpush.RequestOptions = {}) {
-  if (!vapidKeys() || !(await SubscriptionService.status(userId)).active) return;
-  const prefs = await getNotificationPreferences(userId);
   const type = (payload as { type?: string }).type;
+  // Plan reminders are for people whose access is ending or over, so they skip the access check.
+  if (!vapidKeys() || (type !== 'plan' && !(await SubscriptionService.status(userId)).active)) return;
+  const prefs = await getNotificationPreferences(userId);
   if ((type === 'call' && !prefs.calls) || (type === 'message' && !prefs.messages)) return;
   const db = getDatabase();
   const subs = await db.query<SubscriptionRow>('SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?', [userId]);
@@ -109,6 +110,11 @@ export class PushService {
   static async callEnded(calleeId: string, conversationId: string) {
     if (isOnline(calleeId)) return;
     await sendTo(calleeId, { type: 'call-ended', conversationId, url: `/chat/${conversationId}` }, { TTL: 3600, topic: `call-${conversationId.slice(0, 20)}` });
+  }
+
+  /** Trial or plan ending: shown even while the app is open elsewhere, since it needs action. */
+  static async plan(userId: string, text: string) {
+    await sendTo(userId, { type: 'plan', title: 'Unmute', body: text, url: '/upgrade' }, { TTL: 86400 });
   }
 
   /** A new message while the member has no app open. */
