@@ -15,12 +15,10 @@ Plans are one-time purchases, without automatic renewal: 1 day ₹2, 1 week ₹1
 
 References: [Standard Checkout](https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/), [webhook validation](https://razorpay.com/docs/webhooks/validate-test/).
 
-## Access and device limits
+## Access
 
 The server enforces access for feature APIs, socket handshakes and incoming socket events; an expiry timer closes idle sockets and ongoing calls. Billing, authentication, and safety endpoints stay available. Public profile-image URLs remain public as before.
 
-A random HttpOnly device cookie is claimed atomically in `trial_devices`. A different account on that installation receives an “account already used on this device” message. New email, Google and phone signups check the claim before creating an account. Claims survive logout and account deletion. Account-level trial records prevent resets on a new device. The cookie is not a hardware identifier and does not inspect SIMs, IMEI, contacts, or phone hardware. Shared-device users must use the original account; support policy should account for this.
-
-Clearing cookies/app data, reinstalling, another browser, cookie blocking, or a modified client can evade installation recognition. Perfect multi-account prevention is not possible with a browser cookie. Native device attestation and an account-recovery process are separate follow-up work; this implementation does not claim hardware-level identification. Use the existing Secure/SameSite cookie deployment configuration for Capacitor; test checkout and cookie persistence on target mobile WebViews before release.
+Every account gets its own seven-day trial, on any device; several accounts may use the same phone or browser. Signing out and in again, or signing in on another device, never restarts an account's trial. (The earlier one-trial-per-device rule was removed; the unused `trial_devices` table from migration 015 can be dropped later.)
 
 Payments are one-time access grants. Automatic refund/dispute revocation and an administrative recovery UI are not implemented.

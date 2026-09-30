@@ -1,7 +1,7 @@
 <template>
   <AuthStage title="Create your account" subtitle="Let's get to know you better" back="/welcome" logo-size="4rem">
     <template #header><SetupProgress :step="0" compact class="register-steps" /></template>
-    <div class="d-flex flex-column gap-4">
+    <div class="auth-body d-flex flex-column gap-4">
 
       <form class="d-flex flex-column gap-3" @submit.prevent="handleRegister">
         <UInput v-model="displayName" type="text" required placeholder="Full name" icon="ri-user-line" autocomplete="name" />
@@ -85,7 +85,7 @@
       <div class="legal-body">
         <p>Unmute is for adults aged 18 and over. Use it respectfully and lawfully; harassment, scams, solicitation and fake profiles lead to removal.</p>
         <p>You are responsible for what you share. Report or block anyone who makes you uncomfortable.</p>
-        <p><strong>Free trial and plans.</strong> New accounts get 7 days of full access, once per person and device. After that, continued access needs a plan (from ₹2 for a day to ₹200 for a year). Plans are one-time payments through Razorpay and do not renew automatically.</p>
+        <p><strong>Free trial and plans.</strong> Every new account gets 7 days of full access. After that, continued access needs a plan (from ₹2 for a day to ₹200 for a year). Plans are one-time payments through Razorpay and do not renew automatically.</p>
         <p class="legal-note">This is a summary. The full terms will be published before public launch.</p>
       </div>
     </UModal>
@@ -93,7 +93,7 @@
       <div class="legal-body">
         <p><strong>What we collect:</strong> your name, email, date of birth, phone number if you add one, photos, profile details and interests, your approximate area, and the messages you send.</p>
         <p><strong>What others see:</strong> your profile, your age (never your date of birth), and only an area name at the precision you choose, never your exact location. Your email and phone number are never shown.</p>
-        <p><strong>Payments</strong> are handled by Razorpay; Unmute never sees your card or UPI details. A device cookie is used to allow one free trial per device.</p>
+        <p><strong>Payments</strong> are handled by Razorpay; Unmute never sees your card or UPI details.</p>
         <p>We do not sell your data. To delete your account, contact Unmute support.</p>
         <p class="legal-note">This is a summary. The full privacy policy will be published before public launch.</p>
       </div>

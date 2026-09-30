@@ -1,7 +1,4 @@
-import crypto from 'crypto';
 import { Request, Response } from 'express';
-import { parse } from 'cookie';
-import { config } from '../config/env';
 import { getDatabase } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
@@ -14,8 +11,6 @@ export const PLANS = [
   { id: '6months', label: '6 months', amount: 12000, days: 0, months: 6 },
   { id: 'year', label: '1 year', amount: 20000, days: 0, months: 12 },
 ] as const;
-const DEVICE_COOKIE = 'unmute_trial_device';
-const duplicateMessage = 'An account has already been used on this device. Sign in to your original account and upgrade. Changing your phone number does not start a new free trial.';
 
 export function planEnd(start: Date, plan: typeof PLANS[number]): Date {
   const end = new Date(start);
@@ -31,33 +26,12 @@ export function planEnd(start: Date, plan: typeof PLANS[number]): Date {
 }
 
 export class SubscriptionService {
-  static deviceHash(req: Request): string | null {
-    const token = parse(req.headers.cookie || '')[DEVICE_COOKIE];
-    return token && /^[a-f0-9]{64}$/.test(token) ? crypto.createHash('sha256').update(token).digest('hex') : null;
-  }
-
-  static async assertNewDevice(req: Request) {
-    const hash = this.deviceHash(req);
-    if (hash && await getDatabase().get('SELECT user_id FROM trial_devices WHERE token_hash = ?', [hash])) {
-      throw new AppError(duplicateMessage, 409);
-    }
-  }
-
-  static async startTrial(userId: string, req: Request, res: Response) {
-    const token = crypto.randomBytes(32).toString('hex');
-    const existingHash = this.deviceHash(req);
-    const hash = existingHash || crypto.createHash('sha256').update(token).digest('hex');
-    await getDatabase().transaction(async tx => {
-      // Unique primary key plus row lock serializes simultaneous claims on this installation.
-      await tx.run('INSERT IGNORE INTO trial_devices (token_hash, user_id) VALUES (?, ?)', [hash, userId]);
-      const claim = await tx.get<{ user_id: string }>('SELECT user_id FROM trial_devices WHERE token_hash = ? FOR UPDATE', [hash]);
-      if (claim!.user_id !== userId) throw new AppError(duplicateMessage, 409);
-      await tx.run('INSERT IGNORE INTO subscriptions (user_id, trial_started_at) VALUES (?, UTC_TIMESTAMP())', [userId]);
-    });
-    if (!existingHash) res.cookie(DEVICE_COOKIE, token, {
-      httpOnly: true, secure: config.session.secure, sameSite: config.session.sameSite,
-      path: '/', maxAge: 400 * 86400000,
-    });
+  /**
+   * Starts the member's 7-day free trial at their first sign-in; every account gets one, on any
+   * device. Signing in again (or on another device) never restarts it.
+   */
+  static async startTrial(userId: string, _req?: Request, _res?: Response) {
+    await getDatabase().run('INSERT IGNORE INTO subscriptions (user_id, trial_started_at) VALUES (?, UTC_TIMESTAMP())', [userId]);
   }
 
   static async status(userId: string) {

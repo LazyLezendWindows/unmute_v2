@@ -18,7 +18,7 @@
       </router-link>
       <header class="auth-header text-center">
         <BrandLogo layout="stacked" :size="logoSize" class="auth-logo" />
-        <p v-if="tagline" class="auth-tagline mb-0">Real People<br />Real Conversations</p>
+        <p v-if="tagline" class="auth-tagline mb-0"><span>Real People</span> <span>Real Conversations</span></p>
         <slot name="header" />
         <div v-if="title" class="auth-titles">
           <h1 class="auth-title mb-1">{{ title }}</h1>
@@ -166,6 +166,8 @@ withDefaults(
   font-size: 1rem;
   line-height: 1.35;
   color: var(--unmute-text-secondary);
+
+  span { display: block; }
 }
 
 .auth-back {
@@ -244,5 +246,70 @@ withDefaults(
     margin: 0 !important;
     font-size: 1.35rem;
   }
+}
+
+/*
+ * Short windows (laptops, landscape phones): tighten the spacing so the whole card fits on
+ * screen without scrolling. Taller screens keep the roomier layout above.
+ */
+@media (max-height: 900px) {
+  .auth-stage {
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .auth-column {
+    @media (min-width: 576px) {
+      padding: 1.5rem 2rem;
+    }
+  }
+
+  .auth-logo {
+    --logo-size: 3.5rem !important;
+    margin-bottom: 0.35rem;
+  }
+
+  .auth-tagline {
+    margin-bottom: 0.9rem !important;
+    font-size: 0.9rem;
+
+    // One line: "Real People · Real Conversations"
+    span { display: inline; }
+    span + span::before { content: '· '; }
+  }
+
+  .auth-header { margin-bottom: 1.25rem; }
+  .auth-titles { gap: 0.15rem; }
+  .auth-title { font-size: 1.7rem; }
+  .auth-subtitle { font-size: 0.88rem; }
+
+  .auth-column :deep(.u-input) { min-height: 2.9rem; }
+  .auth-column :deep(.u-btn-primary.u-btn-lg) { min-height: 3.1rem; }
+  .auth-column :deep(.social-btn) { min-height: 2.85rem; }
+  .auth-column :deep(.auth-body) { gap: 1rem !important; }
+}
+
+@media (max-height: 700px) {
+  .auth-stage {
+    padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .auth-logo { --logo-size: 2.75rem !important; }
+  .auth-tagline { margin-bottom: 0.6rem !important; }
+  .auth-header { margin-bottom: 0.9rem; }
+  .auth-title { font-size: 1.5rem; }
+
+  .auth-column {
+    @media (min-width: 576px) {
+      padding: 1.1rem 2rem;
+    }
+  }
+
+  .auth-column :deep(.u-input) { min-height: 2.7rem; }
+  .auth-column :deep(.u-btn-primary.u-btn-lg) { min-height: 2.9rem; }
+  .auth-column :deep(.social-btn) { min-height: 2.7rem; }
+  .auth-column :deep(.auth-body) { gap: 0.75rem !important; }
+  .auth-column :deep(.auth-body form) { gap: 0.75rem !important; }
 }
 </style>

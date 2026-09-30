@@ -1,6 +1,6 @@
 <template>
   <AuthStage title="Welcome back" subtitle="Sign in to continue your conversations" tagline logo-size="5.5rem">
-    <div class="d-flex flex-column gap-4">
+    <div class="auth-body d-flex flex-column gap-4">
 
       <form class="d-flex flex-column gap-3" @submit.prevent="handleLogin">
         <UInput v-model="email" type="email" required placeholder="Email address" icon="ri-mail-line" autocomplete="email" />

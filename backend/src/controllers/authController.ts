@@ -22,7 +22,7 @@ async function startSession(req: Request, res: Response, userId: string) {
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = await AuthService.register(req.body, () => SubscriptionService.assertNewDevice(req));
+      const userId = await AuthService.register(req.body);
       if (typeof userId !== 'string') {
         res.status(200).json({ success: true, data: userId });
         return;
@@ -47,7 +47,7 @@ export class AuthController {
 
   static async googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await AuthService.googleAuth(req.body, () => SubscriptionService.assertNewDevice(req));
+      const result = await AuthService.googleAuth(req.body);
       if (result.requiresDob) {
         res.status(200).json({ success: true, data: result });
         return;
@@ -75,7 +75,7 @@ export class AuthController {
   /** Checks the code; a new number is asked for a name and date of birth before an account exists. */
   static async phoneVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await PhoneAuthService.verify(req.body, () => SubscriptionService.assertNewDevice(req));
+      const result = await PhoneAuthService.verify(req.body);
       if (result.requiresProfile) {
         res.status(200).json({ success: true, data: { requiresProfile: true } });
         return;

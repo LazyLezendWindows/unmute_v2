@@ -1936,3 +1936,72 @@ Next activation : never
 2026-09-29 19:05:27 1968 [Warning] Aborted connection 1968 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
 2026-09-29 19:05:27 1962 [Warning] Aborted connection 1962 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
 2026-09-29 19:05:27 1966 [Warning] Aborted connection 1966 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:16:35 0 [Note] Starting MariaDB 10.6.23-MariaDB-0ubuntu0.22.04.1 source revision fe8047caf26d20e98ea7f6ec1dce3924e696703f server_uid 0kj1u87uLG0Ex/r59NHguRV62jU= as process 239508
+2026-09-30 10:16:35 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2026-09-30 10:16:35 0 [Note] InnoDB: Number of pools: 1
+2026-09-30 10:16:35 0 [Note] InnoDB: Using AVX512 instructions
+2026-09-30 10:16:35 0 [Note] InnoDB: Using liburing
+2026-09-30 10:16:35 0 [Note] InnoDB: Initializing buffer pool, total size = 134217728, chunk size = 134217728
+2026-09-30 10:16:35 0 [Note] InnoDB: Completed initialization of buffer pool
+2026-09-30 10:16:35 0 [Note] InnoDB: Starting crash recovery from checkpoint LSN=333394969,333465454
+2026-09-30 10:16:36 0 [Note] InnoDB: To recover: 573 pages
+2026-09-30 10:16:36 0 [Note] InnoDB: 128 rollback segments are active.
+2026-09-30 10:16:36 0 [Note] InnoDB: Removed temporary tablespace data file: "./ibtmp1"
+2026-09-30 10:16:36 0 [Note] InnoDB: Creating shared tablespace for temporary tables
+2026-09-30 10:16:36 0 [Note] InnoDB: Setting file './ibtmp1' size to 12 MB. Physically writing the file full; Please wait ...
+2026-09-30 10:16:36 0 [Note] InnoDB: File './ibtmp1' size is now 12 MB.
+2026-09-30 10:16:36 0 [Note] InnoDB: 10.6.23 started; log sequence number 359323117; transaction id 147401
+2026-09-30 10:16:36 0 [Note] InnoDB: Loading buffer pool(s) from /home/caratred/Videos/vue js/unmute/backend/data/mariadb/ib_buffer_pool
+2026-09-30 10:16:36 0 [Note] Plugin 'FEEDBACK' is disabled.
+2026-09-30 10:16:36 0 [Note] Server socket created on IP: '0.0.0.0'.
+2026-09-30 10:16:36 0 [Note] Server socket created on IP: '::'.
+2026-09-30 10:16:36 0 [Note] InnoDB: Buffer pool(s) load completed at 260930 10:16:36
+2026-09-30 10:16:36 0 [Note] mariadbd: ready for connections.
+Version: '10.6.23-MariaDB-0ubuntu0.22.04.1'  socket: '/home/caratred/Videos/vue js/unmute/backend/data/mariadb.sock'  port: 3307  Ubuntu 22.04
+2026-09-30 10:23:45 13 [Warning] Aborted connection 13 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 11 [Warning] Aborted connection 11 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 9 [Warning] Aborted connection 9 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 10 [Warning] Aborted connection 10 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 8 [Warning] Aborted connection 8 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 14 [Warning] Aborted connection 14 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 12 [Warning] Aborted connection 12 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 7 [Warning] Aborted connection 7 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 6 [Warning] Aborted connection 6 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:45 5 [Warning] Aborted connection 5 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:54 21 [Warning] Aborted connection 21 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:54 20 [Warning] Aborted connection 20 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:23:54 19 [Warning] Aborted connection 19 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:27:51 16 [Warning] Aborted connection 16 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:02 24 [Warning] Aborted connection 24 to db: 'unmute_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 36 [Warning] Aborted connection 36 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 33 [Warning] Aborted connection 33 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 35 [Warning] Aborted connection 35 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 38 [Warning] Aborted connection 38 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 34 [Warning] Aborted connection 34 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 37 [Warning] Aborted connection 37 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 32 [Warning] Aborted connection 32 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 29 [Warning] Aborted connection 29 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 31 [Warning] Aborted connection 31 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:38 30 [Warning] Aborted connection 30 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:48 41 [Warning] Aborted connection 41 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:48 42 [Warning] Aborted connection 42 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:48 40 [Warning] Aborted connection 40 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:52 46 [Warning] Aborted connection 46 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:52 44 [Warning] Aborted connection 44 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:52 45 [Warning] Aborted connection 45 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:56 48 [Warning] Aborted connection 48 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:56 50 [Warning] Aborted connection 50 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:28:56 49 [Warning] Aborted connection 49 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:29:02 58 [Warning] Aborted connection 58 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:29:02 56 [Warning] Aborted connection 56 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:29:02 57 [Warning] Aborted connection 57 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:29:02 60 [Warning] Aborted connection 60 to db: 'unmute_test_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 72 [Warning] Aborted connection 72 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 76 [Warning] Aborted connection 76 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 74 [Warning] Aborted connection 74 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 77 [Warning] Aborted connection 77 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 71 [Warning] Aborted connection 71 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 69 [Warning] Aborted connection 69 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 75 [Warning] Aborted connection 75 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 73 [Warning] Aborted connection 73 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)
+2026-09-30 10:39:33 70 [Warning] Aborted connection 70 to db: 'unmute_e2e_db' user: 'caratred' host: 'localhost' (Got an error reading communication packets)

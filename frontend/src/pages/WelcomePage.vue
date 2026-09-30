@@ -1,6 +1,6 @@
 <template>
   <AuthStage tagline logo-size="6rem">
-    <div class="d-flex flex-column gap-4">
+    <div class="auth-body d-flex flex-column gap-4">
       <div class="welcome-hero" aria-hidden="true">
         <img :src="couplePhoto" alt="" class="hero-photo" fetchpriority="high" />
         <svg class="hero-wave" viewBox="0 0 390 100" preserveAspectRatio="none">

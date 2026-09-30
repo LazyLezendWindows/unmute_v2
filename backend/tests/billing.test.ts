@@ -32,20 +32,20 @@ describe('Trials and billing', () => {
     expect((await SubscriptionService.status(userId)).expiresAt).toBe(before);
   });
 
-  it('blocks another signup on the same installation even after logout', async () => {
+  it('lets another account sign up and sign in on the same device, each with its own trial', async () => {
     await request(app).post('/api/v1/auth/logout').set('Cookie', cookie);
-    const res = await request(app).post('/api/v1/auth/register').set('Cookie', cookie).send(signup('another@example.com'));
-    expect(res.status).toBe(409);
-    expect(res.body.error).toMatch(/already/);
-    expect(await db.get('SELECT id FROM users WHERE email = ?', ['another@example.com'])).toBeNull();
+    const other = await request(app).post('/api/v1/auth/register').set('Cookie', cookie).send(signup('another@example.com'));
+    expect(other.status).toBe(201);
+    expect((await SubscriptionService.status(other.body.data.user.id)).state).toBe('trial');
+    // And the first account can still sign in on that same device.
     const login = await request(app).post('/api/v1/auth/login').set('Cookie', cookie).send({ email: 'billing@example.com', password: 'Password123!' });
+    expect(login.status).toBe(200);
     cookie = (login.headers['set-cookie'] as unknown as string[]).map(c => c.split(';')[0]).join('; ');
   });
 
-  it('blocks a verified second phone number before creating an account', async () => {
+  it('creates an account for a new phone number on a device that already had another account', async () => {
     const fresh = request.agent(app);
-    const original = await fresh.post('/api/v1/auth/register').send(signup('phone-owner@example.com'));
-    expect(original.status).toBe(201);
+    expect((await fresh.post('/api/v1/auth/register').send(signup('phone-owner@example.com'))).status).toBe(201);
     await fresh.post('/api/v1/auth/logout');
     const phone = '+919888777661';
     const sms = vi.spyOn(console, 'info');
@@ -53,8 +53,8 @@ describe('Trials and billing', () => {
     const line = sms.mock.calls.map(c => String(c[0])).find(l => l.startsWith(`[SMS] to ${phone}:`))!;
     const code = line.match(/: (\d{6}) /)![1];
     const result = await fresh.post('/api/v1/auth/phone/verify').send({ phone, code, displayName: 'Second SIM', dateOfBirth: '1990-01-01' });
-    expect(result.status).toBe(409);
-    expect(await db.get("SELECT id FROM auth_accounts WHERE provider = 'phone' AND provider_account_id = ?", [phone])).toBeNull();
+    expect(result.status).toBe(200);
+    expect(result.body.data.isNewUser).toBe(true);
   });
 
   it('does not extend a trial when the same account uses a different installation', async () => {
