@@ -13,10 +13,10 @@ describe('notification preferences', () => {
     const first = await a.post('/api/v1/auth/register').send(signup('prefs-a@example.com'));
     const second = await b.post('/api/v1/auth/register').send(signup('prefs-b@example.com'));
     expect(first.status).toBe(201); expect(second.status).toBe(201);
-    expect((await a.get('/api/v1/notifications/preferences')).body.data).toEqual({ calls: true, messages: true });
+    expect((await a.get('/api/v1/notifications/preferences')).body.data).toEqual({ calls: true, messages: true, emailAlerts: true });
     expect((await a.put('/api/v1/notifications/preferences').send({ calls: false, messages: true })).status).toBe(200);
-    expect(await getNotificationPreferences(first.body.data.user.id)).toEqual({ calls: false, messages: true });
-    expect((await b.get('/api/v1/notifications/preferences')).body.data).toEqual({ calls: true, messages: true });
+    expect(await getNotificationPreferences(first.body.data.user.id)).toEqual({ calls: false, messages: true, emailAlerts: true });
+    expect((await b.get('/api/v1/notifications/preferences')).body.data).toEqual({ calls: true, messages: true, emailAlerts: true });
     expect((await a.put('/api/v1/notifications/preferences').send({ calls: 'false', messages: true })).status).toBe(400);
   });
 });

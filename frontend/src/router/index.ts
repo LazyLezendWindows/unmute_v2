@@ -5,6 +5,9 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { begin } from '../services/activity';
 
+/** Once the free trial or plan has ended, only these open; everything else goes to Upgrade. */
+export const OPEN_WITHOUT_ACCESS = ['upgrade', 'referral', 'safety', 'settings', 'settings-appearance', 'settings-account', 'terms', 'privacy'];
+
 const router = createRouter({
   history: createWebHistory(),
   // Hash links (e.g. Settings → Blocked users) land on their section; other pages start at the top.
@@ -108,6 +111,7 @@ const router = createRouter({
     { path: '/admin/users', name: 'admin-users', component: () => import('../pages/admin/AdminUsersPage.vue'), meta: { admin: true } },
     { path: '/admin/users/:id', name: 'admin-user', component: () => import('../pages/admin/AdminUserPage.vue'), meta: { admin: true } },
     { path: '/admin/admins', name: 'admin-admins', component: () => import('../pages/admin/AdminAdminsPage.vue'), meta: { admin: true } },
+    { path: '/admin/reports', name: 'admin-reports', component: () => import('../pages/admin/AdminReportsPage.vue'), meta: { admin: true } },
     { path: '/admin/verifications', name: 'admin-verifications', component: () => import('../pages/admin/AdminVerificationsPage.vue'), meta: { admin: true } },
     {
       path: '/verify',
@@ -137,6 +141,18 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: () => import('../pages/SettingsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/referral',
+      name: 'referral',
+      component: () => import('../pages/ReferralPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/settings/account',
+      name: 'settings-account',
+      component: () => import('../pages/AccountSettingsPage.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -192,8 +208,8 @@ router.beforeEach(async (to) => {
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return '/discover';
   }
-  const SUBSCRIPTION_FREE = ['upgrade', 'safety', 'settings', 'settings-appearance', 'profile', 'profile-edit', 'profile-interests', 'profile-photos', 'profile-location', 'notifications', 'verify'];
-  if (to.meta.requiresAuth && !SUBSCRIPTION_FREE.includes(String(to.name))) {
+
+  if (to.meta.requiresAuth && !OPEN_WITHOUT_ACCESS.includes(String(to.name))) {
     try { if (!(await useSubscriptionStore().fetchStatus()).active) return '/upgrade'; }
     // Only a real "no access" answer sends them to Upgrade; a connection failure doesn't.
     catch (err) {

@@ -102,6 +102,22 @@
         </div>
       </fieldset>
 
+      <!-- Background: free for everyone, as on most Indian dating apps -->
+      <fieldset class="f-card">
+        <legend class="f-head"><i class="ri-earth-line" aria-hidden="true"></i><span>Background</span></legend>
+        <div class="row-2">
+          <label v-for="item in BACKGROUND" :key="item.key" class="pick">
+            <i :class="item.icon" aria-hidden="true"></i>
+            <span class="pick-text"><small>{{ item.label }}</small><span>{{ labelOf(item.options, draft[item.key]) }}</span></span>
+            <i class="ri-arrow-down-s-line pick-chev" aria-hidden="true"></i>
+            <select v-model="draft[item.key]" :aria-label="item.label">
+              <option :value="null">Any</option>
+              <option v-for="o in item.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
       <!-- Lifestyle -->
       <!-- Premium filters: locked (tap to upgrade) for free members -->
       <fieldset class="f-card" :class="{ 'is-locked': !premium.isPremium }" :disabled="!premium.isPremium">
@@ -223,12 +239,20 @@ import { interestIcon } from '../utils/interestIcon';
 import { Interest, Place, PlaceKind } from '../types';
 import { EDUCATION_LEVELS, LIFESTYLE_OPTIONS, PROFESSION_FIELDS } from '../utils/profileFormat';
 import { PHOTO_INTEREST_ORDER } from '../utils/interestPhoto';
+import { DIETS, LANGUAGES, MARITAL_STATUSES, RELIGIONS } from '../content/profileOptions';
 
 const LOOKING_FOR = [
   { value: 'Relationship', label: 'Relationship', icon: 'ri-hearts-line' },
   { value: 'Casual', label: 'Casual Dating', icon: 'ri-heart-3-line' },
   { value: 'Friendship', label: 'Friendship', icon: 'ri-group-line' },
   { value: null, label: 'Open to Explore', icon: 'ri-vip-diamond-line' },
+] as const;
+
+const BACKGROUND = [
+  { key: 'religion', label: 'Religion', icon: 'ri-sparkling-line', options: RELIGIONS },
+  { key: 'language', label: 'Language', icon: 'ri-chat-voice-line', options: LANGUAGES },
+  { key: 'diet', label: 'Diet', icon: 'ri-restaurant-2-line', options: DIETS },
+  { key: 'maritalStatus', label: 'Status', icon: 'ri-heart-2-line', options: MARITAL_STATUSES },
 ] as const;
 
 const LIFESTYLE = [

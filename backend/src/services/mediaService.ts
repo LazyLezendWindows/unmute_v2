@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { config } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
+import { ModerationService } from './moderationService';
 
 /** Public path uploaded photos are served under. */
 export const MEDIA_PATH = '/api/v1/media/';
@@ -39,6 +40,7 @@ export class MediaService {
     }
     const ext = imageExtension(body);
     if (!ext) throw new AppError('Photos must be JPG, PNG or WebP images.', 415);
+    await ModerationService.assertPhotoAllowed(body, ext);
 
     const name = `${userId}-${crypto.randomUUID()}.${ext}`;
     await fs.mkdir(config.uploadDir, { recursive: true });

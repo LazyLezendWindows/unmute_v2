@@ -56,6 +56,11 @@
           autocomplete="new-password"
           :error="passwordMismatch ? 'Passwords do not match.' : undefined"
         />
+        <!-- Referral: a friend's code gives you both 2 weeks free -->
+        <div class="referral-field" :class="{ 'is-filled': referralCode.trim() }">
+          <span class="referral-tag"><i class="ri-gift-2-fill" aria-hidden="true"></i>Invited by a friend? You both get 2 weeks free</span>
+          <UInput v-model="referralCode" type="text" placeholder="Referral code (optional)" icon="ri-gift-line" autocomplete="off" :maxlength="30" aria-label="Referral code (optional)" />
+        </div>
         <label class="terms-check">
           <input v-model="agreed" type="checkbox" required />
           <span>I agree to the <a href="#" class="terms-link" @click.prevent="legalOpen = 'terms'">Terms of Service</a> and <a href="#" class="terms-link" @click.prevent="legalOpen = 'privacy'">Privacy Policy</a></span>
@@ -92,7 +97,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import UInput from '../components/ui/UInput.vue';
 import UModal from '../components/ui/UModal.vue';
 import AuthStage from '../components/auth/AuthStage.vue';
@@ -117,6 +122,8 @@ const COUNTRIES = [
 ];
 
 const router = useRouter();
+// An invite link (/register?ref=asha4821) fills in the friend's code.
+const referralCode = ref(typeof useRoute().query.ref === 'string' ? String(useRoute().query.ref).slice(0, 30) : '');
 const authStore = useAuthStore();
 
 const displayName = ref('');
@@ -155,6 +162,7 @@ function details(code?: string) {
     password: password.value,
     ...(fullPhone.value ? { phone: fullPhone.value } : {}),
     ...(code ? { code } : {}),
+    ...(referralCode.value.trim() ? { referralCode: referralCode.value.trim() } : {}),
   };
 }
 
@@ -288,5 +296,29 @@ async function finishWithCode(code: string) {
     height: 1.4rem;
     accent-color: var(--unmute-cta);
   }
+}
+
+.referral-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1.5px dashed rgba(242, 24, 114, 0.45);
+  border-radius: 1.2rem;
+  background: linear-gradient(120deg, rgba(255, 122, 110, 0.08), rgba(192, 0, 120, 0.08));
+
+  &.is-filled { border-style: solid; }
+}
+
+.referral-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--unmute-cta);
+
+  i { font-size: 1.05rem; }
 }
 </style>

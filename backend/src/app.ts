@@ -18,10 +18,13 @@ export function createApp(): Express {
   // Security Headers
   app.use(
     helmet({
+      // Razorpay checkout, Google sign-in, and images/GIFs from https sources (photos, Giphy).
       contentSecurityPolicy: config.isProduction ? { directives: {
-        scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
-        frameSrc: ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com'],
-        connectSrc: ["'self'", 'https://*.razorpay.com', 'wss:'],
+        scriptSrc: ["'self'", 'https://checkout.razorpay.com', 'https://accounts.google.com/gsi/client'],
+        frameSrc: ["'self'", 'https://api.razorpay.com', 'https://*.razorpay.com', 'https://accounts.google.com'],
+        connectSrc: ["'self'", 'https://*.razorpay.com', 'https://accounts.google.com', 'wss:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        mediaSrc: ["'self'", 'blob:'],
       } } : false,
     })
   );

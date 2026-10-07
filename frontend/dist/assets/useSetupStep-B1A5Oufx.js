@@ -1,0 +1,1 @@
+import{E as u,u as a}from"./index-BXEJtWQg.js";import{a as n,n as l,p}from"./onboarding-M05dwwhl.js";function m(){const o=a(),e=u(()=>{const t=Number(o.query.setup);return Number.isInteger(t)&&t>=1&&t<=n.length?t:null}),r=u(()=>e.value?l(e.value):"/profile"),s=u(()=>e.value?p(e.value):null);return{step:e,total:n.length,next:r,previous:s}}export{m as u};

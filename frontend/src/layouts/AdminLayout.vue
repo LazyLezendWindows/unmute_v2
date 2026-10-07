@@ -47,6 +47,7 @@ import { adminApi, adminSession, AdminUser, onAdminSignedOut } from '../services
 const NAV = [
   { to: '/admin',              name: 'admin-dashboard',     label: 'Dashboard',      icon: 'ri-dashboard-3-line',  exact: true },
   { to: '/admin/users',        name: 'admin-user',          label: 'Users',          icon: 'ri-group-line',        exact: false },
+  { to: '/admin/reports',      name: 'admin-reports',       label: 'Reports',        icon: 'ri-flag-line',         exact: true },
   { to: '/admin/verifications',name: 'admin-verifications', label: 'Verifications',  icon: 'ri-shield-check-line', exact: true },
   { to: '/admin/admins',       name: 'admin-admins',        label: 'Admins',         icon: 'ri-shield-user-line',  exact: true },
 ];

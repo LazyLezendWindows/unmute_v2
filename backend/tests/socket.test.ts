@@ -76,6 +76,25 @@ describe('Realtime chat authorization', () => {
     await expect(openSocket('unmute_session=forged')).rejects.toThrow(/Authentication required/);
   });
 
+  it('shows typing only to the other person in the chat', async () => {
+    const aSocket = await openSocket(a.cookie);
+    const bSocket = await openSocket(b.cookie);
+    const xSocket = await openSocket(outsider.cookie);
+    for (const s of [aSocket, bSocket, xSocket]) s.emit('join_conversation', conversationId);
+    await new Promise((r) => setTimeout(r, 200));
+    const seen = (socket: Socket) =>
+      new Promise<any | null>((resolve) => {
+        const timer = setTimeout(() => resolve(null), 600);
+        socket.once('typing', (e) => { clearTimeout(timer); resolve(e); });
+      });
+    const [atB, atA, atX] = [seen(bSocket), seen(aSocket), seen(xSocket)];
+    aSocket.emit('typing', conversationId, true);
+    expect(await atB).toEqual({ conversationId, userId: a.id, isTyping: true });
+    expect(await atA).toBeNull();
+    expect(await atX).toBeNull();
+    [aSocket, bSocket, xSocket].forEach((s) => s.disconnect());
+  });
+
   it('delivers messages to participants but never to a non-member who asks to join the room', async () => {
     const bSocket = await openSocket(b.cookie);
     const outsiderSocket = await openSocket(outsider.cookie);

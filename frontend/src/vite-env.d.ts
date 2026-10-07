@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_LEGAL_ENTITY?: string;
   readonly VITE_LEGAL_ADDRESS?: string;
   readonly VITE_SUPPORT_EMAIL?: string;
+  /** Android/iOS builds don't sell plans unless this is 'razorpay' (only if your store listing allows it). */
+  readonly VITE_NATIVE_PURCHASES?: string;
 }
 
 interface ImportMeta {

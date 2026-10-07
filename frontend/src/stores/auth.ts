@@ -112,6 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
     dateOfBirth: string;
     phone?: string;
     code?: string;
+    referralCode?: string;
   }): Promise<{ requiresPhoneCode: boolean }> {
     return run(async () => {
       const res = await api.post('/auth/register', data);
@@ -148,7 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** Checks the SMS code; a new number must include a name and date of birth to finish signing up. */
-  function loginWithPhone(payload: { phone: string; code: string; displayName?: string; dateOfBirth?: string }): Promise<PhoneAuthOutcome> {
+  function loginWithPhone(payload: { phone: string; code: string; displayName?: string; dateOfBirth?: string; referralCode?: string }): Promise<PhoneAuthOutcome> {
     return run(async () => {
       const res = await api.post('/auth/phone/verify', payload);
       const result = res.data.data;
@@ -227,6 +228,18 @@ export const useAuthStore = defineStore('auth', () => {
     return applyProfile(api.delete('/users/me/education'));
   }
 
+  /** Pause hides the profile from Discover; matches and chats carry on. */
+  async function setPaused(paused: boolean) {
+    await api.put('/users/me/pause', { paused });
+    if (user.value) user.value.isPaused = paused;
+  }
+
+  /** Changes the password (or sets a first one); other devices are signed out by the server. */
+  async function changePassword(currentPassword: string | undefined, newPassword: string) {
+    await api.post('/auth/password/change', { ...(currentPassword ? { currentPassword } : {}), newPassword });
+    if (user.value) user.value.hasPassword = true;
+  }
+
   /** Permanently deletes the account; the server signs this browser out. */
   async function deleteAccount(confirmation: { password?: string; confirm?: string }) {
     await api.delete('/users/me', { data: confirmation });
@@ -269,5 +282,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearEducation,
     logout,
     deleteAccount,
+    setPaused,
+    changePassword,
   };
 });

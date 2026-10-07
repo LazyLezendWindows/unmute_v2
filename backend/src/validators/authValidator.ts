@@ -39,6 +39,8 @@ export const registerSchema = z.object({
   /** Optional mobile number; it is linked (and usable for phone sign-in) only with its SMS code. */
   phone: phoneNumber.optional(),
   code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS').optional(),
+  /** A friend's referral code (both get two weeks free once this account's phone is verified). */
+  referralCode: z.string().trim().max(30).optional(),
 });
 
 export const loginSchema = z.object({
@@ -52,6 +54,7 @@ export const googleAuthSchema = z
   .object({
     credential: z.string().min(20, 'Google credential is required').max(4096),
     dateOfBirth: dateOfBirth.optional(),
+    referralCode: z.string().trim().max(30).optional(),
   })
   .strict();
 
@@ -83,6 +86,7 @@ export const phoneVerifySchema = z
       .max(50, 'Display name cannot exceed 50 characters')
       .optional(),
     dateOfBirth: dateOfBirth.optional(),
+    referralCode: z.string().trim().max(30).optional(),
   })
   .strict();
 
@@ -92,3 +96,10 @@ export type PhoneStartInput = z.infer<typeof phoneStartSchema>;
 export type PhoneVerifyInput = z.infer<typeof phoneVerifySchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().max(100).optional(),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters long').max(100, 'Password is too long'),
+  })
+  .strict();

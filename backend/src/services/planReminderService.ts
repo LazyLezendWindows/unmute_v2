@@ -1,4 +1,5 @@
 import { getDatabase } from '../config/database';
+import { freeEndSql } from './subscriptionService';
 import { NotificationService } from './notificationService';
 import { PushService } from './pushService';
 
@@ -19,26 +20,30 @@ const TEXT: Record<Kind, string> = {
  * Who needs which reminder right now. `ends_at` is the trial or plan end it's about; each
  * (member, kind, end) is sent once. "Ended" reminders only go out for the first 3 days after.
  */
+const FREE_END = freeEndSql('s.');
+// Free time from referrals after a plan means the plan ending isn't the end of access.
+const NO_LATER_FREE_TIME = '(s.free_until IS NULL OR s.free_until <= s.plan_expires_at)';
+
 const CANDIDATES_SQL = `
   SELECT user_id, kind, ends_at FROM (
-    SELECT s.user_id, 'trial_ending' AS kind, DATE_ADD(s.trial_started_at, INTERVAL 7 DAY) AS ends_at
+    SELECT s.user_id, 'trial_ending' AS kind, ${FREE_END} AS ends_at
     FROM subscriptions s
     WHERE s.plan_expires_at IS NULL
-      AND DATE_ADD(s.trial_started_at, INTERVAL 7 DAY) BETWEEN UTC_TIMESTAMP() AND UTC_TIMESTAMP() + INTERVAL 1 DAY
+      AND ${FREE_END} BETWEEN UTC_TIMESTAMP() AND UTC_TIMESTAMP() + INTERVAL 1 DAY
     UNION ALL
-    SELECT s.user_id, 'trial_ended', DATE_ADD(s.trial_started_at, INTERVAL 7 DAY)
+    SELECT s.user_id, 'trial_ended', ${FREE_END}
     FROM subscriptions s
     WHERE s.plan_expires_at IS NULL
-      AND DATE_ADD(s.trial_started_at, INTERVAL 7 DAY) BETWEEN UTC_TIMESTAMP() - INTERVAL 3 DAY AND UTC_TIMESTAMP()
+      AND ${FREE_END} BETWEEN UTC_TIMESTAMP() - INTERVAL 3 DAY AND UTC_TIMESTAMP()
     UNION ALL
     SELECT s.user_id, 'plan_ending_3d', s.plan_expires_at FROM subscriptions s
-    WHERE s.plan_expires_at BETWEEN UTC_TIMESTAMP() + INTERVAL 1 DAY AND UTC_TIMESTAMP() + INTERVAL 3 DAY
+    WHERE s.plan_expires_at BETWEEN UTC_TIMESTAMP() + INTERVAL 1 DAY AND UTC_TIMESTAMP() + INTERVAL 3 DAY AND ${NO_LATER_FREE_TIME}
     UNION ALL
     SELECT s.user_id, 'plan_ending_1d', s.plan_expires_at FROM subscriptions s
-    WHERE s.plan_expires_at BETWEEN UTC_TIMESTAMP() AND UTC_TIMESTAMP() + INTERVAL 1 DAY
+    WHERE s.plan_expires_at BETWEEN UTC_TIMESTAMP() AND UTC_TIMESTAMP() + INTERVAL 1 DAY AND ${NO_LATER_FREE_TIME}
     UNION ALL
     SELECT s.user_id, 'plan_ended', s.plan_expires_at FROM subscriptions s
-    WHERE s.plan_expires_at BETWEEN UTC_TIMESTAMP() - INTERVAL 3 DAY AND UTC_TIMESTAMP()
+    WHERE s.plan_expires_at BETWEEN UTC_TIMESTAMP() - INTERVAL 3 DAY AND UTC_TIMESTAMP() AND ${NO_LATER_FREE_TIME}
   ) due
   JOIN users u ON u.id = due.user_id AND u.is_active = 1
   WHERE NOT EXISTS (

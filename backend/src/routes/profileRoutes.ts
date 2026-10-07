@@ -4,10 +4,12 @@ import premiumRoutes from './premiumRoutes';
 import { ProfileController } from '../controllers/profileController';
 import { LocationController } from '../controllers/locationController';
 import { EducationController } from '../controllers/educationController';
-import { requireAuth } from '../middleware/auth';
+import { AuthRequest, requireAuth } from '../middleware/auth';
+import { z } from 'zod';
+import { ReferralService } from '../services/referralService';
 import { authRateLimiter, locationRateLimiter } from '../middleware/rateLimiter';
 import { validateBody } from '../middleware/validate';
-import { deleteAccountSchema, updateProfileSchema } from '../validators/profileValidator';
+import { deleteAccountSchema, pauseSchema, updateProfileSchema } from '../validators/profileValidator';
 import { setLocationSchema, updatePrecisionSchema } from '../validators/locationValidator';
 import { setEducationSchema } from '../validators/educationValidator';
 
@@ -20,6 +22,14 @@ router.patch('/me', validateBody(updateProfileSchema), ProfileController.updateM
 // Permanently deletes the account (password, or the word DELETE for accounts without one).
 router.delete('/me', authRateLimiter, validateBody(deleteAccountSchema), ProfileController.deleteMyAccount);
 router.get('/interests', ProfileController.getInterests);
+router.put('/me/pause', validateBody(pauseSchema), ProfileController.setPaused);
+// Refer & earn: your code and rewards, and adding a friend's code in your first week.
+router.get('/me/referral', async (req: AuthRequest, res, next) => {
+  try { res.json({ success: true, data: await ReferralService.overview(req.user!.userId) }); } catch (err) { next(err); }
+});
+router.post('/me/referral', authRateLimiter, validateBody(z.object({ code: z.string().trim().min(1, 'Enter a referral code').max(30) }).strict()), async (req: AuthRequest, res, next) => {
+  try { res.json({ success: true, data: await ReferralService.apply(req.user!.userId, req.body.code) }); } catch (err) { next(err); }
+});
 // The photo is the request body itself (no multipart), up to 5 MB; its bytes decide the type.
 router.post(
   '/me/photos',

@@ -42,7 +42,7 @@ const cards: { label: string; icon: string; to: string; tone?: string; value: (s
   { label: 'Paid plans',         icon: 'ri-vip-crown-2-line',    to: '/admin/users?filter=paid',        value: (s) => s.paid,             tone: 'is-gold' },
   { label: 'Disabled',           icon: 'ri-user-forbid-line',    to: '/admin/users?filter=disabled',    value: (s) => s.disabled,         tone: 'is-red' },
   { label: 'Pending reviews',    icon: 'ri-shield-check-line',   to: '/admin/verifications',            value: (s) => s.pendingReviews,   tone: 'is-pink' },
-  { label: 'Open reports',       icon: 'ri-flag-line',           to: '/admin/users?filter=reported',    value: (s) => s.openReports,      tone: 'is-red' },
+  { label: 'Open reports',       icon: 'ri-flag-line',           to: '/admin/reports',                  value: (s) => s.openReports,      tone: 'is-red' },
 ];
 
 async function load() {

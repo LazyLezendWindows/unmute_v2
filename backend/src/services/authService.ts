@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { BanService } from './banService';
 import { getDatabase, IDatabase } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { isAtLeast18YearsOld } from '../utils/age';
@@ -44,6 +45,7 @@ export class AuthService {
     if (await UserRepository.findByEmail(email)) {
       throw new AppError('An account with this email address already exists', 409);
     }
+    await BanService.assertAllowed({ email, phone: input.phone });
 
     const { phone, code } = input;
     if (phone) {
@@ -110,6 +112,7 @@ export class AuthService {
       return { requiresDob: false, isNewUser: false, userId: existing.id };
     }
 
+    await BanService.assertAllowed({ email: identity.email });
     await beforeCreate?.();
     // 3. New user: the 18+ policy requires a date of birth before an account is created.
     if (!input.dateOfBirth) {
@@ -152,6 +155,7 @@ export class AuthService {
       email: user.email,
       phone,
       hasPassword,
+      isPaused: Boolean(user.paused_at),
       profile: profile ? toOwnProfile(profile, interests) : null,
     };
   }

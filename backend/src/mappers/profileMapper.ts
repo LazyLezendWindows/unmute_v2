@@ -27,6 +27,15 @@ export interface ProfileRow {
   profession_field: string | null;
   /** JSON array of https photo links, in the member's order. */
   photos: string | null;
+  /** JSON array of { q, a } prompt answers. */
+  prompts?: string | null;
+  religion?: string | null;
+  mother_tongue?: string | null;
+  /** JSON array of language codes. */
+  languages?: string | null;
+  diet?: string | null;
+  marital_status?: string | null;
+  family_plans?: string | null;
   // user_locations + places (all NULL when the member has not set an area)
   loc_place_id: string | null;
   loc_pincode: string | null;
@@ -70,7 +79,16 @@ export function parsePhotos(raw: string | null | undefined): string[] {
   }
 }
 
-/** Work, height, lifestyle and photos: shown to others and to the owner alike. */
+export function parsePrompts(raw: string | null | undefined): { q: string; a: string }[] {
+  try {
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed.filter((p) => p && typeof p.q === 'string' && typeof p.a === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Work, height, lifestyle, photos, prompts and background: shown to others and to the owner alike. */
 function profileDetails(row: ProfileRow | undefined | null) {
   return {
     profession: row?.profession || '',
@@ -79,6 +97,13 @@ function profileDetails(row: ProfileRow | undefined | null) {
     professionField: row?.profession_field ?? null,
     lifestyle: { drinking: row?.drinking ?? null, smoking: row?.smoking ?? null, workout: row?.workout ?? null },
     photos: parsePhotos(row?.photos),
+    prompts: parsePrompts(row?.prompts),
+    religion: row?.religion ?? null,
+    motherTongue: row?.mother_tongue ?? null,
+    languages: parsePreferences(row?.languages),
+    diet: row?.diet ?? null,
+    maritalStatus: row?.marital_status ?? null,
+    familyPlans: row?.family_plans ?? null,
   };
 }
 

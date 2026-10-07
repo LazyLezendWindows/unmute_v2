@@ -8,6 +8,7 @@ const PROFILE_COLUMNS = `p.user_id, p.id, p.display_name, p.date_of_birth, p.bio
   p.avatar_url, p.interaction_preferences, p.is_verified,
   p.gender, p.profession, p.height_cm, p.drinking, p.smoking, p.workout, p.photos,
   p.education_level, p.profession_field, p.created_at,
+  p.prompts, p.religion, p.mother_tongue, p.languages, p.diet, p.marital_status, p.family_plans,
   EXISTS (SELECT 1 FROM subscriptions sp WHERE sp.user_id = p.user_id AND sp.plan_expires_at > UTC_TIMESTAMP() AND sp.plan_started_at <= UTC_TIMESTAMP()) AS is_premium,
   (SELECT spp.plan FROM subscriptions spp WHERE spp.user_id = p.user_id AND spp.plan_expires_at > UTC_TIMESTAMP() AND spp.plan_started_at <= UTC_TIMESTAMP()) AS premium_plan,
   (SELECT tm.label FROM travel_modes tm JOIN subscriptions st ON st.user_id = tm.user_id AND st.plan_expires_at > UTC_TIMESTAMP() AND st.plan_started_at <= UTC_TIMESTAMP()
@@ -49,6 +50,11 @@ export interface DiscoverFilters {
   drinking?: string;
   smoking?: string;
   workout?: string;
+  religion?: string;
+  /** Anyone whose mother tongue or spoken languages include this one. */
+  language?: string;
+  diet?: string;
+  maritalStatus?: string;
   /** Search words; each must appear in the name, work, bio, an interest, the college or the area. */
   searchTerms?: string[];
 }
@@ -78,6 +84,13 @@ export interface ProfileChanges {
   photos?: string;
   education_level?: string | null;
   profession_field?: string | null;
+  prompts?: string;
+  religion?: string | null;
+  mother_tongue?: string | null;
+  languages?: string;
+  diet?: string | null;
+  marital_status?: string | null;
+  family_plans?: string | null;
 }
 
 export class ProfileRepository {
@@ -163,6 +176,10 @@ export class ProfileRepository {
     if (filters.drinking) where('p.drinking = ?', filters.drinking);
     if (filters.smoking) where('p.smoking = ?', filters.smoking);
     if (filters.workout) where('p.workout = ?', filters.workout);
+    if (filters.religion) where('p.religion = ?', filters.religion);
+    if (filters.language) where('(p.mother_tongue = ? OR p.languages LIKE ?)', filters.language, `%${JSON.stringify(filters.language)}%`);
+    if (filters.diet) where('p.diet = ?', filters.diet);
+    if (filters.maritalStatus) where('p.marital_status = ?', filters.maritalStatus);
     if (filters.interestIds?.length) {
       where(
         `EXISTS (SELECT 1 FROM user_interests fi WHERE fi.user_id = u.id AND fi.interest_id IN (${placeholders(filters.interestIds.length)}))`,
@@ -197,6 +214,7 @@ export class ProfileRepository {
        ) shared ON shared.user_id = u.id
        WHERE u.id <> ?
          AND u.is_active = 1
+         AND u.paused_at IS NULL
          AND NOT EXISTS (SELECT 1 FROM likes l WHERE l.liker_id = ? AND l.likee_id = u.id)
          AND NOT EXISTS (SELECT 1 FROM passes ps WHERE ps.passer_id = ? AND ps.passee_id = u.id)
          AND NOT ${blockedBetween('?', 'u.id')}

@@ -63,7 +63,8 @@
             <span class="conv-preview">
               <template v-if="conv.lastMessage">
                 <template v-if="conv.lastMessage.kind === 'call'"><i :class="conv.lastMessage.call?.mode === 'video' ? 'ri-vidicon-line' : 'ri-phone-line'" aria-hidden="true"></i> {{ callLabel(conv.lastMessage) }}</template>
-                <template v-else><template v-if="conv.lastMessage.senderId === authStore.user?.id">You: </template>{{ conv.lastMessage.kind === 'image' ? '📷 Photo' : conv.lastMessage.kind === 'voice' ? '🎤 Voice message' : conv.lastMessage.content }}</template>
+                <template v-else-if="conv.lastMessage.deleted"><i class="ri-forbid-line" aria-hidden="true"></i> Message deleted</template>
+                <template v-else><template v-if="conv.lastMessage.senderId === authStore.user?.id">You: </template>{{ conv.lastMessage.kind === 'image' ? '📷 Photo' : conv.lastMessage.kind === 'voice' ? '🎤 Voice message' : conv.lastMessage.kind === 'gif' ? 'GIF' : conv.lastMessage.content }}</template>
               </template>
               <template v-else>New match · say hello 👋</template>
             </span>
@@ -97,8 +98,11 @@
             <i v-if="activeOtherUser.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="activeOtherUser.isPremium" :plan="activeOtherUser.premiumPlan" />
           </h2>
           <p class="thread-status">
-            <span class="online-dot" :class="{ 'is-off': !activeOtherUser.isOnline }" aria-hidden="true"></span>
-            {{ activeOtherUser.isOnline ? 'Online now' : 'Offline' }}
+            <template v-if="otherTyping"><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>typing…</template>
+            <template v-else>
+              <span class="online-dot" :class="{ 'is-off': !activeOtherUser.isOnline }" aria-hidden="true"></span>
+              {{ activeOtherUser.isOnline ? 'Online now' : 'Offline' }}
+            </template>
           </p>
         </div>
         <router-link :to="`/chat/${activeConversationId}/call?mode=voice`" class="call-btn" aria-label="Voice call">
@@ -117,7 +121,12 @@
 
         <div v-else-if="chatStore.activeMessages.length === 0" class="thread-empty">
           <p class="mb-1">This is the beginning of your conversation with {{ activeOtherUser?.displayName }}.</p>
-          <p class="mb-0">Say something friendly, ask about their hobbies, or share a recommendation.</p>
+          <p class="mb-0">Not sure what to say? Tap an idea to start.</p>
+          <div class="starters" role="group" aria-label="Conversation starters">
+            <button v-for="idea in starters" :key="idea" type="button" class="starter" @click="useStarter(idea)">
+              <i class="ri-lightbulb-flash-line" aria-hidden="true"></i>{{ idea }}
+            </button>
+          </div>
         </div>
 
         <template v-for="(msg, index) in chatStore.activeMessages" :key="msg.id">
@@ -142,8 +151,17 @@
           </div>
           <div v-else class="message-row" :class="{ 'is-mine': isMine(msg) }">
             <UAvatar v-if="!isMine(msg)" :src="activeOtherUser?.avatarUrl" :name="activeOtherUser?.displayName" size="md" class="message-avatar" />
-            <div class="message-col">
-              <a v-if="msg.kind === 'image'" :href="mediaUrl(msg.content)" target="_blank" rel="noopener" class="bubble is-photo" aria-label="Photo, open full size">
+            <div :id="`msg-${msg.id}`" class="message-col">
+              <!-- The message this one answers -->
+              <button v-if="msg.replyTo" type="button" class="reply-quote" @click="jumpTo(msg.replyTo.id)">
+                <strong>{{ msg.replyTo.senderId === authStore.user?.id ? 'You' : activeOtherUser?.displayName }}</strong>
+                <span>{{ quoteText(msg.replyTo) }}</span>
+              </button>
+              <div v-if="msg.deleted" class="bubble is-deleted"><i class="ri-forbid-line" aria-hidden="true"></i>This message was deleted</div>
+              <div v-else-if="msg.kind === 'gif'" class="bubble is-photo is-gif">
+                <img :src="msg.content" alt="GIF" loading="lazy" @load="nearBottomScroll" />
+              </div>
+              <a v-else-if="msg.kind === 'image'" :href="mediaUrl(msg.content)" target="_blank" rel="noopener" class="bubble is-photo" aria-label="Photo, open full size">
                 <img :src="mediaUrl(msg.content)" alt="Photo" loading="lazy" @load="nearBottomScroll" />
               </a>
               <div v-else-if="msg.kind === 'voice'" class="bubble is-voice">
@@ -151,15 +169,62 @@
                 <audio :src="mediaUrl(msg.content)" controls preload="metadata" aria-label="Voice message"></audio>
               </div>
               <div v-else class="bubble">{{ msg.content }}</div>
+              <!-- Reactions: one emoji per person; tap yours to remove it -->
+              <div v-if="msg.reactions?.length" class="reactions">
+                <button
+                  v-for="group in groupReactions(msg)"
+                  :key="group.emoji"
+                  type="button"
+                  class="reaction"
+                  :class="{ 'is-mine': group.mine }"
+                  :aria-label="`${group.emoji} ${group.count}${group.mine ? ', your reaction. Tap to remove' : ''}`"
+                  @click="react(msg, group.emoji)"
+                >{{ group.emoji }}<span v-if="group.count > 1">{{ group.count }}</span></button>
+              </div>
               <div class="message-meta">
                 <span>{{ formatMessageTime(msg.createdAt) }}</span>
                 <i v-if="isMine(msg)" class="ri-check-double-line" :class="{ 'is-read': msg.status === 'read' }" :aria-label="msg.status === 'read' ? 'Read' : 'Sent'"></i>
+                <button
+                  v-if="!msg.deleted"
+                  type="button"
+                  class="msg-more"
+                  :aria-expanded="menuFor === msg.id"
+                  aria-label="Message options: react, reply or delete"
+                  @click="menuFor = menuFor === msg.id ? null : msg.id"
+                >
+                  <i class="ri-more-fill" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div v-if="menuFor === msg.id" class="msg-menu" role="group" aria-label="Message options">
+                <div class="msg-menu-emoji">
+                  <button
+                    v-for="emoji in REACTIONS"
+                    :key="emoji"
+                    type="button"
+                    :aria-pressed="myReaction(msg) === emoji"
+                    :aria-label="`React ${emoji}`"
+                    @click="react(msg, emoji)"
+                  >{{ emoji }}</button>
+                </div>
+                <div class="msg-menu-actions">
+                  <button type="button" @click="startReply(msg)"><i class="ri-reply-line" aria-hidden="true"></i>Reply</button>
+                  <button v-if="isMine(msg)" type="button" class="is-danger" @click="unsend(msg)"><i class="ri-delete-bin-6-line" aria-hidden="true"></i>Delete for everyone</button>
+                </div>
               </div>
             </div>
           </div>
         </template>
       </div>
 
+      <div v-if="replyingTo" class="reply-bar" role="status">
+        <i class="ri-reply-line" aria-hidden="true"></i>
+        <span class="reply-bar-text">
+          <strong>Replying to {{ replyingTo.senderId === authStore.user?.id ? 'yourself' : activeOtherUser?.displayName }}</strong>
+          <span>{{ quoteText(replyingTo) }}</span>
+        </span>
+        <button type="button" aria-label="Cancel reply" @click="replyingTo = null"><i class="ri-close-line" aria-hidden="true"></i></button>
+      </div>
+      <GifPicker v-if="gifOpen" @pick="sendGif" @close="gifOpen = false" />
       <div v-if="emojiOpen" class="emoji-row" role="group" aria-label="Emoji">
         <button v-for="emoji in EMOJIS" :key="emoji" type="button" @click="addEmoji(emoji)">{{ emoji }}</button>
       </div>
@@ -179,9 +244,12 @@
           <span v-if="uploading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
           <i v-else class="ri-image-add-line" aria-hidden="true"></i>
         </button>
+        <button v-if="appConfig?.gifs" type="button" class="composer-round is-gif" :aria-pressed="gifOpen" aria-label="Send a GIF" @click="gifOpen = !gifOpen; emojiOpen = false">
+          <span aria-hidden="true">GIF</span>
+        </button>
         <input ref="photoInput" type="file" accept="image/jpeg,image/png,image/webp" class="d-none" @change="pickPhoto" />
         <label class="composer-field">
-          <input v-model="inputContent" type="text" placeholder="Type a message..." aria-label="Message" />
+          <input ref="messageInput" v-model="inputContent" type="text" placeholder="Type a message..." aria-label="Message" @input="chatStore.notifyTyping()" />
           <button type="button" class="emoji-btn" :aria-pressed="emojiOpen" aria-label="Emoji" @click="emojiOpen = !emojiOpen">
             <i class="ri-emotion-happy-line" aria-hidden="true"></i>
           </button>
@@ -214,6 +282,7 @@
       :is-open="isSafetyOpen"
       :target-user-id="activeOtherUser.id"
       :target-name="activeOtherUser.displayName"
+      :match-id="activeMatchId"
       @close="isSafetyOpen = false"
       @action-completed="onSafetyCompleted"
     />
@@ -236,8 +305,13 @@ import { useChatStore } from '../stores/chat';
 import { useToastStore } from '../stores/toast';
 import { mediaUrl, photoProblem, uploadPhoto, uploadVoice } from '../services/media';
 import { Message } from '../types';
+import { PROMPT_QUESTIONS } from '../content/profileOptions';
+import GifPicker from '../components/chat/GifPicker.vue';
+import { useAppConfig } from '../composables/useAppConfig';
 
 const EMOJIS = ['😊', '😂', '❤️', '😍', '👋', '👍', '🙏', '✨', '☕', '✈️'];
+/** The reactions the server accepts (backend mappers/messageMapper.ts). */
+const REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
 const route = useRoute();
 const router = useRouter();
@@ -269,6 +343,108 @@ const isSafetyOpen = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
 const activeConversationId = computed(() => (route.params.id as string) || null);
 const activeOtherUser = computed(() => chatStore.activeOtherUser);
+const activeMatchId = computed(() => chatStore.conversations.find((c) => c.id === activeConversationId.value)?.matchId ?? null);
+const otherTyping = computed(() => Boolean(activeConversationId.value && chatStore.typingIn[activeConversationId.value]));
+const messageInput = ref<HTMLInputElement | null>(null);
+
+// ---- Reply, react, unsend ----
+const menuFor = ref<string | null>(null);
+const replyingTo = ref<Message | null>(null);
+
+function quoteText(m: { kind?: string; content: string; deleted?: boolean }) {
+  if (m.deleted) return 'Message deleted';
+  if (m.kind === 'image') return '📷 Photo';
+  if (m.kind === 'voice') return '🎤 Voice message';
+  if (m.kind === 'gif') return 'GIF';
+  return m.content;
+}
+
+function myReaction(msg: Message) {
+  return msg.reactions?.find((r) => r.userId === authStore.user?.id)?.emoji ?? null;
+}
+
+function groupReactions(msg: Message) {
+  const groups = new Map<string, { emoji: string; count: number; mine: boolean }>();
+  for (const r of msg.reactions ?? []) {
+    const g = groups.get(r.emoji) ?? { emoji: r.emoji, count: 0, mine: false };
+    g.count++;
+    if (r.userId === authStore.user?.id) g.mine = true;
+    groups.set(r.emoji, g);
+  }
+  return [...groups.values()];
+}
+
+async function react(msg: Message, emoji: string) {
+  menuFor.value = null;
+  // Someone else's emoji: tapping it adds the same one as yours.
+  try {
+    await chatStore.react(msg.id, emoji);
+  } catch (err: any) {
+    useToastStore().error(err.message || 'Could not react.');
+  }
+}
+
+function startReply(msg: Message) {
+  menuFor.value = null;
+  replyingTo.value = msg;
+  nextTick(() => messageInput.value?.focus());
+}
+
+async function unsend(msg: Message) {
+  menuFor.value = null;
+  if (!window.confirm('Delete this message for everyone?')) return;
+  try {
+    await chatStore.deleteMessage(msg.id);
+    if (replyingTo.value?.id === msg.id) replyingTo.value = null;
+  } catch (err: any) {
+    useToastStore().error(err.message || 'Could not delete the message.');
+  }
+}
+
+function jumpTo(messageId: string) {
+  document.getElementById(`msg-${messageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ---- GIFs (shown when the server has a Giphy key) ----
+const appConfig = useAppConfig();
+const gifOpen = ref(false);
+
+async function sendGif(url: string) {
+  const conversation = activeConversationId.value;
+  const replyTo = replyingTo.value?.id ?? null;
+  gifOpen.value = false;
+  replyingTo.value = null;
+  try {
+    await chatStore.sendMessage(url, 'gif', conversation, replyTo);
+    scrollToBottom();
+  } catch (err: any) {
+    useToastStore().error(`GIF not sent. ${err.message}`);
+  }
+}
+
+// ---- Conversation starters (empty chat) ----
+const PROMPT_REPLIES: Record<string, string> = PROMPT_QUESTIONS;
+const starters = computed(() => {
+  const other = activeOtherUser.value;
+  if (!other) return [];
+  const mine = new Set((authStore.profile?.interests || []).map((i) => i.name));
+  const theirs: string[] = (other.interests || []).map((i: string | { name: string }) => (typeof i === 'string' ? i : i.name));
+  const shared = theirs.filter((name) => mine.has(name));
+  const ideas: string[] = [];
+  const prompt = (other.prompts || []).find((p: { q: string; a: string }) => PROMPT_REPLIES[p.q] && p.a);
+  if (prompt) ideas.push(`Loved your answer to "${PROMPT_REPLIES[prompt.q].replace(/…$/, '')}". Tell me more!`);
+  if (shared[0]) ideas.push(`We both like ${shared[0].toLowerCase()}! What got you into it?`);
+  else if (theirs[0]) ideas.push(`I see you're into ${theirs[0].toLowerCase()}. What do you enjoy most about it?`);
+  if (shared[1]) ideas.push(`${shared[1]} too? Okay, we need to compare notes 😄`);
+  ideas.push(`Hi ${other.displayName}! What's the best thing that happened to you this week?`);
+  ideas.push('If you could travel anywhere next month, where would you go?');
+  return ideas.slice(0, 3);
+});
+
+function useStarter(idea: string) {
+  inputContent.value = idea;
+  nextTick(() => messageInput.value?.focus());
+}
 
 function isMine(msg: Message) {
   return msg.senderId === authStore.user?.id;
@@ -489,10 +665,12 @@ async function handleSend() {
   const text = inputContent.value.trim();
   const conversation = activeConversationId.value;
   if (!text || chatStore.sending || chatStore.loading) return;
+  const replyTo = replyingTo.value?.id ?? null;
   inputContent.value = '';
   emojiOpen.value = false;
+  replyingTo.value = null;
   try {
-    await chatStore.sendMessage(text, 'text', conversation);
+    await chatStore.sendMessage(text, 'text', conversation, replyTo);
     scrollToBottom();
   } catch (err: any) {
     // Give the unsent text back rather than losing it.
@@ -504,6 +682,22 @@ async function handleSend() {
 function scrollToBottom() {
   if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
 }
+
+// The match ended (you or they unmatched): close the chat.
+watch(
+  () => chatStore.removedConversationId,
+  (id) => {
+    if (id && id === activeConversationId.value) {
+      useToastStore().info('This match has ended.');
+      chatStore.leaveCurrentConversation();
+      router.push('/chat');
+    }
+  }
+);
+watch(activeConversationId, () => {
+  replyingTo.value = null;
+  menuFor.value = null;
+});
 
 function onSafetyCompleted() {
   chatStore.leaveCurrentConversation();
@@ -1204,5 +1398,223 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     font-size: 3rem;
     color: #e5147c;
   }
+}
+
+// ---- Typing, starters, replies, reactions, unsend ----
+.typing-dots {
+  display: inline-flex;
+  gap: 0.18rem;
+  margin-right: 0.35rem;
+
+  i {
+    width: 0.38rem;
+    height: 0.38rem;
+    border-radius: 50%;
+    background: $pink;
+    animation: typing-bounce 1s infinite ease-in-out;
+
+    &:nth-child(2) { animation-delay: 0.15s; }
+    &:nth-child(3) { animation-delay: 0.3s; }
+  }
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
+
+.starters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.starter {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(123, 31, 214, 0.15);
+  border-radius: 1rem;
+  background: #fff;
+  color: $ink;
+  font-size: 0.92rem;
+  text-align: left;
+  line-height: 1.35;
+
+  i { flex-shrink: 0; font-size: 1.1rem; color: $pink; }
+  &:hover { border-color: rgba(229, 20, 124, 0.45); }
+}
+
+.reply-quote {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  margin-bottom: -0.35rem;
+  padding: 0.45rem 0.8rem 0.75rem;
+  border: 0;
+  border-left: 3px solid $pink;
+  border-radius: 0.9rem 0.9rem 0 0;
+  background: rgba(242, 24, 114, 0.08);
+  color: $ink-soft;
+  font-size: 0.82rem;
+  text-align: left;
+
+  strong { font-size: 0.78rem; color: $pink; }
+  span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
+}
+
+.bubble.is-deleted,
+.message-row.is-mine .bubble.is-deleted {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px dashed rgba(108, 112, 184, 0.45);
+  box-shadow: none;
+  color: $muted;
+  font-style: italic;
+}
+
+.reactions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: -0.45rem;
+  padding: 0 0.4rem;
+  z-index: 1;
+}
+
+.reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid rgba(123, 31, 214, 0.12);
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px -3px rgba(117, 48, 170, 0.4);
+
+  span { font-size: 0.75rem; color: $muted; }
+  &.is-mine { border-color: $pink; background: #fdecf5; }
+}
+
+.msg-more {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9a8fc4;
+
+  i { font-size: 1.1rem; color: inherit; }
+  &:hover, &[aria-expanded='true'] { background: rgba(123, 31, 214, 0.08); color: $ink; }
+}
+
+.msg-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 12px 28px -16px rgba(117, 48, 170, 0.55);
+}
+
+.msg-menu-emoji {
+  display: flex;
+  gap: 0.15rem;
+
+  button {
+    width: 2.3rem;
+    height: 2.3rem;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    font-size: 1.3rem;
+
+    &:hover, &[aria-pressed='true'] { background: #fdecf5; }
+  }
+}
+
+.msg-menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  border-top: 1px solid rgba(123, 31, 214, 0.08);
+  padding-top: 0.4rem;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.7rem;
+    border: 0;
+    border-radius: 9999px;
+    background: #f5f1fc;
+    color: $ink;
+    font-size: 0.85rem;
+
+    &.is-danger { background: #fde7e9; color: #c62839; }
+  }
+}
+
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0.75rem 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid $pink;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: $ink;
+
+  > i { color: $pink; font-size: 1.2rem; }
+
+  button {
+    border: 0;
+    background: transparent;
+    color: $muted;
+    font-size: 1.2rem;
+  }
+}
+
+.reply-bar-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+
+  strong { color: $pink; }
+  span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: $ink-soft; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots i { animation: none; }
+}
+
+.composer-round.is-gif {
+  width: 2.7rem;
+  height: 2.7rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+
+  &[aria-pressed='true'] { outline: 2px solid $pink; }
+}
+
+.bubble.is-gif img {
+  display: block;
+  max-width: 14rem;
+  max-height: 14rem;
+  border-radius: 1rem;
 }
 </style>

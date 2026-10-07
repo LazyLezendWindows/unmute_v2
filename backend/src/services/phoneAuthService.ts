@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { BanService } from './banService';
 import { getDatabase } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { isAtLeast18YearsOld } from '../utils/age';
@@ -68,6 +69,7 @@ export class PhoneAuthService {
 
   /** Confirms a number for a signed-in member; it replaces any number they had and works for sign-in. */
   static async link(userId: string, { phone, code }: PhoneLinkInput): Promise<void> {
+    await BanService.assertAllowed({ phone });
     const owner = await AuthAccountRepository.findUser('phone', phone);
     if (owner && owner.id !== userId) {
       throw new AppError('This phone number belongs to another account.', 409);
@@ -101,6 +103,7 @@ export class PhoneAuthService {
       return { requiresProfile: false, isNewUser: false, userId: linked.id };
     }
 
+    await BanService.assertAllowed({ phone });
     await beforeCreate?.();
     if (!input.displayName || !input.dateOfBirth) {
       return { requiresProfile: true };

@@ -8,7 +8,7 @@
       <div class="d-flex align-items-center gap-2 text-danger">
         <i class="ri-shield-alert-fill safety-icon"></i>
         <h3 class="fw-bold fs-6 mb-0 font-display u-text-primary">
-          {{ mode === 'report' ? 'Report Profile' : 'Block Connection' }}
+          {{ mode === 'report' ? 'Report Profile' : mode === 'block' ? 'Block Connection' : 'Unmatch' }}
         </h3>
       </div>
     </template>
@@ -22,7 +22,7 @@
           class="btn flex-fill py-1 px-3 border-0 small fw-bold rounded-pill transition-all"
           :class="mode === 'report' ? 'btn-danger shadow-sm' : 'u-text-secondary'"
         >
-          Report User
+          Report
         </button>
         <button
           type="button"
@@ -30,7 +30,16 @@
           class="btn flex-fill py-1 px-3 border-0 small fw-bold rounded-pill transition-all"
           :class="mode === 'block' ? 'btn-warning text-dark shadow-sm' : 'u-text-secondary'"
         >
-          Block User
+          Block
+        </button>
+        <button
+          v-if="matchId"
+          type="button"
+          @click="mode = 'unmatch'"
+          class="btn flex-fill py-1 px-3 border-0 small fw-bold rounded-pill transition-all"
+          :class="mode === 'unmatch' ? 'btn-dark shadow-sm' : 'u-text-secondary'"
+        >
+          Unmatch
         </button>
       </div>
 
@@ -70,6 +79,13 @@
         </div>
       </div>
 
+      <!-- Unmatch -->
+      <div v-else-if="mode === 'unmatch'" class="d-flex flex-column gap-2">
+        <p class="small p-3 rounded-3 surface-raised border mb-0 u-text-secondary u-border-glass">
+          Unmatching <strong class="fw-bold u-text-primary">{{ targetName }}</strong> ends your match for both of you. Your chat is deleted, and you won't see each other in Discover again. They won't be told why.
+        </p>
+      </div>
+
       <!-- Block Form -->
       <div v-else class="d-flex flex-column gap-2">
         <p class="small p-3 rounded-3 surface-raised border mb-0 u-text-secondary u-border-glass">
@@ -101,29 +117,34 @@
         Cancel
       </UButton>
       <UButton
-        :variant="mode === 'report' ? 'danger' : 'secondary'"
+        :variant="mode === 'block' ? 'secondary' : 'danger'"
         size="md"
         :loading="submitting"
         :disabled="submitting || (mode === 'report' && !reportCategory)"
         @click="submitAction"
       >
-        {{ mode === 'report' ? 'Submit Report' : 'Confirm Block' }}
+        {{ mode === 'report' ? 'Submit Report' : mode === 'block' ? 'Confirm Block' : 'Unmatch' }}
       </UButton>
     </template>
   </UModal>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import UModal from '../ui/UModal.vue';
 import UButton from '../ui/UButton.vue';
 import { useDiscoverStore } from '../../stores/discover';
 import { useToastStore } from '../../stores/toast';
+import { useChatStore } from '../../stores/chat';
 
 const props = defineProps<{
   isOpen: boolean;
   targetUserId: string;
   targetName: string;
+  /** When set (you are matched), an Unmatch option is offered too. */
+  matchId?: string | null;
+  /** Which tab opens first. */
+  initialMode?: 'report' | 'block' | 'unmatch';
 }>();
 
 const emit = defineEmits<{
@@ -133,7 +154,14 @@ const emit = defineEmits<{
 
 const discoverStore = useDiscoverStore();
 
-const mode = ref<'report' | 'block'>('report');
+const mode = ref<'report' | 'block' | 'unmatch'>('report');
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) mode.value = props.initialMode === 'unmatch' && !props.matchId ? 'report' : props.initialMode ?? 'report';
+  },
+  { immediate: true }
+);
 const reportCategory = ref('');
 const reportDetails = ref('');
 const alsoBlockOnReport = ref(true);
@@ -156,6 +184,7 @@ const categories = [
 
 function close() {
   error.value = null;
+  mode.value = 'report';
   reportCategory.value = '';
   reportDetails.value = '';
   blockReason.value = '';
@@ -166,6 +195,13 @@ async function submitAction() {
   submitting.value = true;
   error.value = null;
   try {
+    if (mode.value === 'unmatch') {
+      await useChatStore().unmatch(props.matchId!);
+      useToastStore().success(`You unmatched ${props.targetName}.`);
+      emit('actionCompleted');
+      close();
+      return;
+    }
     if (mode.value === 'report') {
       await discoverStore.reportUser(props.targetUserId, reportCategory.value, reportDetails.value);
       if (alsoBlockOnReport.value) {

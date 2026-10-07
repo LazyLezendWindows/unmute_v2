@@ -1,8 +1,13 @@
 <template>
   <div class="d-flex flex-column gap-3">
+    <router-link to="/referral" class="menu-refer">
+      <i class="ri-gift-2-fill" aria-hidden="true"></i>
+      <span class="menu-text"><span class="menu-title">Refer &amp; earn</span><span class="menu-sub">Invite friends, you both get 2 weeks free</span></span>
+      <span class="refer-pill">2 weeks free</span>
+    </router-link>
     <nav class="menu-list" aria-label="Settings">
       <router-link to="/upgrade" class="menu-row"><i class="ri-vip-crown-line" aria-hidden="true"></i><span class="menu-text"><span class="menu-title">Membership &amp; upgrade</span><span class="menu-sub">View your trial and plans</span></span><i class="ri-arrow-right-s-line menu-chevron" aria-hidden="true"></i></router-link>
-      <router-link to="/profile/edit" class="menu-row">
+      <router-link to="/settings/account" class="menu-row">
         <i class="ri-user-3-line" aria-hidden="true"></i>
         <span class="menu-text"><span class="menu-title">Account</span><span class="menu-sub text-truncate">{{ authStore.user?.email || authStore.user?.phone }}</span></span>
         <i class="ri-arrow-right-s-line menu-chevron" aria-hidden="true"></i>
@@ -49,8 +54,7 @@
     <UModal :is-open="deleteOpen" title="Delete your account?" max-width="sm" @close="closeDelete">
       <form id="delete-account-form" class="d-flex flex-column gap-3" @submit.prevent="confirmDelete">
         <p class="small mb-0 u-text-secondary">
-          This permanently deletes your profile, photos, likes, matches and chats. People you've matched with will no longer see you.
-          It can't be undone, and any remaining plan time is lost.
+          This permanently deletes your profile, photos, likes, matches and chats. People you've matched with will no longer see you. It can't be undone, and any remaining plan time is lost.
         </p>
         <template v-if="authStore.user?.hasPassword">
           <UInput v-model="deletePassword" type="password" required placeholder="Your password" icon="ri-lock-line" autocomplete="current-password" aria-label="Your password" />
@@ -127,3 +131,32 @@ async function handleLogout() {
   router.push('/login');
 }
 </script>
+
+<style scoped lang="scss">
+.menu-refer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--unmute-radius-lg, 1.25rem);
+  background: linear-gradient(110deg, #ff7a6e 0%, #f21872 45%, #c00078 100%);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 14px 28px -18px rgba(192, 0, 120, 0.75);
+
+  > i { font-size: 1.4rem; }
+  .menu-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .menu-title { font-weight: 800; color: #fff; }
+  .menu-sub { font-size: 0.8rem; color: rgba(255, 255, 255, 0.9); }
+}
+
+.refer-pill {
+  flex-shrink: 0;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background: #fff;
+  color: #c00078;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+</style>

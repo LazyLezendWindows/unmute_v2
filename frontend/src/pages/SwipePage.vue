@@ -20,6 +20,7 @@
         </router-link>
       </template>
     </ScreenBar>
+    <PausedNotice />
 
     <!-- Search: narrows the deck by name, work, bio, interests, college or area -->
     <form v-if="searchOpen" id="discover-search" class="search-bar mb-3" role="search" @submit.prevent="applySearch">
@@ -189,6 +190,7 @@
 </template>
 
 <script setup lang="ts">
+import PausedNotice from '../components/discovery/PausedNotice.vue';
 import { computed, nextTick, onBeforeUnmount, ref, onMounted } from 'vue';
 import DiscoverStack from '../components/discovery/DiscoverStack.vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';

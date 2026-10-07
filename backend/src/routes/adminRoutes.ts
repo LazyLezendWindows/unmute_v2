@@ -93,6 +93,24 @@ router.post(
   validateBody(z.object({ verified: z.boolean() }).strict()),
   handle((req) => AdminService.setVerified(req.admin!.id, req.params.id, req.body.verified))
 );
+router.get(
+  '/reports',
+  validateQuery(z.object({ status: z.enum(['pending', 'resolved', 'all']).optional(), page: z.coerce.number().int().min(1).max(10000).optional() })),
+  handle((req) => AdminService.listReports((req.query.status as 'pending' | 'resolved' | 'all') ?? 'pending', Number(req.query.page ?? 1)))
+);
+router.post(
+  '/users/:id/ban',
+  validateParams(idParamsSchema),
+  validateBody(z.object({ reason: z.string().max(200).optional() }).strict()),
+  handle((req) => AdminService.ban(req.admin!.id, req.params.id, req.body.reason))
+);
+router.post(
+  '/users/:id/photos/remove',
+  validateParams(idParamsSchema),
+  validateBody(z.object({ url: z.string().min(1).max(500) }).strict()),
+  handle((req) => AdminService.removePhoto(req.admin!.id, req.params.id, req.body.url))
+);
+router.delete('/users/:id/ban', validateParams(idParamsSchema), handle((req) => AdminService.unban(req.admin!.id, req.params.id)));
 router.post('/reports/:id/resolve', validateParams(idParamsSchema), handle((req) => AdminService.resolveReport(req.admin!.id, req.params.id)));
 
 // Selfie and ID reviews

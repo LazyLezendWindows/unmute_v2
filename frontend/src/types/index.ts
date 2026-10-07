@@ -6,6 +6,8 @@ export interface User {
   phone?: string | null;
   /** False for phone- or Google-only accounts (deleting one is confirmed by typing DELETE). */
   hasPassword?: boolean;
+  /** Hidden from Discover while paused (Settings → Pause my profile). */
+  isPaused?: boolean;
   profile: Profile | null;
 }
 
@@ -73,6 +75,20 @@ export type WorkoutFrequency = 'never' | 'sometimes' | 'often';
 export type EducationLevel = 'high_school' | 'bachelors' | 'masters' | 'phd';
 export type ProfessionField = 'it_software' | 'healthcare' | 'business' | 'arts' | 'education' | 'government' | 'finance' | 'other';
 
+export type Religion = 'hindu' | 'muslim' | 'christian' | 'sikh' | 'buddhist' | 'jain' | 'parsi' | 'jewish' | 'spiritual' | 'atheist' | 'other';
+export type Language =
+  | 'hindi' | 'english' | 'bengali' | 'marathi' | 'telugu' | 'tamil' | 'gujarati' | 'urdu' | 'kannada'
+  | 'odia' | 'malayalam' | 'punjabi' | 'assamese' | 'konkani' | 'other';
+export type Diet = 'vegetarian' | 'non_vegetarian' | 'eggetarian' | 'vegan' | 'jain';
+export type MaritalStatus = 'never_married' | 'divorced' | 'widowed' | 'separated';
+export type FamilyPlans = 'want_children' | 'dont_want_children' | 'have_want_more' | 'have_dont_want_more' | 'not_sure';
+
+/** A profile prompt: the question's key (labels in content/profileOptions.ts) and the answer. */
+export interface PromptAnswer {
+  q: string;
+  a: string;
+}
+
 export interface Lifestyle {
   drinking: HabitFrequency | null;
   smoking: HabitFrequency | null;
@@ -88,6 +104,13 @@ export interface ProfileDetails {
   lifestyle: Lifestyle;
   /** Extra https photo links; the avatar is the main photo and is not repeated here. */
   photos: string[];
+  prompts?: PromptAnswer[];
+  religion?: Religion | null;
+  motherTongue?: Language | null;
+  languages?: Language[];
+  diet?: Diet | null;
+  maritalStatus?: MaritalStatus | null;
+  familyPlans?: FamilyPlans | null;
 }
 
 export interface Profile extends ProfileDetails {
@@ -201,8 +224,13 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read';
   createdAt: string;
   /** 'call' messages record a call ("Missed video call", "Voice call · 3:12"). */
-  kind?: 'text' | 'call' | 'image' | 'voice';
+  kind?: 'text' | 'call' | 'image' | 'voice' | 'gif';
   call?: { mode: 'voice' | 'video'; outcome: 'completed' | 'missed' | 'declined'; seconds: number };
+  /** Unsent by the sender: shown as "This message was deleted". */
+  deleted?: boolean;
+  reactions?: { emoji: string; userId: string }[];
+  /** The message this one answers, quoted above it. */
+  replyTo?: { id: string; senderId: string; kind: 'text' | 'call' | 'image' | 'voice' | 'gif'; content: string; deleted: boolean } | null;
 }
 
 export interface BlockedUser {

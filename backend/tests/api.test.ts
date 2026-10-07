@@ -153,7 +153,7 @@ describe('Unmute API', () => {
     it('publishes the Google client ID and whether phone sign-in is on (and nothing else)', async () => {
       const res = await request(app).get('/api/v1/auth/config');
       expect(res.status).toBe(200);
-      expect(res.body.data).toEqual({ googleClientId: 'test-client-id.apps.googleusercontent.com', phoneSignIn: true });
+      expect(res.body.data).toEqual({ googleClientId: 'test-client-id.apps.googleusercontent.com', phoneSignIn: true, gifs: false });
     });
 
     it('rejects client-asserted identity without a verified credential', async () => {
@@ -964,6 +964,9 @@ describe('Unmute API', () => {
         status: 'sent',
         createdAt: sent.body.data.createdAt,
         kind: 'text',
+        deleted: false,
+        reactions: [],
+        replyTo: null,
       });
 
       const conversations = await b.agent.get('/api/v1/conversations');

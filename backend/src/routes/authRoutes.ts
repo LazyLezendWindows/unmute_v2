@@ -4,7 +4,9 @@ import { PasswordResetService } from '../services/passwordResetService';
 import { validateBody } from '../middleware/validate';
 import { authRateLimiter, phoneVerifyRateLimiter, smsRateLimiter } from '../middleware/rateLimiter';
 import { requireAuth } from '../middleware/auth';
-import { registerSchema, loginSchema, googleAuthSchema, forgotPasswordSchema, resetPasswordSchema, phoneLinkSchema, phoneStartSchema, phoneVerifySchema } from '../validators/authValidator';
+import { registerSchema, loginSchema, googleAuthSchema, forgotPasswordSchema, resetPasswordSchema, phoneLinkSchema, phoneStartSchema, phoneVerifySchema, changePasswordSchema } from '../validators/authValidator';
+import { AccountService } from '../services/accountService';
+import { AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -24,6 +26,15 @@ router.post('/password/forgot', smsRateLimiter, validateBody(forgotPasswordSchem
 router.post('/password/reset', phoneVerifyRateLimiter, validateBody(resetPasswordSchema), async (req, res, next) => {
   try {
     await PasswordResetService.finish(req.body.email, req.body.code, req.body.password);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+// Signed in: change the password (or set a first one); other devices are signed out.
+router.post('/password/change', requireAuth, authRateLimiter, validateBody(changePasswordSchema), async (req: AuthRequest, res, next) => {
+  try {
+    await AccountService.changePassword(req.user!.userId, req.user!.sessionId, req.body);
     res.status(200).json({ success: true });
   } catch (err) {
     next(err);

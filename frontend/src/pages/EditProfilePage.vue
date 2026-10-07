@@ -132,6 +132,80 @@
       </div>
     </section>
 
+    <!-- Prompts: short answers that give people something to talk about -->
+    <section class="e-card">
+      <div class="e-card-head"><i class="ri-chat-quote-line" aria-hidden="true"></i><h2>Prompts</h2></div>
+      <p class="e-hint">Answer up to {{ MAX_PROMPTS }}. They show on your profile and make starting a chat easy.</p>
+      <div v-for="(prompt, index) in form.prompts" :key="prompt.q" class="prompt-edit">
+        <div class="prompt-edit-head">
+          <strong>{{ PROMPT_QUESTIONS[prompt.q] }}</strong>
+          <button type="button" class="prompt-remove" :aria-label="`Remove prompt: ${PROMPT_QUESTIONS[prompt.q]}`" @click="removePrompt(index)">
+            <i class="ri-close-line" aria-hidden="true"></i>
+          </button>
+        </div>
+        <textarea v-model="prompt.a" maxlength="200" rows="2" class="prompt-answer" :aria-label="PROMPT_QUESTIONS[prompt.q]" placeholder="Your answer"></textarea>
+        <span class="prompt-count">{{ prompt.a.length }}/200</span>
+      </div>
+      <div v-if="form.prompts.length < MAX_PROMPTS" class="prompt-add">
+        <select v-model="newPrompt" class="prompt-select" aria-label="Choose a prompt">
+          <option value="" disabled>Choose a prompt…</option>
+          <option v-for="q in unusedPrompts" :key="q" :value="q">{{ PROMPT_QUESTIONS[q] }}</option>
+        </select>
+        <button type="button" class="add-interest" :disabled="!newPrompt" @click="addPrompt"><i class="ri-add-line" aria-hidden="true"></i> Add</button>
+      </div>
+    </section>
+
+    <!-- Background: optional details people often filter by -->
+    <section class="e-card">
+      <div class="e-card-head"><i class="ri-earth-line" aria-hidden="true"></i><h2>Background</h2></div>
+      <p class="e-hint">All optional. Tap a choice again to clear it.</p>
+      <div class="life-row">
+        <span class="life-label">Religion</span>
+        <div class="chips">
+          <button v-for="o in RELIGIONS" :key="o.value" type="button" class="pick-chip is-small" :aria-pressed="form.religion === o.value" @click="form.religion = form.religion === o.value ? null : o.value">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="life-row">
+        <label class="life-label" for="mother-tongue">Mother tongue</label>
+        <select id="mother-tongue" v-model="form.motherTongue" class="prompt-select">
+          <option :value="null">Not set</option>
+          <option v-for="o in LANGUAGES" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </select>
+      </div>
+      <div class="life-row">
+        <span class="life-label">Languages I speak <small>(up to {{ MAX_LANGUAGES }})</small></span>
+        <div class="chips">
+          <button
+            v-for="o in LANGUAGES"
+            :key="o.value"
+            type="button"
+            class="pick-chip is-small"
+            :aria-pressed="form.languages.includes(o.value)"
+            :disabled="!form.languages.includes(o.value) && form.languages.length >= MAX_LANGUAGES"
+            @click="toggleLanguage(o.value)"
+          >{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="life-row">
+        <span class="life-label">Diet</span>
+        <div class="chips">
+          <button v-for="o in DIETS" :key="o.value" type="button" class="pick-chip is-small" :aria-pressed="form.diet === o.value" @click="form.diet = form.diet === o.value ? null : o.value">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="life-row">
+        <span class="life-label">Relationship status</span>
+        <div class="chips">
+          <button v-for="o in MARITAL_STATUSES" :key="o.value" type="button" class="pick-chip is-small" :aria-pressed="form.maritalStatus === o.value" @click="form.maritalStatus = form.maritalStatus === o.value ? null : o.value">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="life-row">
+        <span class="life-label">Family plans</span>
+        <div class="chips">
+          <button v-for="o in FAMILY_PLANS" :key="o.value" type="button" class="pick-chip is-small" :aria-pressed="form.familyPlans === o.value" @click="form.familyPlans = form.familyPlans === o.value ? null : o.value">{{ o.label }}</button>
+        </div>
+      </div>
+    </section>
+
     <button type="button" class="save-btn" :disabled="saving || Boolean(uploading)" @click="saveProfile">
       <span v-if="saving" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Save Changes
     </button>
@@ -201,7 +275,8 @@ import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { interestIcon } from '../utils/interestIcon';
 import { EDUCATION_LEVELS, LIFESTYLE_OPTIONS, LOOKING_FOR, PROFESSION_FIELDS, educationLine } from '../utils/profileFormat';
-import { EducationLevel, Gender, Lifestyle } from '../types';
+import { EducationLevel, Gender, Language, Lifestyle, PromptAnswer } from '../types';
+import { DIETS, FAMILY_PLANS, LANGUAGES, MARITAL_STATUSES, MAX_LANGUAGES, MAX_PROMPTS, PROMPT_QUESTIONS, RELIGIONS } from '../content/profileOptions';
 
 const MAX_PHOTOS = 6;
 const BIO_MAX = 500;
@@ -230,7 +305,30 @@ const form = reactive({
   interestIds: (profile?.interests || []).map((i) => i.id),
   educationLevel: profile?.educationLevel ?? null,
   professionField: profile?.professionField ?? null,
+  prompts: (profile?.prompts || []).map((p) => ({ ...p })) as PromptAnswer[],
+  religion: profile?.religion ?? null,
+  motherTongue: profile?.motherTongue ?? null,
+  languages: [...(profile?.languages || [])] as Language[],
+  diet: profile?.diet ?? null,
+  maritalStatus: profile?.maritalStatus ?? null,
+  familyPlans: profile?.familyPlans ?? null,
 });
+
+// ---- Prompts ----
+const newPrompt = ref('');
+const unusedPrompts = computed(() => Object.keys(PROMPT_QUESTIONS).filter((q) => !form.prompts.some((p) => p.q === q)));
+function addPrompt() {
+  if (!newPrompt.value || form.prompts.length >= MAX_PROMPTS) return;
+  form.prompts.push({ q: newPrompt.value, a: '' });
+  newPrompt.value = '';
+}
+function removePrompt(index: number) {
+  form.prompts.splice(index, 1);
+}
+
+function toggleLanguage(value: Language) {
+  form.languages = form.languages.includes(value) ? form.languages.filter((l) => l !== value) : [...form.languages, value];
+}
 
 const saving = ref(false);
 const errorMsg = ref<string | null>(null);
@@ -384,7 +482,8 @@ async function saveProfile() {
   saving.value = true;
   errorMsg.value = null;
   try {
-    await authStore.updateProfile({ ...form });
+    // A prompt without an answer isn't saved.
+    await authStore.updateProfile({ ...form, prompts: form.prompts.map((p) => ({ q: p.q, a: p.a.trim() })).filter((p) => p.a) });
     useToastStore().success('Profile updated.');
   } catch (err: any) {
     errorMsg.value = err.message || 'Failed to update profile';
@@ -726,6 +825,94 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   font-size: 0.9rem;
   font-weight: 600;
   color: #4b4fa6;
+}
+
+.e-hint {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: #6b6a9a;
+}
+
+.prompt-edit {
+  position: relative;
+  padding: 0.75rem 0.85rem 1.4rem;
+  border-radius: 1rem;
+  background: #f8f5fd;
+
+  & + & { margin-top: 0.6rem; }
+}
+
+.prompt-edit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  color: $ink;
+  font-size: 0.95rem;
+}
+
+.prompt-remove {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #6b6a9a;
+}
+
+.prompt-answer {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(74, 0, 91, 0.12);
+  border-radius: 0.8rem;
+  background: #fff;
+  color: $ink;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.prompt-count {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.3rem;
+  font-size: 0.72rem;
+  color: #8b8aa8;
+}
+
+.prompt-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+
+  .add-interest {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0 1.1rem;
+    border: 0;
+
+    &:disabled { opacity: 0.5; }
+  }
+}
+
+.prompt-select {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(74, 0, 91, 0.12);
+  border-radius: 0.8rem;
+  background: #fff;
+  color: $ink;
+  font-size: 0.95rem;
+}
+
+.pick-chip:disabled {
+  opacity: 0.45;
 }
 
 .save-btn {

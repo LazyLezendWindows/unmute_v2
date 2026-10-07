@@ -12,6 +12,14 @@ export const PLANS = [
   { id: 'year', label: '1 year', amount: 20000, days: 0, months: 12 },
 ] as const;
 
+/**
+ * When free access ends: the 7-day trial, or later if referral rewards added free time
+ * (`free_until`). `alias` is the subscriptions table alias in the query, e.g. 's.'.
+ */
+export function freeEndSql(alias = ''): string {
+  return `GREATEST(DATE_ADD(${alias}trial_started_at, INTERVAL 7 DAY), COALESCE(${alias}free_until, ${alias}trial_started_at))`;
+}
+
 export function planEnd(start: Date, plan: typeof PLANS[number]): Date {
   const end = new Date(start);
   if (plan.days) end.setUTCDate(end.getUTCDate() + plan.days);
@@ -36,7 +44,7 @@ export class SubscriptionService {
 
   static async status(userId: string) {
     const row = await getDatabase().get<{ trialEnd: number; paidStart: number | null; paidEnd: number | null; now: number; plan: string | null }>(
-      `SELECT TIMESTAMPDIFF(SECOND, '1970-01-01', DATE_ADD(trial_started_at, INTERVAL 7 DAY)) AS trialEnd,
+      `SELECT TIMESTAMPDIFF(SECOND, '1970-01-01', ${freeEndSql()}) AS trialEnd,
        TIMESTAMPDIFF(SECOND, '1970-01-01', plan_started_at) AS paidStart,
        TIMESTAMPDIFF(SECOND, '1970-01-01', plan_expires_at) AS paidEnd, TIMESTAMPDIFF(SECOND, '1970-01-01', UTC_TIMESTAMP()) AS now, plan
        FROM subscriptions WHERE user_id = ?`, [userId]);

@@ -59,6 +59,7 @@
       </p>
       <UInput v-model="displayName" label="Your name" required :minlength="2" :maxlength="50" autocomplete="given-name" />
       <UInput v-model="dateOfBirth" label="Date of birth" type="date" required :max="maxDateFor18" />
+      <UInput v-model="referralCode" label="Referral code (optional)" placeholder="Friend's code" icon="ri-gift-line" :maxlength="30" autocomplete="off" hint="Invited by a friend? You both get 2 weeks free." />
     </form>
 
     <p v-if="error" class="small text-danger fw-medium mt-3 mb-0" role="alert">{{ error }}</p>
@@ -95,6 +96,8 @@ const phone = ref('');
 const code = ref('');
 const displayName = ref('');
 const dateOfBirth = ref('');
+// From an invite link (/register?ref=…) when there is one.
+const referralCode = ref(new URLSearchParams(window.location.search).get('ref')?.slice(0, 30) ?? '');
 const busy = ref(false);
 const error = ref<string | null>(null);
 const resendIn = ref(0);
@@ -192,7 +195,9 @@ async function verify(withProfile = false) {
     const outcome = await authStore.loginWithPhone({
       phone: fullPhone.value,
       code: code.value,
-      ...(withProfile ? { displayName: displayName.value.trim(), dateOfBirth: dateOfBirth.value } : {}),
+      ...(withProfile
+        ? { displayName: displayName.value.trim(), dateOfBirth: dateOfBirth.value, ...(referralCode.value.trim() ? { referralCode: referralCode.value.trim() } : {}) }
+        : {}),
     });
     if (outcome.requiresProfile) {
       step.value = 'profile';

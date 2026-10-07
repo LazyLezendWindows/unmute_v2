@@ -20,6 +20,8 @@
         </router-link>
       </template>
     </ScreenBar>
+    <PausedNotice />
+    <ReferralBanner dismissible text="Invite a friend: you both get 2 weeks." />
 
     <form v-if="searchOpen" id="home-search" class="search-bar" role="search" @submit.prevent="applySearch">
       <i class="ri-search-line" aria-hidden="true"></i>
@@ -166,6 +168,8 @@
 </template>
 
 <script setup lang="ts">
+import PausedNotice from '../components/discovery/PausedNotice.vue';
+import ReferralBanner from '../components/referral/ReferralBanner.vue';
 import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';

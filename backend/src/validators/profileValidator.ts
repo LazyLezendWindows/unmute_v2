@@ -12,6 +12,23 @@ export const PROFESSION_FIELDS = [
   'it_software', 'healthcare', 'business', 'arts', 'education', 'government', 'finance', 'other',
 ] as const;
 
+/** Profile prompts: the member picks up to three questions and answers them. Labels live in the app. */
+export const PROMPT_QUESTIONS = [
+  'perfect_sunday', 'green_flag', 'simple_pleasures', 'together_we_could', 'typical_weekend',
+  'love_language', 'never_shut_up_about', 'dating_me_is_like', 'best_travel_story', 'unpopular_opinion',
+  'looking_for_someone', 'two_truths_one_lie', 'most_spontaneous', 'go_to_karaoke', 'first_date_idea',
+] as const;
+export const MAX_PROMPTS = 3;
+export const RELIGIONS = ['hindu', 'muslim', 'christian', 'sikh', 'buddhist', 'jain', 'parsi', 'jewish', 'spiritual', 'atheist', 'other'] as const;
+export const LANGUAGES = [
+  'hindi', 'english', 'bengali', 'marathi', 'telugu', 'tamil', 'gujarati', 'urdu', 'kannada',
+  'odia', 'malayalam', 'punjabi', 'assamese', 'konkani', 'other',
+] as const;
+export const MAX_LANGUAGES = 6;
+export const DIETS = ['vegetarian', 'non_vegetarian', 'eggetarian', 'vegan', 'jain'] as const;
+export const MARITAL_STATUSES = ['never_married', 'divorced', 'widowed', 'separated'] as const;
+export const FAMILY_PLANS = ['want_children', 'dont_want_children', 'have_want_more', 'have_dont_want_more', 'not_sure'] as const;
+
 // Photos uploaded to Unmute (checked for ownership by the service), or https images: rejects
 // javascript:, data: and plain-http URLs that would be rendered to other users.
 const httpsImageUrl = z
@@ -55,6 +72,17 @@ export const updateProfileSchema = z.object({
   educationLevel: z.enum(EDUCATION_LEVELS).nullable().optional(),
   professionField: z.enum(PROFESSION_FIELDS).nullable().optional(),
   photos: z.array(httpsImageUrl).max(MAX_PHOTOS, `Add up to ${MAX_PHOTOS} photos`).optional(),
+  prompts: z
+    .array(z.object({ q: z.enum(PROMPT_QUESTIONS), a: z.string().trim().min(1, 'Write an answer').max(200, 'Answers can be up to 200 characters') }).strict())
+    .max(MAX_PROMPTS, `Choose up to ${MAX_PROMPTS} prompts`)
+    .refine((list) => new Set(list.map((p) => p.q)).size === list.length, 'Each prompt can be used once')
+    .optional(),
+  religion: z.enum(RELIGIONS).nullable().optional(),
+  motherTongue: z.enum(LANGUAGES).nullable().optional(),
+  languages: z.array(z.enum(LANGUAGES)).max(MAX_LANGUAGES, `Choose up to ${MAX_LANGUAGES} languages`).optional(),
+  diet: z.enum(DIETS).nullable().optional(),
+  maritalStatus: z.enum(MARITAL_STATUSES).nullable().optional(),
+  familyPlans: z.enum(FAMILY_PLANS).nullable().optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
@@ -65,3 +93,5 @@ export const deleteAccountSchema = z
     confirm: z.string().max(20).optional(),
   })
   .strict();
+
+export const pauseSchema = z.object({ paused: z.boolean() }).strict();

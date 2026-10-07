@@ -31,6 +31,14 @@ export const useChatStore = defineStore('chat', () => {
   let generation = 0;
   let conversationRequest = 0;
   const receivedMessages = new Set<string>();
+  /** Conversations where the other person is typing right now (cleared after a few seconds). */
+  const typingIn = ref<Record<string, boolean>>({});
+  const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  let lastTypingSent = 0;
+  /** Set when a match ends (either side unmatched), so an open chat can close itself. */
+  const removedConversationId = ref<string | null>(null);
+  /** Matches this member just unmatched: their own socket echo shouldn't read as "the other person left". */
+  const removedByMe = new Set<string>();
 
   const totalUnreadCount = computed(() =>
     conversations.value.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0)
@@ -46,7 +54,7 @@ export const useChatStore = defineStore('chat', () => {
       likedProfiles.value = sent.data.data;
       likesReceived.value = received.data.data;
     } catch (err: any) {
-      if (attempt === generation) useToastStore().error(`Couldn't load liked profiles. ${err.message}`);
+      if (attempt === generation && err.status !== 402) useToastStore().error(`Couldn't load liked profiles. ${err.message}`);
     } finally {
       if (attempt === generation) likedLoading.value = false;
     }
@@ -59,7 +67,7 @@ export const useChatStore = defineStore('chat', () => {
       const res = await api.get('/matches');
       if (attempt === generation) matches.value = res.data.data;
     } catch (err: any) {
-      if (attempt === generation) useToastStore().error(`Couldn't load your matches. ${err.message}`);
+      if (attempt === generation && err.status !== 402) useToastStore().error(`Couldn't load your matches. ${err.message}`);
     } finally {
       if (attempt === generation) matchesLoading.value = false;
     }
@@ -72,7 +80,7 @@ export const useChatStore = defineStore('chat', () => {
       const res = await api.get('/conversations');
       if (attempt === generation) conversations.value = res.data.data;
     } catch (err: any) {
-      if (attempt === generation) useToastStore().error(`Couldn't load your conversations. ${err.message}`);
+      if (attempt === generation && err.status !== 402) useToastStore().error(`Couldn't load your conversations. ${err.message}`);
     } finally {
       if (attempt === generation) conversationsLoading.value = false;
     }
@@ -128,14 +136,22 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /** A text message, or (`kind` image / voice) the URL of a photo or recording just uploaded. */
-  async function sendMessage(content: string, kind: 'text' | 'image' | 'voice' = 'text', conversationId = activeConversationId.value) {
+  async function sendMessage(
+    content: string,
+    kind: 'text' | 'image' | 'voice' | 'gif' = 'text',
+    conversationId = activeConversationId.value,
+    replyToId?: string | null
+  ) {
     if (!conversationId || !content.trim()) return;
     const attempt = generation;
     sending.value = true;
+    lastTypingSent = 0;
+    getSocket()?.emit('typing', conversationId, false);
     try {
       const res = await api.post(`/conversations/${conversationId}/messages`, {
         content: content.trim(),
         ...(kind !== 'text' ? { kind } : {}),
+        ...(replyToId ? { replyToId } : {}),
       });
       // Append sent message if not already added by socket
       const msg = res.data.data;
@@ -153,6 +169,70 @@ export const useChatStore = defineStore('chat', () => {
     } finally {
       if (attempt === generation) sending.value = false;
     }
+  }
+
+  /** Tells the other person you're typing; sent at most every 3 seconds while keys are pressed. */
+  function notifyTyping(conversationId = activeConversationId.value) {
+    if (!conversationId) return;
+    const now = Date.now();
+    if (now - lastTypingSent < 3000) return;
+    lastTypingSent = now;
+    getSocket()?.emit('typing', conversationId, true);
+  }
+
+  function applyReactions(messageId: string, reactions: Message['reactions']) {
+    const message = activeMessages.value.find((m) => m.id === messageId);
+    if (message) message.reactions = reactions ?? [];
+  }
+
+  function applyDeleted(conversationId: string, messageId: string) {
+    for (const m of activeMessages.value) {
+      if (m.id === messageId) {
+        m.deleted = true;
+        m.content = '';
+        m.reactions = [];
+      } else if (m.replyTo?.id === messageId) {
+        m.replyTo = { ...m.replyTo, deleted: true, content: '' };
+      }
+    }
+    const conv = conversations.value.find((c) => c.id === conversationId);
+    if (conv?.lastMessage?.id === messageId) conv.lastMessage = { ...conv.lastMessage, deleted: true, content: '' };
+  }
+
+  /** Your reaction to a message; the same emoji again (or null) removes it. */
+  async function react(messageId: string, emoji: string | null) {
+    const conversationId = activeConversationId.value;
+    if (!conversationId) return;
+    const mine = useAuthStore().user?.id;
+    const current = activeMessages.value.find((m) => m.id === messageId)?.reactions?.find((r) => r.userId === mine)?.emoji ?? null;
+    const next = emoji === current ? null : emoji;
+    const res = await api.put(`/conversations/${conversationId}/messages/${messageId}/reaction`, { emoji: next });
+    if (activeConversationId.value === conversationId) applyReactions(messageId, res.data.data.reactions);
+  }
+
+  /** Unsends your own message for both of you. */
+  async function deleteMessage(messageId: string) {
+    const conversationId = activeConversationId.value;
+    if (!conversationId) return;
+    await api.delete(`/conversations/${conversationId}/messages/${messageId}`);
+    applyDeleted(conversationId, messageId);
+  }
+
+  /** `byOther`: the other person unmatched, so an open chat with them should close itself. */
+  function dropMatch(matchId: string, conversationId: string | null, byOther = false) {
+    matches.value = matches.value.filter((m) => m.matchId !== matchId);
+    if (conversationId) {
+      conversations.value = conversations.value.filter((c) => c.id !== conversationId);
+      if (byOther && activeConversationId.value === conversationId) removedConversationId.value = conversationId;
+    }
+  }
+
+  /** Ends the match for both of you: the chat is removed and you won't see each other again. */
+  async function unmatch(matchId: string) {
+    const conversationId = matches.value.find((m) => m.matchId === matchId)?.conversationId ?? conversations.value.find((c) => c.matchId === matchId)?.id ?? null;
+    removedByMe.add(matchId);
+    await api.delete(`/matches/${matchId}`);
+    dropMatch(matchId, conversationId);
   }
 
   /** The server forgets conversation rooms when a socket drops; rejoin and catch up on anything missed. */
@@ -227,6 +307,26 @@ export const useChatStore = defineStore('chat', () => {
       if (conv && readerId === useAuthStore().user?.id) conv.unreadCount = 0;
     });
 
+    socket.off('typing');
+    socket.on('typing', ({ conversationId, isTyping }: { conversationId: string; userId: string; isTyping: boolean }) => {
+      clearTimeout(typingTimers.get(conversationId));
+      typingIn.value = { ...typingIn.value, [conversationId]: isTyping };
+      if (isTyping) {
+        typingTimers.set(conversationId, setTimeout(() => { typingIn.value = { ...typingIn.value, [conversationId]: false }; }, 5000));
+      }
+    });
+    socket.off('message_reaction');
+    socket.on('message_reaction', ({ conversationId, messageId, reactions }: { conversationId: string; messageId: string; reactions: Message['reactions'] }) => {
+      if (activeConversationId.value === conversationId) applyReactions(messageId, reactions);
+    });
+    socket.off('message_deleted');
+    socket.on('message_deleted', ({ conversationId, messageId }: { conversationId: string; messageId: string }) => applyDeleted(conversationId, messageId));
+    socket.off('match_removed');
+    socket.on('match_removed', ({ matchId, conversationId }: { matchId: string; conversationId: string | null }) => {
+      const mine = removedByMe.delete(matchId);
+      dropMatch(matchId, conversationId, !mine);
+    });
+
     // Listen for new matches
     socket.off('new_match');
     socket.on('new_match', () => {
@@ -247,6 +347,10 @@ export const useChatStore = defineStore('chat', () => {
     conversationsLoading.value = false;
     sending.value = false;
     receivedMessages.clear();
+    typingTimers.forEach((t) => clearTimeout(t));
+    typingTimers.clear();
+    typingIn.value = {};
+    removedConversationId.value = null;
   }
 
   return {
@@ -269,6 +373,12 @@ export const useChatStore = defineStore('chat', () => {
     openConversation,
     leaveCurrentConversation,
     sendMessage,
+    notifyTyping,
+    typingIn,
+    react,
+    deleteMessage,
+    unmatch,
+    removedConversationId,
     initSocketHandlers,
     reset,
   };

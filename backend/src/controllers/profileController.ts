@@ -30,6 +30,14 @@ export class ProfileController {
     }
   }
 
+  static async setPaused(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      res.status(200).json({ success: true, data: await AccountService.setPaused(req.user!.userId, req.body.paused) });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   /** Deletes the account and everything in it, then signs this browser out. */
   static async deleteMyAccount(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {

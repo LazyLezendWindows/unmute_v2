@@ -53,6 +53,13 @@ export class ProfileService {
         photos: input.photos !== undefined ? JSON.stringify(input.photos) : undefined,
         education_level: input.educationLevel,
         profession_field: input.professionField,
+        prompts: input.prompts !== undefined ? JSON.stringify(input.prompts) : undefined,
+        religion: input.religion,
+        mother_tongue: input.motherTongue,
+        languages: input.languages !== undefined ? JSON.stringify([...new Set(input.languages)]) : undefined,
+        diet: input.diet,
+        marital_status: input.maritalStatus,
+        family_plans: input.familyPlans,
       });
       if (interestIds !== undefined) {
         await InterestRepository.replaceForUser(tx, userId, interestIds);

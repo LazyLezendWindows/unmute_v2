@@ -1,14 +1,18 @@
 import { AppError } from '../middleware/errorHandler';
 import { getSocketServer } from '../sockets/chatSocket';
 import { toPublicProfile } from '../mappers/profileMapper';
-import { CallOutcome, toMessage } from '../mappers/messageMapper';
+import fs from 'fs/promises';
+import path from 'path';
+import { config } from '../config/env';
+import { CallOutcome, REACTION_EMOJI, toMessage } from '../mappers/messageMapper';
 import { ConversationRepository } from '../repositories/conversationRepository';
 import { MessageRepository } from '../repositories/messageRepository';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { NotificationService } from './notificationService';
 import { PushService } from './pushService';
-import { MediaService } from './mediaService';
+import { MEDIA_PATH, MediaService } from './mediaService';
+import { GifService } from './gifService';
 
 /** 5:12, or 1:02:09 for an hour or more. */
 function formatDuration(seconds: number): string {
@@ -68,6 +72,7 @@ export class ChatService {
       ProfileRepository.findByUserId(conv.other_user_id),
       InterestRepository.forUser(conv.other_user_id),
     ]);
+    const reactions = await MessageRepository.reactionsFor(rows.map((r) => r.id));
 
     await MessageRepository.markRead(conversationId, userId);
     await NotificationService.conversationRead(userId, conversationId);
@@ -79,7 +84,7 @@ export class ChatService {
         ...toPublicProfile(conv.other_user_id, profile),
         interests: interests.map((i) => i.name),
       },
-      messages: rows.map(toMessage),
+      messages: rows.map((row) => toMessage(row, reactions.get(row.id))),
     };
   }
 
@@ -120,15 +125,25 @@ export class ChatService {
     return message;
   }
 
-  static async sendMessage(conversationId: string, senderId: string, content: string, kind: 'text' | 'image' | 'voice' = 'text') {
+  static async sendMessage(
+    conversationId: string,
+    senderId: string,
+    content: string,
+    kind: 'text' | 'image' | 'voice' | 'gif' = 'text',
+    replyToId?: string
+  ) {
     const conv = await this.requireAccessible(conversationId, senderId, 'You cannot message this user');
-    if (kind !== 'text' && !MediaService.isOwnUploadOfKind(content, senderId, kind)) {
+    if (kind === 'gif') {
+      if (!GifService.isGifUrl(content)) throw new AppError('Choose a GIF from the picker.', 400);
+    } else if (kind !== 'text' && !MediaService.isOwnUploadOfKind(content, senderId, kind)) {
       throw new AppError(kind === 'image' ? 'Upload the photo before sending it.' : 'Record the voice message before sending it.', 400);
     }
+    const replyTo = replyToId ? await MessageRepository.findInConversation(replyToId, conversationId) : null;
+    if (replyToId && !replyTo) throw new AppError('The message you are replying to is no longer here.', 400);
 
-    const message = toMessage(await MessageRepository.insert(conversationId, senderId, content, undefined, kind));
+    const message = toMessage(await MessageRepository.insert(conversationId, senderId, content, undefined, kind, replyTo));
     // Notifications show a label, not the file link.
-    const preview = kind === 'image' ? '📷 Photo' : kind === 'voice' ? '🎤 Voice message' : content;
+    const preview = kind === 'image' ? '📷 Photo' : kind === 'voice' ? '🎤 Voice message' : kind === 'gif' ? 'GIF' : content;
     await ConversationRepository.touch(conversationId, message.createdAt);
 
     const io = getSocketServer();
@@ -142,5 +157,38 @@ export class ChatService {
       .catch(() => undefined);
 
     return message;
+  }
+
+  /** Reacts to a message with one of the allowed emoji, or removes the reaction with `null`. */
+  static async react(conversationId: string, userId: string, messageId: string, emoji: string | null) {
+    await this.requireAccessible(conversationId, userId, 'You cannot message this user');
+    const message = await MessageRepository.findInConversation(messageId, conversationId);
+    if (!message || message.deleted_at) throw new AppError('Message not found', 404);
+    if (emoji !== null && !(REACTION_EMOJI as readonly string[]).includes(emoji)) throw new AppError('That reaction is not available.', 400);
+    await MessageRepository.react(messageId, userId, emoji);
+    const reactions = (await MessageRepository.reactionsFor([messageId])).get(messageId) ?? [];
+    getSocketServer()?.to(`conversation:${conversationId}`).emit('message_reaction', { conversationId, messageId, reactions });
+    return { messageId, reactions };
+  }
+
+  /** Unsends the member's own message for both people; a photo or voice file is deleted too. */
+  static async deleteMessage(conversationId: string, userId: string, messageId: string) {
+    await this.requireAccessible(conversationId, userId, 'Access to this conversation is restricted');
+    const message = await MessageRepository.findInConversation(messageId, conversationId);
+    if (!message || message.sender_id !== userId) throw new AppError('Message not found', 404);
+    if (message.kind === 'call') throw new AppError('Call records cannot be deleted.', 400);
+    if (message.deleted_at) return { messageId };
+    await MessageRepository.softDelete(messageId);
+    if ((message.kind === 'image' || message.kind === 'voice') && message.content.startsWith(MEDIA_PATH)) {
+      await fs.unlink(path.join(config.uploadDir, path.basename(message.content))).catch(() => undefined);
+    }
+    getSocketServer()?.to(`conversation:${conversationId}`).emit('message_deleted', { conversationId, messageId });
+    return { messageId };
+  }
+
+  /** Tells the other person (if they have the chat open) that this member is typing. */
+  static async typing(conversationId: string, userId: string, isTyping: boolean) {
+    if (!(await this.canAccessConversation(conversationId, userId))) return;
+    getSocketServer()?.to(`conversation:${conversationId}`).except(`user:${userId}`).emit('typing', { conversationId, userId, isTyping });
   }
 }

@@ -78,6 +78,11 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
       if (typeof conversationId === 'string') socket.leave(`conversation:${conversationId}`);
     });
 
+    socket.on('typing', (conversationId: unknown, isTyping: unknown) => {
+      if (typeof conversationId !== 'string' || conversationId.length > 64 || !socket.rooms.has(`conversation:${conversationId}`)) return;
+      void ChatService.typing(conversationId, userId, isTyping !== false).catch(() => undefined);
+    });
+
     socket.on('read_conversation', async (conversationId: unknown, acknowledge?: (result: { success: boolean }) => void) => {
       if (typeof conversationId !== 'string' || conversationId.length > 64) return;
       try {

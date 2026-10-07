@@ -131,7 +131,7 @@
             <span v-if="statusOf(match)" class="status" :class="statusOf(match)!.tone">
               <span class="status-dot" aria-hidden="true"></span>{{ statusOf(match)!.label }}
             </span>
-            <button type="button" class="photo-more" :aria-label="`Report or block ${match.user.displayName}`" @click.stop="safetyTarget = match.user" @keydown.enter.stop>
+            <button type="button" class="photo-more" :aria-label="`Report or block ${match.user.displayName}`" @click.stop="openSafety(match, 'report')" @keydown.enter.stop>
               <i class="ri-more-fill" aria-hidden="true"></i>
             </button>
           </div>
@@ -151,7 +151,7 @@
               </span>
             </div>
             <div class="card-actions">
-              <button type="button" class="act-hide" :aria-label="`Hide ${match.user.displayName}`" @click="hide(match.matchId)">
+              <button type="button" class="act-hide" :aria-label="`Unmatch ${match.user.displayName}`" @click="openSafety(match, 'unmatch')">
                 <i class="ri-close-line" aria-hidden="true"></i>
               </button>
               <router-link :to="`/chat/${match.conversationId}`" class="act-chat" :aria-label="`Chat with ${match.user.displayName}`">
@@ -168,6 +168,8 @@
       :is-open="Boolean(safetyTarget)"
       :target-user-id="safetyTarget.id"
       :target-name="safetyTarget.displayName"
+      :match-id="safetyTarget.matchId"
+      :initial-mode="safetyMode"
       @close="safetyTarget = null"
       @action-completed="onSafetyCompleted"
     />
@@ -184,7 +186,6 @@ import SafetyModal from '../components/safety/SafetyModal.vue';
 import UButton from '../components/ui/UButton.vue';
 import UEmptyState from '../components/ui/UEmptyState.vue';
 import USkeleton from '../components/ui/USkeleton.vue';
-import { useAuthStore } from '../stores/auth';
 import { useChatStore } from '../stores/chat';
 import { interestIcon } from '../utils/interestIcon';
 import { Match } from '../types';
@@ -194,7 +195,6 @@ import { useToastStore } from '../stores/toast';
 /** Matches within this many km count as Nearby. */
 const NEARBY_KM = 25;
 
-const authStore = useAuthStore();
 const chatStore = useChatStore();
 const router = useRouter();
 type View = 'all' | 'new' | 'nearby' | 'likesYou' | 'liked';
@@ -218,30 +218,16 @@ const SUBTITLES: Record<View, string> = {
   likesYou: 'Like them back to match',
   liked: 'Waiting for them to like you back',
 };
-const safetyTarget = ref<{ id: string; displayName: string } | null>(null);
+const safetyTarget = ref<{ id: string; displayName: string; matchId?: string } | null>(null);
+const safetyMode = ref<'report' | 'unmatch'>('report');
 
-// Hiding a card is a per-viewer convenience kept on this device; the match itself stays.
-const hiddenKey = computed(() => `unmute.hiddenMatches.v1:${authStore.user?.id ?? ''}`);
-const hidden = ref<string[]>(readHidden());
-
-function readHidden(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(hiddenKey.value) || '[]');
-  } catch {
-    return [];
-  }
+function openSafety(match: { matchId: string; user: { id: string; displayName: string } }, mode: 'report' | 'unmatch') {
+  safetyMode.value = mode;
+  safetyTarget.value = { id: match.user.id, displayName: match.user.displayName, matchId: match.matchId };
 }
 
-function hide(matchId: string) {
-  hidden.value = [...hidden.value, matchId];
-  try {
-    localStorage.setItem(hiddenKey.value, JSON.stringify(hidden.value));
-  } catch {
-    // Still hidden for this visit.
-  }
-}
-
-const shown = computed(() => chatStore.matches.filter((m) => !hidden.value.includes(m.matchId)));
+// Unmatching removes a match for both people (Unmatch in the ✕ or ⋯ menu).
+const shown = computed(() => chatStore.matches);
 const newMatches = computed(() => shown.value.filter((m) => !m.lastMessage));
 const nearby = computed(() => shown.value.filter((m) => m.user.distanceKm !== null && m.user.distanceKm <= NEARBY_KM));
 

@@ -9,6 +9,12 @@
       <p class="d-bio">{{ person.bio }}</p>
     </div>
 
+    <!-- Prompts: one card per answer, the easiest thing to reply to -->
+    <div v-for="prompt in prompts" :key="prompt.q" class="d-card d-prompt">
+      <p class="d-prompt-q">{{ PROMPT_QUESTIONS[prompt.q] }}</p>
+      <p class="d-prompt-a">{{ prompt.a }}</p>
+    </div>
+
     <div v-if="interestNames.length" class="d-card">
       <div class="d-head">
         <i class="ri-heart-3-line" aria-hidden="true"></i>
@@ -18,6 +24,16 @@
         <span v-for="name in interestNames" :key="name" class="d-chip" :class="{ 'is-shared': shared.has(name) }" :title="shared.has(name) ? 'You both like this' : undefined">
           <i :class="interestIcon(name)" aria-hidden="true"></i>{{ name }}
         </span>
+      </div>
+    </div>
+
+    <div v-if="background.length" class="d-card">
+      <div class="d-head">
+        <i class="ri-earth-line" aria-hidden="true"></i>
+        <h3>Background</h3>
+      </div>
+      <div class="d-life">
+        <span v-for="item in background" :key="item.text"><i :class="item.icon" aria-hidden="true"></i>{{ item.text }}</span>
       </div>
     </div>
 
@@ -37,7 +53,8 @@
 import { computed } from 'vue';
 import { interestIcon } from '../../utils/interestIcon';
 import { lifestyleItems } from '../../utils/profileFormat';
-import { Lifestyle } from '../../types';
+import { Diet, FamilyPlans, Language, Lifestyle, MaritalStatus, PromptAnswer, Religion } from '../../types';
+import { PROMPT_QUESTIONS, backgroundChips } from '../../content/profileOptions';
 
 const props = defineProps<{
   person: {
@@ -47,6 +64,13 @@ const props = defineProps<{
     interests: ({ name: string } | string)[];
     commonInterests?: string[];
     lifestyle?: Lifestyle;
+    prompts?: PromptAnswer[];
+    religion?: Religion | null;
+    motherTongue?: Language | null;
+    languages?: Language[];
+    diet?: Diet | null;
+    maritalStatus?: MaritalStatus | null;
+    familyPlans?: FamilyPlans | null;
   };
   showLifestyle?: boolean;
 }>();
@@ -56,6 +80,8 @@ defineEmits<{ (e: 'more'): void }>();
 const interestNames = computed(() => props.person.interests.map((i) => (typeof i === 'string' ? i : i.name)));
 const shared = computed(() => new Set(props.person.commonInterests ?? []));
 const lifestyle = computed(() => lifestyleItems(props.person.lifestyle));
+const prompts = computed(() => (props.person.prompts ?? []).filter((p) => PROMPT_QUESTIONS[p.q] && p.a));
+const background = computed(() => backgroundChips(props.person));
 </script>
 
 <style scoped lang="scss">
@@ -107,6 +133,22 @@ const lifestyle = computed(() => lifestyleItems(props.person.lifestyle));
   color: #4b4fa6;
   font-size: 1.02rem;
   line-height: 1.5;
+  white-space: pre-line;
+}
+
+.d-prompt-q {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #7b1fd6;
+}
+
+.d-prompt-a {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #10106b;
   white-space: pre-line;
 }
 

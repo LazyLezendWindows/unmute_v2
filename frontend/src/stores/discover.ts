@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { useToastStore } from './toast';
 import { useAuthStore } from './auth';
 import { usePremiumStore } from './premium';
-import { DiscoveryCandidate, EducationLevel, HabitFrequency, Institution, Interest, Place, ProfessionField, WorkoutFrequency } from '../types';
+import { Diet, DiscoveryCandidate, EducationLevel, HabitFrequency, Institution, Interest, Language, MaritalStatus, Place, ProfessionField, Religion, WorkoutFrequency } from '../types';
 
 /** Discovery filters as the viewer chose them; applied by the backend, never client-side. */
 export interface DiscoverFilters {
@@ -25,6 +25,11 @@ export interface DiscoverFilters {
   drinking: HabitFrequency | null;
   smoking: HabitFrequency | null;
   workout: WorkoutFrequency | null;
+  religion: Religion | null;
+  /** Mother tongue or any language they speak. */
+  language: Language | null;
+  diet: Diet | null;
+  maritalStatus: MaritalStatus | null;
 }
 
 export function emptyFilters(): DiscoverFilters {
@@ -44,6 +49,10 @@ export function emptyFilters(): DiscoverFilters {
     drinking: null,
     smoking: null,
     workout: null,
+    religion: null,
+    language: null,
+    diet: null,
+    maritalStatus: null,
   };
 }
 
@@ -134,6 +143,10 @@ export const useDiscoverStore = defineStore('discover', () => {
       f.drinking,
       f.smoking,
       f.workout,
+      f.religion,
+      f.language,
+      f.diet,
+      f.maritalStatus,
     ].filter(Boolean).length;
   });
 
@@ -165,6 +178,10 @@ export const useDiscoverStore = defineStore('discover', () => {
       delete params.educationLevel;
       delete params.professionField;
     }
+    if (f.religion) params.religion = f.religion;
+    if (f.language) params.language = f.language;
+    if (f.diet) params.diet = f.diet;
+    if (f.maritalStatus) params.maritalStatus = f.maritalStatus;
     if (f.interests.length) params.interestIds = f.interests.map((i) => i.id).join(',');
     if (search.value.trim()) params.q = search.value.trim();
     return params;

@@ -1,4 +1,6 @@
 import { SubscriptionService } from '../services/subscriptionService';
+import { ReferralService } from '../services/referralService';
+import { GifService } from '../services/gifService';
 import { config } from '../config/env';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
@@ -19,15 +21,32 @@ async function startSession(req: Request, res: Response, userId: string) {
   return AuthService.getCurrentUser(userId);
 }
 
+/** A bad referral code stops sign-up before the account exists, so the member can fix it. */
+async function checkReferralCode(body: { referralCode?: string; displayName?: string; dateOfBirth?: string }) {
+  if (body.referralCode?.trim()) await ReferralService.findReferrer(body.referralCode);
+}
+
+async function applyReferral(userId: string, code?: string) {
+  if (!code?.trim()) return;
+  try {
+    await ReferralService.apply(userId, code);
+  } catch (err) {
+    console.warn('[Referral] Not applied:', (err as Error).message);
+  }
+}
+
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      await checkReferralCode(req.body);
       const userId = await AuthService.register(req.body);
       if (typeof userId !== 'string') {
         res.status(200).json({ success: true, data: userId });
         return;
       }
-      const user = await startSession(req, res, userId);
+      await startSession(req, res, userId);
+      await applyReferral(userId, req.body.referralCode);
+      const user = await AuthService.getCurrentUser(userId);
       console.info(`[Auth] Registered user ${userId} (password)`);
       res.status(201).json({ success: true, data: { user } });
     } catch (err) {
@@ -47,12 +66,17 @@ export class AuthController {
 
   static async googleAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (req.body.dateOfBirth) await checkReferralCode(req.body);
       const result = await AuthService.googleAuth(req.body);
       if (result.requiresDob) {
         res.status(200).json({ success: true, data: result });
         return;
       }
-      const user = await startSession(req, res, result.userId);
+      let user = await startSession(req, res, result.userId);
+      if (result.isNewUser && req.body.referralCode) {
+        await applyReferral(result.userId, req.body.referralCode);
+        user = await AuthService.getCurrentUser(result.userId);
+      }
       res.status(200).json({
         success: true,
         data: { requiresDob: false, isNewUser: result.isNewUser, user },
@@ -75,12 +99,17 @@ export class AuthController {
   /** Checks the code; a new number is asked for a name and date of birth before an account exists. */
   static async phoneVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      if (req.body.displayName) await checkReferralCode(req.body);
       const result = await PhoneAuthService.verify(req.body);
       if (result.requiresProfile) {
         res.status(200).json({ success: true, data: { requiresProfile: true } });
         return;
       }
-      const user = await startSession(req, res, result.userId);
+      let user = await startSession(req, res, result.userId);
+      if (result.isNewUser && req.body.referralCode) {
+        await applyReferral(result.userId, req.body.referralCode);
+        user = await AuthService.getCurrentUser(result.userId);
+      }
       res.status(200).json({ success: true, data: { requiresProfile: false, isNewUser: result.isNewUser, user } });
     } catch (err) {
       next(err);
@@ -91,6 +120,8 @@ export class AuthController {
   static async phoneLink(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       await PhoneAuthService.link(req.user!.userId, req.body);
+      // A verified number unlocks a pending referral reward.
+      await ReferralService.rewardIfReady(req.user!.userId).catch((err) => console.warn('[Referral] Reward failed:', err.message));
       const user = await AuthService.getCurrentUser(req.user!.userId);
       res.status(200).json({ success: true, data: { user } });
     } catch (err) {
@@ -120,7 +151,7 @@ export class AuthController {
   static config(_req: Request, res: Response): void {
     res.status(200).json({
       success: true,
-      data: { googleClientId: config.googleClientId || null, phoneSignIn: smsAvailable() },
+      data: { googleClientId: config.googleClientId || null, phoneSignIn: smsAvailable(), gifs: GifService.enabled() },
     });
   }
 

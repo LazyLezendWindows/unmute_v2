@@ -1,4 +1,10 @@
+import crypto from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
+import { config } from '../config/env';
+import { getDatabase } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { MEDIA_PATH } from './mediaService';
 import { getSocketServer } from '../sockets/chatSocket';
 import { toPublicProfile } from '../mappers/profileMapper';
 import { toMessage } from '../mappers/messageMapper';
@@ -14,6 +20,45 @@ import { UserLocationRepository } from '../repositories/userLocationRepository';
 import { distanceBucketKm, haversineKm } from './location/distance.service';
 
 export class MatchingService {
+  /**
+   * Ends a match for both people: the conversation, its messages and media go, the likes are
+   * cleared and each is passed for the other, so neither shows up in the other's Discover again.
+   */
+  static async unmatch(userId: string, matchId: string) {
+    const db = getDatabase();
+    const match = await db.get<{ id: string; other_id: string; conversation_id: string | null }>(
+      `SELECT m.id, IF(m.user_a_id = ?, m.user_b_id, m.user_a_id) AS other_id, c.id AS conversation_id
+       FROM matches m LEFT JOIN conversations c ON c.match_id = m.id
+       WHERE m.id = ? AND (m.user_a_id = ? OR m.user_b_id = ?)`,
+      [userId, matchId, userId, userId]
+    );
+    if (!match) throw new AppError('Match not found', 404);
+
+    const media = match.conversation_id
+      ? await db.query<{ content: string }>("SELECT content FROM messages WHERE conversation_id = ? AND kind IN ('image', 'voice')", [match.conversation_id])
+      : [];
+    const now = new Date().toISOString();
+    await db.transaction(async (tx) => {
+      await tx.run('DELETE FROM likes WHERE (liker_id = ? AND likee_id = ?) OR (liker_id = ? AND likee_id = ?)', [userId, match.other_id, match.other_id, userId]);
+      for (const [passer, passee] of [[userId, match.other_id], [match.other_id, userId]]) {
+        await tx.run('INSERT INTO passes (id, passer_id, passee_id, created_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE id = id', [crypto.randomUUID(), passer, passee, now]);
+      }
+      // The conversation, its messages, reactions and notifications go with the match (ON DELETE CASCADE).
+      await tx.run('DELETE FROM matches WHERE id = ?', [match.id]);
+    });
+
+    await Promise.all(
+      media
+        .filter((m) => m.content.startsWith(MEDIA_PATH))
+        .map((m) => fs.unlink(path.join(config.uploadDir, path.basename(m.content))).catch(() => undefined))
+    );
+    const io = getSocketServer();
+    if (io) {
+      if (match.conversation_id) io.in([`user:${userId}`, `user:${match.other_id}`]).socketsLeave(`conversation:${match.conversation_id}`);
+      io.to([`user:${userId}`, `user:${match.other_id}`]).emit('match_removed', { matchId: match.id, conversationId: match.conversation_id });
+    }
+  }
+
   static async recordLike(likerId: string, likeeId: string, superLike = false) {
     if (likerId === likeeId) {
       throw new AppError('Cannot like yourself', 400);

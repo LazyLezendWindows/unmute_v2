@@ -53,6 +53,10 @@ export class DiscoverService {
       drinking: query.drinking,
       smoking: query.smoking,
       workout: query.workout,
+      religion: query.religion,
+      language: query.language,
+      diet: query.diet,
+      maritalStatus: query.maritalStatus,
       lookingFor: query.lookingFor ? LOOKING_FOR_GROUPS[query.lookingFor] : undefined,
       searchTerms: query.q?.length ? query.q : undefined,
     };

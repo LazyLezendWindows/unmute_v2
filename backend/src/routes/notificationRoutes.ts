@@ -16,7 +16,7 @@ router.get('/preferences', async (req: AuthRequest, res, next) => {
   try { res.json({ success: true, data: await getNotificationPreferences(req.user!.userId) }); }
   catch (err) { next(err); }
 });
-router.put('/preferences', validateBody(z.object({ calls: z.boolean(), messages: z.boolean() }).strict()), async (req: AuthRequest, res, next) => {
+router.put('/preferences', validateBody(z.object({ calls: z.boolean(), messages: z.boolean(), emailAlerts: z.boolean().optional() }).strict()), async (req: AuthRequest, res, next) => {
   try { res.json({ success: true, data: await saveNotificationPreferences(req.user!.userId, req.body) }); }
   catch (err) { next(err); }
 });

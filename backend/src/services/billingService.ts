@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { getDatabase } from '../config/database';
 import { config } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
-import { PLANS, planEnd, SubscriptionService } from './subscriptionService';
+import { freeEndSql, PLANS, planEnd, SubscriptionService } from './subscriptionService';
 
 interface Payment { id: string; order_id: string; amount: number; currency: string; status: string; amount_refunded?: number }
 interface Order { id: string; user_id: string; plan: string; amount: number; fulfilled_at: unknown }
@@ -75,7 +75,7 @@ export class BillingService {
       const plan = PLANS.find(p => p.id === order.plan)!;
       // A plan starts when the free week (or any time already paid for) ends.
       const sub = await tx.get<{ start: number; hasPlan: number }>(`SELECT TIMESTAMPDIFF(SECOND, '1970-01-01', GREATEST(UTC_TIMESTAMP(),
-        DATE_ADD(trial_started_at, INTERVAL 7 DAY), COALESCE(plan_expires_at, trial_started_at))) AS start,
+        ${freeEndSql()}, COALESCE(plan_expires_at, trial_started_at))) AS start,
         COALESCE(plan_expires_at > UTC_TIMESTAMP(), 0) AS hasPlan
         FROM subscriptions WHERE user_id = ? FOR UPDATE`, [order.user_id]);
       if (!sub) throw new AppError('Sign in again before upgrading.', 409);

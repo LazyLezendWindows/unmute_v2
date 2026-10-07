@@ -1,4 +1,8 @@
 import crypto from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
+import { config } from '../config/env';
+import { MEDIA_PATH } from './mediaService';
 import { getDatabase } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { getSocketServer } from '../sockets/chatSocket';
@@ -6,8 +10,9 @@ import { toOwnProfile } from '../mappers/profileMapper';
 import { ProfileRepository } from '../repositories/profileRepository';
 import { InterestRepository } from '../repositories/interestRepository';
 import { AuthAccountRepository } from '../repositories/authAccountRepository';
-import { SubscriptionService } from './subscriptionService';
+import { freeEndSql, SubscriptionService } from './subscriptionService';
 import { VerificationService } from './verificationService';
+import { BanService } from './banService';
 
 export type UserFilter = 'all' | 'active' | 'disabled' | 'verified' | 'unverified' | 'paid' | 'trial' | 'reported';
 
@@ -18,7 +23,7 @@ const FILTERS: Record<UserFilter, string> = {
   verified: 'p.is_verified = 1',
   unverified: 'COALESCE(p.is_verified, 0) = 0',
   paid: 's.plan_expires_at > UTC_TIMESTAMP() AND s.plan_started_at <= UTC_TIMESTAMP()',
-  trial: '(s.plan_expires_at IS NULL OR s.plan_expires_at <= UTC_TIMESTAMP()) AND DATE_ADD(s.trial_started_at, INTERVAL 7 DAY) > UTC_TIMESTAMP()',
+  trial: `(s.plan_expires_at IS NULL OR s.plan_expires_at <= UTC_TIMESTAMP()) AND ${freeEndSql('s.')} > UTC_TIMESTAMP()`,
   reported: 'EXISTS (SELECT 1 FROM reports r WHERE r.reported_id = u.id)',
 };
 
@@ -103,7 +108,7 @@ export class AdminService {
   /** Everything about one member. */
   static async userDetail(userId: string) {
     const db = getDatabase();
-    const user = await db.get<any>('SELECT id, email, is_active, created_at, email_verified_at, disabled_reason, disabled_at FROM users WHERE id = ?', [userId]);
+    const user = await db.get<any>('SELECT id, email, is_active, paused_at, created_at, email_verified_at, disabled_reason, disabled_at FROM users WHERE id = ?', [userId]);
     if (!user) throw new AppError('User not found', 404);
     const [row, interests, phone, providers, subscription, verification, reports, counts, lastSeen, actions] = await Promise.all([
       ProfileRepository.findByUserId(userId),
@@ -139,6 +144,16 @@ export class AdminService {
       phone,
       signInMethods: providers.map((p) => p.provider),
       isActive: Boolean(user.is_active),
+      isBanned: await BanService.isUserBanned(userId),
+      referral: await db.get<any>(
+        `SELECT u.referral_code AS code,
+                (SELECT p.display_name FROM referrals r JOIN profiles p ON p.user_id = r.referrer_id WHERE r.referred_id = u.id) AS referredBy,
+                (SELECT COUNT(*) FROM referrals r WHERE r.referrer_id = u.id) AS friendsJoined,
+                (SELECT COUNT(*) FROM referrals r WHERE r.referrer_id = u.id AND r.rewarded_at IS NOT NULL) AS friendsRewarded
+         FROM users u WHERE u.id = ?`,
+        [userId]
+      ).then((r) => ({ code: r?.code ?? null, referredBy: r?.referredBy ?? null, friendsJoined: Number(r?.friendsJoined ?? 0), friendsRewarded: Number(r?.friendsRewarded ?? 0) })),
+      isPaused: Boolean(user.paused_at),
       disabledReason: user.disabled_reason,
       disabledAt: user.disabled_at,
       joinedAt: user.created_at,
@@ -193,6 +208,81 @@ export class AdminService {
   }
 
   /** Marks a report as dealt with. */
+  /** The reports queue: newest first, with who reported whom and how often that person was reported. */
+  static async listReports(status: 'pending' | 'resolved' | 'all', page: number) {
+    const db = getDatabase();
+    const pageSize = 25;
+    const where = status === 'all' ? '' : 'WHERE r.status = ?';
+    const params = status === 'all' ? [] : [status];
+    const [rows, total] = await Promise.all([
+      db.query<any>(
+        `SELECT r.id, r.reason_category, r.details, r.status, r.created_at, r.reporter_id, r.reported_id,
+                rp.display_name AS reporter_name, tp.display_name AS reported_name, tp.avatar_url AS reported_avatar,
+                tu.is_active AS reported_active,
+                (SELECT COUNT(*) FROM reports x WHERE x.reported_id = r.reported_id) AS reported_total
+         FROM reports r
+         LEFT JOIN profiles rp ON rp.user_id = r.reporter_id
+         LEFT JOIN profiles tp ON tp.user_id = r.reported_id
+         LEFT JOIN users tu ON tu.id = r.reported_id
+         ${where}
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, pageSize, (page - 1) * pageSize]
+      ),
+      db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM reports r ${where}`, params),
+    ]);
+    return {
+      total: Number(total?.n ?? 0),
+      page,
+      pageSize,
+      reports: rows.map((r) => ({
+        id: r.id,
+        category: r.reason_category,
+        details: r.details,
+        status: r.status,
+        createdAt: r.created_at,
+        reporter: { id: r.reporter_id, name: r.reporter_name },
+        reported: { id: r.reported_id, name: r.reported_name, avatarUrl: r.reported_avatar || '', isActive: Boolean(r.reported_active), totalReports: Number(r.reported_total) },
+      })),
+    };
+  }
+
+  /**
+   * Takes a photo off a member's profile (the main photo or one of the others) and deletes the
+   * file, for pictures the automatic check missed.
+   */
+  static async removePhoto(adminId: string, userId: string, url: string) {
+    const db = getDatabase();
+    const row = await db.get<{ avatar_url: string | null; photos: string | null }>('SELECT avatar_url, photos FROM profiles WHERE user_id = ?', [userId]);
+    if (!row) throw new AppError('User not found', 404);
+    let photos: string[] = [];
+    try { photos = JSON.parse(row.photos || '[]'); } catch { photos = []; }
+    const isAvatar = row.avatar_url === url;
+    if (!isAvatar && !photos.includes(url)) throw new AppError('That photo is not on this profile.', 404);
+    const remaining = photos.filter((p) => p !== url);
+    // If the main photo goes, the next photo becomes the main one.
+    const avatar = isAvatar ? remaining.shift() ?? '' : row.avatar_url ?? '';
+    await db.run('UPDATE profiles SET avatar_url = ?, photos = ?, updated_at = ? WHERE user_id = ?', [avatar, JSON.stringify(remaining), new Date().toISOString(), userId]);
+    if (url.startsWith(MEDIA_PATH)) await fs.unlink(path.join(config.uploadDir, path.basename(url))).catch(() => undefined);
+    await log(adminId, userId, 'photo_removed', path.basename(url));
+    return this.userDetail(userId);
+  }
+
+  /** Disables the account and bans its email and phone number from new sign-ups. */
+  static async ban(adminId: string, userId: string, reason?: string) {
+    await BanService.banUser(userId, adminId, reason);
+    await this.setActive(adminId, userId, false, reason || 'Banned');
+    await log(adminId, userId, 'banned', reason);
+    return this.userDetail(userId);
+  }
+
+  /** Lifts the ban and re-enables the account. */
+  static async unban(adminId: string, userId: string) {
+    await BanService.unbanUser(userId);
+    await log(adminId, userId, 'unbanned');
+    return this.setActive(adminId, userId, true);
+  }
+
   static async resolveReport(adminId: string, reportId: string) {
     const row = await getDatabase().get<{ reported_id: string }>('SELECT reported_id FROM reports WHERE id = ?', [reportId]);
     if (!row) throw new AppError('Report not found', 404);

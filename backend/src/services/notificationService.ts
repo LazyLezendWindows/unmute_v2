@@ -1,4 +1,5 @@
 import { AppError } from '../middleware/errorHandler';
+import { EmailAlertService } from './emailAlertService';
 import { getSocketServer } from '../sockets/chatSocket';
 import { toPublicProfile } from '../mappers/profileMapper';
 import { NotificationRepository, NotificationRow } from '../repositories/notificationRepository';
@@ -93,12 +94,23 @@ export class NotificationService {
     await this.deliver(likerId, () =>
       NotificationRepository.insert(likerId, 'match', { actorId: likeeId, conversationId, read: true })
     );
+    // Whoever liked first may be away: email them (the other just saw the match screen).
+    void this.nameOf(likerId).then((name) => EmailAlertService.matched(likeeId, name, conversationId));
   }
 
   static async messageReceived(recipientId: string, senderId: string, conversationId: string, content: string) {
     await this.deliver(recipientId, () =>
       NotificationRepository.upsertMessage(recipientId, senderId, conversationId, truncate(content))
     );
+    void this.nameOf(senderId).then((name) => EmailAlertService.message(recipientId, name, conversationId));
+  }
+
+  private static async nameOf(userId: string): Promise<string> {
+    try {
+      return (await ProfileRepository.findByUserIds([userId])).get(userId)?.display_name || 'Someone';
+    } catch {
+      return 'Someone';
+    }
   }
 
   /** A reminder that the free trial or a plan is ending or has ended (opens the Upgrade page). */

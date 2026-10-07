@@ -41,6 +41,8 @@ export const config = {
   /** Browser origins allowed to call the API with credentials (comma-separated CORS_ORIGIN). */
   corsOrigins,
   minAge: parseInt(process.env.MIN_AGE || '18', 10),
+  /** The app's public address, for links in emails (e.g. https://unmute.app). */
+  appUrl: (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || corsOrigins[0] || 'http://localhost:5173').replace(/\/$/, ''),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   /**
    * WebRTC servers for calls. STUN finds a direct route between the two phones; a TURN server
@@ -59,6 +61,16 @@ export const config = {
     publicKey: process.env.VAPID_PUBLIC_KEY || '',
     privateKey: process.env.VAPID_PRIVATE_KEY || '',
     subject: process.env.VAPID_SUBJECT || 'mailto:support@unmute.app',
+  },
+  /** GIFs in chat come from Giphy (free key at developers.giphy.com). Without a key the GIF button is hidden. */
+  giphyApiKey: process.env.GIPHY_API_KEY || '',
+  /**
+   * Automatic photo checks (Sightengine: sightengine.com). With both set, profile and chat photos
+   * with nudity are refused at upload. Without them, photos rely on reports and admin review.
+   */
+  moderation: {
+    sightengineUser: process.env.SIGHTENGINE_API_USER || '',
+    sightengineSecret: process.env.SIGHTENGINE_API_SECRET || '',
   },
   /** Account emails (verification and password-reset codes); see services/auth/emailSender.ts. */
   email: {

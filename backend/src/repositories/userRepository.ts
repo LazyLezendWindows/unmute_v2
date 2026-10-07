@@ -6,11 +6,13 @@ export interface UserRow {
   /** Null for accounts created with a phone number. */
   email: string | null;
   is_active: number;
+  /** Set while the member has paused their profile (hidden from Discover). */
+  paused_at?: string | null;
 }
 
 export class UserRepository {
   static findById(id: string): Promise<UserRow | null> {
-    return getDatabase().get('SELECT id, email, is_active FROM users WHERE id = ?', [id]);
+    return getDatabase().get('SELECT id, email, is_active, paused_at FROM users WHERE id = ?', [id]);
   }
 
   static findByEmail(email: string): Promise<UserRow | null> {

@@ -54,6 +54,8 @@
       </span>
     </router-link>
 
+    <ReferralBanner />
+
     <router-link v-if="strength.next" :to="strength.next.to" class="me-card strength">
       <span class="strength-top"><strong>Complete your profile</strong><span>{{ strength.percent }}%</span></span>
       <span class="strength-bar" role="progressbar" :aria-valuenow="strength.percent" aria-valuemin="0" aria-valuemax="100" aria-label="Profile completeness">
@@ -130,9 +132,10 @@
           Notifications are blocked for Unmute. Allow them in your browser's site settings, then come back here.
         </p>
         <fieldset :disabled="preferencesBusy" class="border-0 p-0 d-grid gap-3">
-          <legend class="small fw-bold">Push preferences for your account</legend>
+          <legend class="small fw-bold">Notification preferences for your account</legend>
           <label class="alert-row"><span>Incoming calls</span><input v-model="preferences.calls" type="checkbox" role="switch" @change="savePreferences" /></label>
           <label class="alert-row"><span>New messages</span><input v-model="preferences.messages" type="checkbox" role="switch" @change="savePreferences" /></label>
+          <label class="alert-row"><span>Email me about new matches and messages while I'm away</span><input v-model="preferences.emailAlerts" type="checkbox" role="switch" @change="savePreferences" /></label>
         </fieldset>
         <p v-if="preferencesError" role="alert" class="text-danger small">{{ preferencesError }}</p>
         <p class="small mb-0 u-text-muted">While Unmute is open, calls and messages always show inside the app.</p>
@@ -145,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import ReferralBanner from '../components/referral/ReferralBanner.vue';
 import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, onMounted, ref } from 'vue';
 import ScreenBar from '../components/layout/ScreenBar.vue';
@@ -214,7 +218,7 @@ const alertsOpen = ref(false);
 const alertsOn = ref(false);
 const alertsBusy = ref(false);
 
-const preferences = ref({ calls: true, messages: true });
+const preferences = ref({ calls: true, messages: true, emailAlerts: true });
 const preferencesBusy = ref(false);
 const preferencesError = ref('');
 async function openAlerts() {

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { BanService } from './banService';
 import fs from 'fs/promises';
 import path from 'path';
 import { config } from '../config/env';
@@ -87,6 +88,7 @@ export class VerificationService {
     if (target !== current?.email) {
       const owner = await getDatabase().get<{ id: string }>('SELECT id FROM users WHERE email = ?', [target]);
       if (owner) throw new AppError('This email address belongs to another account.', 409);
+      await BanService.assertAllowed({ email: target });
     }
     return EmailCodeService.send(target, 'verify');
   }

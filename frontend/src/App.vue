@@ -22,6 +22,7 @@ import OfflineScreen from './components/layout/OfflineScreen.vue';
 import { useCallStore } from './stores/call';
 import { useAuthStore } from './stores/auth';
 import { onSubscriptionRequired } from './services/api';
+import { OPEN_WITHOUT_ACCESS } from './router';
 
 const route = useRoute();
 const router = useRouter();
@@ -30,7 +31,7 @@ const authStore = useAuthStore();
 onMounted(() => {
   onSubscriptionRequired(() => {
     useCallStore().reset();
-    if (route.name !== 'upgrade' && route.name !== 'safety') router.replace('/upgrade');
+    if (!OPEN_WITHOUT_ACCESS.includes(String(route.name))) router.replace('/upgrade');
   });
 });
 

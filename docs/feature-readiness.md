@@ -12,6 +12,18 @@
 
 ## Feature status
 
+- Referrals: every member has a code (like a username, e.g. asha4821) on Refer & earn (/referral), with copy, share, WhatsApp and an invite link (/welcome?ref=CODE) that fills the code in at sign-up. When the new account verifies a mobile number, both get 14 days of free access (stacked after any trial or plan; a referrer earns from up to 10 friends). Codes can be added at sign-up or in the first 7 days. Highlighted on Discover, Profile, Settings and Upgrade.
+- After the free trial or plan ends, only Upgrade, Refer & earn, Settings (account, appearance), Privacy & Safety, Terms and Privacy open; the server answers 402 to everything else except deleting or pausing the account, email status/change and referrals.
+- Email alerts: a new match or message emails members who aren't in the app (never the message text), at most once per chat every 6 hours; switch in Profile → Notifications. Needs SMTP in production.
+- GIFs in chat (Giphy, GIPHY_API_KEY); automatic photo checks on upload (Sightengine), plus admin photo removal. Both are off until their keys are set.
+- Phone app builds (Capacitor) don't sell plans, to follow store billing rules; plans bought on the website work in the app.
+
+- Unmatch: ends the match for both people (DELETE /api/v1/matches/:id). The chat, its messages and media are removed, the likes cleared, and each is passed for the other so neither reappears in Discover. The other person's open chat closes live.
+- Account settings (/settings/account): change or set a password (other devices are signed out), change email (code to the new address) or mobile number (SMS code), and pause the profile (hidden from Discover; matches and chats continue).
+- Profile prompts (up to 3, from a fixed list) and background details: religion, mother tongue, languages, diet, relationship status, family plans. Shown on profiles; religion, language, diet and status are free Discover filters.
+- Chat: typing indicator, reply to a message, one reaction per person (❤️ 😂 😮 😢 👍 🔥), and unsend for everyone (a photo or voice file is deleted too). Empty chats suggest conversation starters from the other person's prompts and shared interests.
+- Moderation: an admin Reports tab (open / resolved / all), and Ban, which disables the account and blocks its email and phone number (stored as hashes) from new sign-ups, Google sign-up, phone sign-up and email or phone changes. Lift ban re-enables the account.
+
 - Password reset: existing email/SMS code flow; unavailable-service errors do not claim delivery.
 - Terms/privacy: full Terms of Service and Privacy Policy (frontend/src/content/legal.ts), public at /terms and /privacy, shown in the sign-up dialogs and linked from Settings. Before launch: legal review, and set VITE_LEGAL_ENTITY, VITE_LEGAL_ADDRESS and VITE_SUPPORT_EMAIL in frontend/.env.
 - Account deletion: Settings → Delete account (password, or typing DELETE for phone/Google-only accounts). DELETE /api/v1/users/me removes the user and, through ON DELETE CASCADE, every related row; their uploaded and verification files are deleted too. Payment orders and reports the member made are kept with the user unlinked (migration 022), for tax records and moderation.

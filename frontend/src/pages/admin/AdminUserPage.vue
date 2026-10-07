@@ -17,6 +17,8 @@
           </h1>
           <div class="head-badges">
             <span class="badge" :class="u.isActive ? 'is-ok' : 'is-off'">{{ u.isActive ? 'Active' : 'Disabled' }}</span>
+            <span v-if="u.isBanned" class="badge is-off"><i class="ri-forbid-2-line" aria-hidden="true"></i> Banned</span>
+            <span v-if="u.isPaused" class="badge is-grey"><i class="ri-pause-circle-line" aria-hidden="true"></i> Paused</span>
             <span class="badge" :class="p?.isVerified ? 'is-blue' : 'is-grey'">{{ p?.isVerified ? 'Verified' : 'Not verified' }}</span>
             <PremiumBadge v-if="u.subscription.state === 'paid'" :plan="u.subscription.plan" label />
             <span v-else class="badge is-grey">{{ u.subscription.state === 'trial' ? 'Free trial' : 'No plan' }}</span>
@@ -33,6 +35,9 @@
           </button>
           <button v-if="u.isActive" type="button" class="action-btn is-danger" :disabled="busy" @click="disableOpen = true">
             <i class="ri-user-forbid-line" aria-hidden="true"></i> Disable
+          </button>
+          <button v-else-if="u.isBanned" type="button" class="action-btn is-enable" :disabled="busy" @click="liftBan">
+            <i class="ri-user-follow-line" aria-hidden="true"></i> Lift ban
           </button>
           <button v-else type="button" class="action-btn is-enable" :disabled="busy" @click="setActive(true)">
             <i class="ri-user-follow-line" aria-hidden="true"></i> Enable
@@ -84,14 +89,31 @@
         <section v-if="p" class="detail-card wide">
           <h2><i class="ri-profile-line" aria-hidden="true"></i> Profile</h2>
           <div v-if="photos.length" class="photos-row">
-            <a v-for="(url, i) in photos" :key="url + i" :href="mediaUrl(url)" target="_blank" rel="noopener" class="photo-thumb">
-              <img :src="mediaUrl(url)" :alt="`Photo ${i + 1}`" />
-            </a>
+            <div v-for="(url, i) in photos" :key="url + i" class="photo-item">
+              <a :href="mediaUrl(url)" target="_blank" rel="noopener" class="photo-thumb">
+                <img :src="mediaUrl(url)" :alt="`Photo ${i + 1}`" />
+              </a>
+              <button type="button" class="photo-remove" :disabled="busy" :aria-label="`Remove photo ${i + 1}`" @click="removePhoto(url)">
+                <i class="ri-delete-bin-6-line" aria-hidden="true"></i> Remove
+              </button>
+            </div>
           </div>
           <dl>
             <dt>Bio</dt><dd class="pre">{{ p.bio || '—' }}</dd>
             <dt>Date of birth</dt><dd>{{ p.dateOfBirth || '—' }} ({{ p.age }})</dd>
             <dt>Gender</dt><dd>{{ p.gender || '—' }}</dd>
+            <dt>Prompts</dt>
+            <dd>
+              <template v-if="p.prompts?.length">
+                <div v-for="pr in p.prompts" :key="pr.q" class="pre"><strong>{{ PROMPT_QUESTIONS[pr.q] || pr.q }}</strong> {{ pr.a }}</div>
+              </template>
+              <template v-else>—</template>
+            </dd>
+            <dt>Referral</dt>
+            <dd>
+              Code {{ u.referral?.code || '—' }} · {{ u.referral?.friendsJoined ?? 0 }} friends joined ({{ u.referral?.friendsRewarded ?? 0 }} rewarded)<template v-if="u.referral?.referredBy"> · invited by {{ u.referral.referredBy }}</template>
+            </dd>
+            <dt>Background</dt><dd>{{ backgroundChips(p).map((c) => c.text).join(' · ') || '—' }}</dd>
             <dt>Area</dt><dd>{{ p.location?.label || p.approximateLocation || '—' }}<template v-if="p.location"> · {{ p.location.source }}</template></dd>
             <dt>Profession</dt><dd>{{ p.profession || '—' }}<template v-if="p.professionField"> ({{ p.professionField }})</template></dd>
             <dt>Education</dt><dd>{{ p.education ? `${p.education.institutionName}${p.education.course ? ' · ' + p.education.course : ''}` : '—' }}</dd>
@@ -162,16 +184,21 @@
       <div class="d-flex flex-column gap-3">
         <p class="small mb-0" style="color: var(--unmute-text-secondary)">They'll be signed out everywhere and can't sign in until you re-enable them.</p>
         <UInput v-model="reason" placeholder="Reason (for the admin record)" :maxlength="200" />
+        <label class="ban-check">
+          <input v-model="alsoBan" type="checkbox" />
+          <span><strong>Also ban</strong> their email and phone number, so they can't make a new account with them.</span>
+        </label>
       </div>
       <template #footer>
         <UButton variant="secondary" size="md" @click="disableOpen = false">Cancel</UButton>
-        <UButton variant="danger" size="md" :loading="busy" @click="setActive(false)">Disable user</UButton>
+        <UButton variant="danger" size="md" :loading="busy" @click="alsoBan ? ban() : setActive(false)">{{ alsoBan ? 'Disable and ban' : 'Disable user' }}</UButton>
       </template>
     </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
+import { PROMPT_QUESTIONS, backgroundChips } from '../../content/profileOptions';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import UAvatar from '../../components/ui/UAvatar.vue';
@@ -213,6 +240,37 @@ async function setActive(active: boolean) {
     u.value = (await adminApi.post(`/users/${u.value.id}/status`, { active, ...(active ? {} : { reason: reason.value.trim() || undefined }) })).data.data;
     disableOpen.value = false; reason.value = '';
     useToastStore().success(active ? 'User enabled.' : 'User disabled and signed out.');
+  } catch (err: any) { useToastStore().error(err.message); }
+  finally { busy.value = false; }
+}
+
+const alsoBan = ref(false);
+
+async function ban() {
+  busy.value = true;
+  try {
+    u.value = (await adminApi.post(`/users/${u.value.id}/ban`, { reason: reason.value.trim() || undefined })).data.data;
+    disableOpen.value = false; reason.value = ''; alsoBan.value = false;
+    useToastStore().success('User disabled and banned.');
+  } catch (err: any) { useToastStore().error(err.message); }
+  finally { busy.value = false; }
+}
+
+async function removePhoto(url: string) {
+  if (!window.confirm('Remove this photo from their profile? The file is deleted.')) return;
+  busy.value = true;
+  try {
+    u.value = (await adminApi.post(`/users/${u.value.id}/photos/remove`, { url })).data.data;
+    useToastStore().success('Photo removed.');
+  } catch (err: any) { useToastStore().error(err.message); }
+  finally { busy.value = false; }
+}
+
+async function liftBan() {
+  busy.value = true;
+  try {
+    u.value = (await adminApi.delete(`/users/${u.value.id}/ban`)).data.data;
+    useToastStore().success('Ban lifted and account enabled.');
   } catch (err: any) { useToastStore().error(err.message); }
   finally { busy.value = false; }
 }
@@ -423,6 +481,24 @@ dl {
   &:hover { opacity: 0.85; }
 }
 
+.photo-item { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.photo-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: #fde7e9;
+  color: #c62839;
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  &:disabled { opacity: 0.55; }
+}
+
 /* Reports */
 .reports-list, .history-list {
   display: flex;
@@ -467,5 +543,15 @@ dl {
   font-size: 0.88rem;
 
   &:last-child { border-bottom: 0; }
+}
+
+.ban-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: var(--unmute-text-secondary);
+
+  input { margin-top: 0.2rem; width: 1.1rem; height: 1.1rem; accent-color: #c62839; flex-shrink: 0; }
 }
 </style>

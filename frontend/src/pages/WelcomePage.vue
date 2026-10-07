@@ -11,10 +11,15 @@
         <i class="ri-heart-3-fill hero-heart"></i>
       </div>
 
-      <UButton class="welcome-actions" variant="primary" size="lg" block @click="$router.push('/register')">
+
+      <UButton class="welcome-actions" variant="primary" size="lg" block @click="$router.push(inviteCode ? { path: '/register', query: { ref: inviteCode } } : '/register')">
         Get Started <i class="ri-arrow-right-line ms-2" aria-hidden="true"></i>
       </UButton>
 
+      <p v-if="inviteCode" class="invite-note" role="status">
+        <i class="ri-gift-2-fill" aria-hidden="true"></i>
+        <span>A friend invited you! Sign up with code <strong>{{ inviteCode }}</strong> and you both get <strong>2 weeks free</strong>.</span>
+      </p>
       <div class="auth-divider" role="separator">or continue with</div>
       <div class="social-row" :class="{ 'is-single': !googleAvailable }">
         <GoogleSignIn v-if="googleAvailable" text="continue_with" @authenticated="onSignedIn" />
@@ -30,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import AuthStage from '../components/auth/AuthStage.vue';
 import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
@@ -40,6 +45,8 @@ import { useGoogleAvailable } from '../composables/useGoogleIdentity';
 import couplePhoto from '../assets/welcome-couple.webp';
 
 const router = useRouter();
+// Invite links look like /welcome?ref=asha4821.
+const inviteCode = typeof useRoute().query.ref === 'string' ? String(useRoute().query.ref).replace(/[^A-Za-z0-9]/g, '').slice(0, 30) : '';
 // Google sign-in appears once GOOGLE_CLIENT_ID is set on the server.
 const googleAvailable = useGoogleAvailable();
 
@@ -140,5 +147,21 @@ function onSignedIn(isNewUser: boolean) {
 
 :global([data-theme='dark']) .hero-wave {
   opacity: 0.35;
+}
+
+.invite-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1.1rem;
+  background: linear-gradient(110deg, #ff7a6e 0%, #f21872 45%, #c00078 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  box-shadow: 0 14px 28px -16px rgba(192, 0, 120, 0.7);
+
+  i { flex-shrink: 0; font-size: 1.4rem; }
 }
 </style>
