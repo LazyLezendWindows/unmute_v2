@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { getDatabase, IDatabase } from '../config/database';
 import { ProfileRow } from '../mappers/profileMapper';
+import { freeEndSql } from '../services/subscriptionService';
 import { placeholders, blockedBetween } from './sql';
 import { Coordinates, boundingBox, haversineParams, haversineSql } from '../services/location/distance.service';
 
@@ -215,6 +216,11 @@ export class ProfileRepository {
        WHERE u.id <> ?
          AND u.is_active = 1
          AND u.paused_at IS NULL
+         -- Only members who can use the app (trial, plan or referral time left) are shown.
+         AND EXISTS (
+           SELECT 1 FROM subscriptions sa WHERE sa.user_id = u.id
+             AND GREATEST(${freeEndSql('sa.')}, COALESCE(sa.plan_expires_at, sa.trial_started_at)) > UTC_TIMESTAMP()
+         )
          AND NOT EXISTS (SELECT 1 FROM likes l WHERE l.liker_id = ? AND l.likee_id = u.id)
          AND NOT EXISTS (SELECT 1 FROM passes ps WHERE ps.passer_id = ? AND ps.passee_id = u.id)
          AND NOT ${blockedBetween('?', 'u.id')}
