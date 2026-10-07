@@ -72,6 +72,23 @@ $brand-text-muted: #7373ad; // secondary text
   --unmute-app-bg: radial-gradient(ellipse at 0% 0%, #fce3f5 0%, transparent 38%),
     radial-gradient(ellipse at 100% 100%, #f8d9fa 0%, transparent 44%),
     linear-gradient(145deg, #fcf8ff 0%, #fffaff 55%, #f7edff 100%);
+
+  // Content colours that screens use directly (cards, chips, status tints)
+  --unmute-card: #ffffff;
+  --unmute-card-soft: rgba(255, 255, 255, 0.85);
+  --unmute-chip-bg: #f5f1fc;
+  --unmute-chip-pink: #fbeaf6;
+  --unmute-line: #ece7f5;
+  --unmute-danger-surface: #fde7e9;
+  --unmute-danger-text: #c62839;
+  --unmute-success-surface: #e3f8ea;
+  --unmute-success-text: #137a3a;
+  --unmute-warn-surface: #fff4dc;
+  --unmute-warn-text: #9a6200;
+  --unmute-info-surface: #e2effe;
+  --unmute-info-text: #1d6fd8;
+  --unmute-subtitle: #5b4bc4;
+  --unmute-track: #ece7f4;
 }
 
 @mixin spatial-dark {
@@ -129,6 +146,23 @@ $brand-text-muted: #7373ad; // secondary text
   --unmute-app-bg: radial-gradient(90% 40% at 100% 0%, rgba(242, 24, 114, 0.16) 0%, transparent 70%),
     radial-gradient(80% 45% at 0% 100%, rgba(121, 0, 110, 0.22) 0%, transparent 70%),
     linear-gradient(180deg, #1a0a22 0%, #0f0714 50%, #150a1f 100%);
+
+  // Content colours: lifted plum cards on a near-black page, with bright, readable tints
+  --unmute-card: #1e1229;
+  --unmute-card-soft: rgba(36, 22, 48, 0.9);
+  --unmute-chip-bg: #2b1c38;
+  --unmute-chip-pink: rgba(242, 24, 114, 0.18);
+  --unmute-line: rgba(255, 240, 245, 0.1);
+  --unmute-danger-surface: rgba(255, 107, 94, 0.16);
+  --unmute-danger-text: #ff8a80;
+  --unmute-success-surface: rgba(62, 224, 161, 0.14);
+  --unmute-success-text: #5ee6b0;
+  --unmute-warn-surface: rgba(245, 165, 36, 0.16);
+  --unmute-warn-text: #ffc861;
+  --unmute-info-surface: rgba(77, 160, 255, 0.16);
+  --unmute-info-text: #8ec5ff;
+  --unmute-subtitle: #c4b2f5;
+  --unmute-track: rgba(255, 255, 255, 0.14);
 }
 
 :root {

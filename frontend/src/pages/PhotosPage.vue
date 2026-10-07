@@ -155,7 +155,7 @@ $ink: var(--unmute-text-heading);
   position: relative;
   aspect-ratio: 0.74;
   border-radius: 1.2rem;
-  background: #f3e8fb center 25% / cover;
+  background: var(--unmute-chip-bg) center 25% / cover;
   overflow: hidden;
 
   &.is-add {
@@ -165,7 +165,7 @@ $ink: var(--unmute-text-heading);
     justify-content: center;
     gap: 0.6rem;
     border: 2px dashed rgba(242, 24, 114, 0.5);
-    background: #fdf1f9;
+    background: var(--unmute-chip-pink);
     color: var(--unmute-cta);
     font-weight: 700;
     font-size: 0.95rem;
@@ -193,7 +193,7 @@ $ink: var(--unmute-text-heading);
   height: 1.9rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: var(--unmute-cta);
   font-size: 1.1rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
@@ -210,7 +210,7 @@ $ink: var(--unmute-text-heading);
   padding: 0.3rem 0.7rem;
   border: 0;
   border-radius: var(--unmute-radius-pill);
-  background: #fff;
+  background: var(--unmute-card);
   color: var(--unmute-cta);
   font-size: 0.75rem;
   font-weight: 600;
@@ -218,7 +218,7 @@ $ink: var(--unmute-text-heading);
 }
 
 .make-main {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--unmute-card-soft);
   color: $ink;
   font-weight: 500;
 }
@@ -275,7 +275,7 @@ $ink: var(--unmute-text-heading);
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  background: #fbe9f5;
+  background: var(--unmute-chip-pink);
   color: var(--unmute-cta);
   font-size: 1.6rem;
 }

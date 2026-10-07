@@ -604,7 +604,7 @@ function afterBlock() {
   font-size: 1.5rem;
 
   [aria-pressed='true'] & {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--unmute-card-soft);
     color: #7b1f6e;
   }
 }

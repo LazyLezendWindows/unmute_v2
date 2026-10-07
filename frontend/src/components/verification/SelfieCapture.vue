@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 0.7rem 0.9rem;
   border-radius: 1rem;
-  background: #fbe9f5;
+  background: var(--unmute-chip-pink);
   color: var(--unmute-text-heading);
   font-weight: 600;
   font-size: 0.92rem;

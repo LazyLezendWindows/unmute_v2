@@ -32,7 +32,6 @@ export default defineConfig({
         PORT: String(API_PORT),
         MARIADB_DATABASE: 'unmute_e2e_db',
         CORS_ORIGIN: `http://localhost:${WEB_PORT}`,
-        SEED_DEMO_USERS: 'false',
       },
     },
     {

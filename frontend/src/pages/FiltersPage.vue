@@ -423,7 +423,7 @@ $pink: var(--unmute-cta);
   padding: 0.7rem 1.4rem;
   border: 0;
   border-radius: var(--unmute-radius-pill);
-  background: #fff;
+  background: var(--unmute-card);
   color: $pink;
   font-size: 1rem;
   font-weight: 600;
@@ -507,7 +507,7 @@ $pink: var(--unmute-cta);
 // Options: white with a hairline border; chosen ones turn soft pink with a pink edge.
 @mixin option {
   border: 1.5px solid var(--unmute-mobile-option-border, rgba(74, 0, 91, 0.1));
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
 
   i {
@@ -516,7 +516,7 @@ $pink: var(--unmute-cta);
 
   &[aria-pressed='true'] {
     border-color: var(--unmute-mobile-selected-border, rgba(242, 24, 114, 0.6));
-    background: #fdeaf4;
+    background: var(--unmute-chip-pink);
     color: $pink;
 
     i {
@@ -675,7 +675,7 @@ $pink: var(--unmute-cta);
 
   > i {
     font-size: 1.7rem;
-    color: #5a4be0;
+    color: var(--unmute-subtitle);
   }
 }
 
@@ -702,7 +702,7 @@ $pink: var(--unmute-cta);
   width: 3.2rem;
   height: 1.9rem;
   border-radius: 9999px;
-  background: #e5dff2;
+  background: var(--unmute-track);
   cursor: pointer;
   transition: background var(--unmute-transition-fast);
 
@@ -714,7 +714,7 @@ $pink: var(--unmute-cta);
     width: 1.5rem;
     height: 1.5rem;
     border-radius: 50%;
-    background: #fff;
+    background: var(--unmute-card);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     transition: transform var(--unmute-transition-fast);
   }
@@ -749,7 +749,7 @@ $pink: var(--unmute-cta);
   height: 1.7rem;
   border-radius: 50%;
   border: 2px solid $pink;
-  background: #fff;
+  background: var(--unmute-card);
   box-shadow: 0 2px 8px rgba(192, 0, 120, 0.3);
   cursor: pointer;
 }
@@ -770,7 +770,7 @@ input[type='range'] {
 input.single-range {
   --fill: 0%;
   background: linear-gradient(90deg, #ff4f8e, #8a1fb0) 0 50% / var(--fill) 6px no-repeat,
-    linear-gradient(#ece7f4, #ece7f4) 0 50% / 100% 6px no-repeat;
+    linear-gradient(var(--unmute-track), var(--unmute-track)) 0 50% / 100% 6px no-repeat;
 }
 
 // Two range inputs stacked on one track; only their thumbs take the pointer.
@@ -778,7 +778,7 @@ input.single-range {
   position: relative;
   height: 40px;
   background: linear-gradient(90deg, #ff4f8e, #8a1fb0) var(--from) 50% / calc(var(--to) - var(--from)) 6px no-repeat,
-    linear-gradient(#ece7f4, #ece7f4) 0 50% / 100% 6px no-repeat;
+    linear-gradient(var(--unmute-track), var(--unmute-track)) 0 50% / 100% 6px no-repeat;
 
   input {
     position: absolute;
@@ -880,7 +880,7 @@ input.single-range {
   padding: 0.5rem 1rem;
   border: 1.5px solid rgba(242, 24, 114, 0.45);
   border-radius: var(--unmute-radius-pill);
-  background: #fdf0f7;
+  background: var(--unmute-chip-pink);
   color: $pink;
   font-weight: 600;
 }

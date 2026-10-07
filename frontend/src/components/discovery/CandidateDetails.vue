@@ -95,7 +95,7 @@ const background = computed(() => backgroundChips(props.person));
 .d-card {
   padding: 1rem 1.1rem 1.1rem;
   border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--unmute-card-soft);
   box-shadow: 0 10px 30px -22px rgba(117, 48, 170, 0.5);
 }
 
@@ -115,14 +115,14 @@ const background = computed(() => backgroundChips(props.person));
     margin: 0;
     font-size: 1.2rem;
     font-weight: 800;
-    color: #10106b;
+    color: var(--unmute-text-heading);
   }
 }
 
 .d-more {
   border: 0;
   background: transparent;
-  color: #10106b;
+  color: var(--unmute-text-heading);
   font-size: 1.4rem;
   line-height: 1;
 }
@@ -130,7 +130,7 @@ const background = computed(() => backgroundChips(props.person));
 .d-bio {
   margin: 0;
   padding-left: 2.35rem;
-  color: #4b4fa6;
+  color: var(--unmute-text-secondary);
   font-size: 1.02rem;
   line-height: 1.5;
   white-space: pre-line;
@@ -148,7 +148,7 @@ const background = computed(() => backgroundChips(props.person));
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1.35;
-  color: #10106b;
+  color: var(--unmute-text-heading);
   white-space: pre-line;
 }
 
@@ -164,8 +164,8 @@ const background = computed(() => backgroundChips(props.person));
   gap: 0.4rem;
   padding: 0.45rem 0.9rem;
   border-radius: var(--unmute-radius-pill);
-  background: #eef0fd;
-  color: #10106b;
+  background: var(--unmute-chip-bg);
+  color: var(--unmute-text-heading);
   font-size: 0.95rem;
 
   i {
@@ -174,8 +174,8 @@ const background = computed(() => backgroundChips(props.person));
   }
 
   &.is-shared {
-    background: #fbeaf6;
-    color: #c00078;
+    background: var(--unmute-chip-pink);
+    color: var(--unmute-accent-text);
 
     i {
       color: #e5147c;
@@ -187,7 +187,7 @@ const background = computed(() => backgroundChips(props.person));
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1.2rem;
-  color: #4b4fa6;
+  color: var(--unmute-text-secondary);
   font-size: 0.98rem;
 
   span {

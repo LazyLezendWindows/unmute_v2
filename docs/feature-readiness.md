@@ -41,6 +41,10 @@ Calling fixes cover cancelled permission requests, delayed ICE configuration, co
 
 ## Deployment
 
+No demo or sample members are created anywhere; production starts with an empty member list. Reference data (states, districts, cities, sample PIN codes and colleges) is seeded on start; load the full official lists with `npm --prefix backend run import:data:prod -- places|pincodes|institutions <file.csv>` (see README).
+
+Uploaded photos are written to UPLOAD_DIR (default backend/data/uploads). On hosts without a persistent disk (e.g. Render's free plan) they are lost on every redeploy: attach a persistent disk/volume and point UPLOAD_DIR and PRIVATE_UPLOAD_DIR at it. Local data (backend/data), build output and node_modules are not in git and never go into the Docker image.
+
 At startup the server prints one line per outside service (email, SMS, Google, payments, push, call relay) saying whether it is live or which keys it still needs.
 
 

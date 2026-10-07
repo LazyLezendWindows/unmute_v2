@@ -105,8 +105,8 @@ function dismiss() {
   margin-left: auto;
   padding: 0.45rem 1rem;
   border-radius: 9999px;
-  background: #fff;
-  color: #c00078;
+  background: var(--unmute-card);
+  color: var(--unmute-accent-text);
   font-size: 0.85rem;
   font-weight: 800;
   text-decoration: none;

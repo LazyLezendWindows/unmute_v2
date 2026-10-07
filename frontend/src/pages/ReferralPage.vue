@@ -217,8 +217,8 @@ onMounted(load);
   padding: 0.4rem 0.9rem;
   border: 0;
   border-radius: 9999px;
-  background: #fff;
-  color: #c00078;
+  background: var(--unmute-card);
+  color: var(--unmute-accent-text);
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -244,7 +244,7 @@ onMounted(load);
   text-decoration: none;
 
   i { font-size: 1.1rem; }
-  &.is-main { background: #fff; border-color: #fff; color: #c00078; }
+  &.is-main { background: var(--unmute-card); border-color: #fff; color: var(--unmute-accent-text); }
   &.is-whatsapp { background: #25d366; border-color: #25d366; }
 }
 

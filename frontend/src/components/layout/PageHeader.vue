@@ -27,16 +27,16 @@ defineProps<{ title: string; subtitle?: string; back?: string }>();
   font-size: clamp(2rem, 6vw, 2.3rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #10106b;
+  color: var(--unmute-text-heading);
 }
 
 .page-subtitle {
   margin: 0.1rem 0 0;
   font-size: 1.2rem;
-  color: #5b4bc4;
+  color: var(--unmute-subtitle);
 }
 
-:global([data-theme='dark']) .page-title {
+:global([data-theme='dark'] .page-title) {
   color: var(--unmute-text-heading);
 }
 </style>

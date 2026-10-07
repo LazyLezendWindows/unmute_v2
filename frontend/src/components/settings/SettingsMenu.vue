@@ -154,8 +154,8 @@ async function handleLogout() {
   flex-shrink: 0;
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
-  background: #fff;
-  color: #c00078;
+  background: var(--unmute-card);
+  color: var(--unmute-accent-text);
   font-size: 0.72rem;
   font-weight: 800;
 }

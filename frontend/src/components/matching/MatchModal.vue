@@ -199,7 +199,7 @@ $pink: var(--unmute-cta);
   height: 2.8rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 1.5rem;
   transform: translateY(-50%);
@@ -376,7 +376,7 @@ $pink: var(--unmute-cta);
   height: 2.5rem;
   margin-bottom: 0.3rem;
   border-radius: 50%;
-  background: #fbe4f2;
+  background: var(--unmute-chip-pink);
   color: $pink;
   font-size: 1.2rem;
 }
@@ -406,7 +406,7 @@ $pink: var(--unmute-cta);
 .swipe-btn {
   margin-top: 0.6rem;
   border: 1.5px solid rgba(242, 24, 114, 0.45);
-  background: #fdf0f7;
+  background: var(--unmute-chip-pink);
   color: $pink;
   font-weight: 600;
 }
@@ -512,18 +512,18 @@ $pink: var(--unmute-cta);
   height: 1.8rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: $pink;
   font-size: 1rem;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
 // Dark mode: keep the layout, swap the pale backdrop for the app's dark one.
-:global([data-theme='dark']) .match-screen {
+:global([data-theme='dark'] .match-screen) {
   background: var(--unmute-app-bg);
 }
 
-:global([data-theme='dark']) .match-screen .big-heart {
+:global([data-theme='dark'] .match-screen .big-heart) {
   color: rgba(242, 24, 114, 0.15);
 }
 

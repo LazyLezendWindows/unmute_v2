@@ -145,7 +145,7 @@ function onSignedIn(isNewUser: boolean) {
   }
 }
 
-:global([data-theme='dark']) .hero-wave {
+:global([data-theme='dark'] .hero-wave) {
   opacity: 0.35;
 }
 

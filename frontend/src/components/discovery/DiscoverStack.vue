@@ -212,7 +212,7 @@ defineExpose({ fling });
   inset: 0;
   border-radius: 1.8rem;
   overflow: hidden;
-  background-color: #efe3f3;
+  background-color: var(--unmute-chip-pink);
   background-size: cover;
   background-position: center;
   box-shadow: 0 16px 36px -18px rgba(117, 48, 170, 0.45);
@@ -285,7 +285,7 @@ defineExpose({ fling });
     background: rgba(255, 255, 255, 0.45);
 
     &.is-on {
-      background: #fff;
+      background: var(--unmute-card);
     }
   }
 }
@@ -313,8 +313,8 @@ defineExpose({ fling });
   gap: 0.4rem;
   padding: 0.3rem 0.8rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #1a7a3c;
+  background: var(--unmute-card-soft);
+  color: var(--unmute-success-text);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -369,7 +369,7 @@ defineExpose({ fling });
   color: #1d8cf8;
   font-size: 0.75em;
   vertical-align: 0.05em;
-  background: radial-gradient(circle, #fff 45%, transparent 46%);
+  background: radial-gradient(circle, var(--unmute-card) 45%, transparent 46%);
 }
 
 .caption-line {
@@ -395,15 +395,15 @@ defineExpose({ fling });
   gap: 0.5rem;
   padding: 0.45rem 0.9rem 0.45rem 0.45rem;
   border-radius: 1.4rem;
-  background: rgba(255, 255, 255, 0.92);
-  color: #3c3fa0;
+  background: var(--unmute-card-soft);
+  color: var(--unmute-text-secondary);
   font-size: 0.85rem;
   pointer-events: none;
 
   strong {
     display: block;
     font-size: 1.15rem;
-    color: #10106b;
+    color: var(--unmute-text-heading);
   }
 
   span:last-child {
@@ -417,8 +417,8 @@ defineExpose({ fling });
   width: 2.7rem;
   height: 2.7rem;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 58%, transparent 60%),
-    conic-gradient(#f21872 calc(var(--pct) * 1%), #fbd3e7 0);
+  background: radial-gradient(circle, var(--unmute-card) 58%, transparent 60%),
+    conic-gradient(#f21872 calc(var(--pct) * 1%), var(--unmute-chip-pink) 0);
   color: #f21872;
   font-size: 1.3rem;
 }

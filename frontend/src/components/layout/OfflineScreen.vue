@@ -120,7 +120,7 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 2100;
   overflow-y: auto;
-  background: linear-gradient(180deg, #fdf7fd 0%, #fbf4fd 60%, #f6ecfc 100%);
+  background: linear-gradient(180deg, var(--unmute-chip-pink) 0%, #fbf4fd 60%, #f6ecfc 100%);
 }
 
 .orb {
@@ -328,12 +328,12 @@ onBeforeUnmount(() => {
   color: var(--unmute-danger);
 }
 
-:global([data-theme='dark']) .offline-screen {
+:global([data-theme='dark'] .offline-screen) {
   background: var(--unmute-app-bg);
 }
 
-:global([data-theme='dark']) .offline-screen .waves,
-:global([data-theme='dark']) .offline-screen .orb {
+:global([data-theme='dark'] .offline-screen .waves),
+:global([data-theme='dark'] .offline-screen .orb) {
   opacity: 0.2;
 }
 

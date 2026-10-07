@@ -104,8 +104,6 @@ export const config = {
   },
   /** Where uploaded profile photos are stored (served back at /api/v1/media/<file>). */
   uploadDir: process.env.UPLOAD_DIR || path.resolve(__dirname, '../../data/uploads'),
-  /** Seed demo accounts on an empty database (never in production). */
-  seedDemoUsers: !isProduction && process.env.SEED_DEMO_USERS === 'true',
   mariadb: {
     host: process.env.MARIADB_HOST || '127.0.0.1',
     port: parseInt(process.env.MARIADB_PORT || '3307', 10),

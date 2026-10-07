@@ -6,19 +6,16 @@ import { config } from './config/env';
 import { initDatabase } from './config/database';
 import { initSocketServer } from './sockets/chatSocket';
 import { readinessReport } from './utils/readiness';
-import { seedInterests, seedReferenceData, seedDemoUsersIfEmpty } from './utils/seed';
+import { seedInterests, seedReferenceData } from './utils/seed';
 
 async function bootstrap() {
   try {
     // 1. Apply pending database migrations
     await initDatabase();
 
-    // 2. Seed reference data; demo accounts only when explicitly enabled in development
+    // 2. Seed reference data (interests, states, districts, cities, colleges); never member accounts
     await seedInterests();
     await seedReferenceData();
-    if (config.seedDemoUsers) {
-      await seedDemoUsersIfEmpty();
-    }
     for (const line of readinessReport()) console.log(`[Unmute] ${line}`);
     await AdminAuthService.announceSetup();
 

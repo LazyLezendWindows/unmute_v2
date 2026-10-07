@@ -35,8 +35,8 @@ async function resume() {
   margin: 0 0 0.9rem;
   padding: 0.7rem 0.9rem;
   border-radius: 1rem;
-  background: #fff4dc;
-  color: #6b4500;
+  background: var(--unmute-warn-surface);
+  color: var(--unmute-warn-text);
   font-size: 0.88rem;
 
   i { flex-shrink: 0; font-size: 1.4rem; }

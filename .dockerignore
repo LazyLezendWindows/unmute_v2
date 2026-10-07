@@ -1,0 +1,11 @@
+# Never put local data, secrets or build output into the image; it is built from source.
+**/node_modules
+backend/data
+backend/dist
+frontend/dist
+frontend/dev-dist
+backend/.env
+frontend/.env
+test-results
+playwright-report
+.git

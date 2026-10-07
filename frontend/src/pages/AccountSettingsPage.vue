@@ -336,8 +336,8 @@ async function confirmPhone(code: string) {
   font-size: 0.72rem;
   font-weight: 700;
 
-  &.is-ok { background: #e3f8ea; color: #137a3a; }
-  &.is-warn { background: #fff4dc; color: #9a6200; }
+  &.is-ok { background: var(--unmute-success-surface); color: var(--unmute-success-text); }
+  &.is-warn { background: var(--unmute-warn-surface); color: var(--unmute-warn-text); }
 }
 
 .a-btn {
@@ -378,7 +378,7 @@ async function confirmPhone(code: string) {
     width: 1.35rem;
     height: 1.35rem;
     border-radius: 50%;
-    background: #fff;
+    background: var(--unmute-card);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     transition: transform 0.15s;
   }

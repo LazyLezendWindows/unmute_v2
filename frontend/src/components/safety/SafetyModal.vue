@@ -237,18 +237,18 @@ async function submitAction() {
 }
 
 .form-control-themed {
-  background-color: var(--unmute-input-bg, #ffffff);
+  background-color: var(--unmute-input-bg, var(--unmute-card));
   border: 1px solid var(--unmute-input-border, #cbd5e1);
-  color: var(--unmute-text-primary, #0f172a);
+  color: var(--unmute-text-primary, var(--unmute-text-heading));
   border-radius: var(--unmute-radius-md, 14px);
   padding: 0.65rem 1rem;
   font-size: 0.875rem;
 
   &:focus {
-    background-color: var(--unmute-input-bg, #ffffff);
+    background-color: var(--unmute-input-bg, var(--unmute-card));
     border-color: var(--unmute-primary, #8b5cf6);
     box-shadow: 0 0 0 3px var(--unmute-primary-surface);
-    color: var(--unmute-text-primary, #0f172a);
+    color: var(--unmute-text-primary, var(--unmute-text-heading));
   }
 
   &::placeholder {

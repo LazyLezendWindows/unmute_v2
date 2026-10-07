@@ -51,8 +51,8 @@ onBeforeUnmount(() => {
   margin-bottom: 0.8rem;
   padding: 0.65rem 0.9rem;
   border-radius: 1rem;
-  background: #fff4dc;
-  color: #7a4d00;
+  background: var(--unmute-warn-surface);
+  color: var(--unmute-warn-text);
   font-size: 0.88rem;
   text-decoration: none;
 }

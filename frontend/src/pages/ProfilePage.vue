@@ -257,8 +257,8 @@ async function toggleAlerts() {
 </script>
 
 <style scoped lang="scss">
-$ink: #10106b;
-$soft: #4b4fa6;
+$ink: var(--unmute-text-heading);
+$soft: var(--unmute-text-secondary);
 
 .profile-page {
   width: 100%;
@@ -322,7 +322,7 @@ $soft: #4b4fa6;
   gap: 0.35rem;
   padding: 0.4rem 0.95rem;
   border-radius: var(--unmute-radius-pill);
-  background: #fbe4f2;
+  background: var(--unmute-chip-pink);
   color: #e5147c;
   font-size: 0.9rem;
   font-weight: 600;
@@ -353,7 +353,7 @@ $soft: #4b4fa6;
     align-items: center;
 
     & + div {
-      border-left: 1px solid #e3dcf3;
+      border-left: 1px solid var(--unmute-line);
     }
   }
 
@@ -389,7 +389,7 @@ $soft: #4b4fa6;
   aspect-ratio: 0.8;
   border: 2px solid transparent;
   border-radius: 0.9rem;
-  background: #efe3f3 center 25% / cover;
+  background: var(--unmute-chip-pink) center 25% / cover;
   overflow: hidden;
 
   &.is-main {
@@ -412,7 +412,7 @@ $soft: #4b4fa6;
   display: block;
   padding: 1rem 1.1rem;
   border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--unmute-card-soft);
   box-shadow: 0 10px 30px -22px rgba(117, 48, 170, 0.5);
   color: inherit;
   text-decoration: none;
@@ -471,7 +471,7 @@ $soft: #4b4fa6;
   gap: 0.4rem;
   padding: 0.45rem 0.9rem;
   border-radius: var(--unmute-radius-pill);
-  background: #fbeaf6;
+  background: var(--unmute-chip-pink);
   color: $ink;
   font-size: 0.95rem;
 
@@ -494,7 +494,7 @@ $soft: #4b4fa6;
     min-width: 0;
 
     & + span {
-      border-left: 1px solid #e3dcf3;
+      border-left: 1px solid var(--unmute-line);
     }
   }
 
@@ -550,7 +550,7 @@ $soft: #4b4fa6;
   text-decoration: none;
 
   & + .row {
-    border-top: 1px solid #ece6f7;
+    border-top: 1px solid var(--unmute-line);
   }
 
   > i {
@@ -568,7 +568,7 @@ $soft: #4b4fa6;
     color: $soft;
 
     &.is-ok {
-      color: #1a7a3c;
+      color: var(--unmute-success-text);
     }
   }
 }
@@ -594,7 +594,7 @@ $soft: #4b4fa6;
   display: block;
   height: 0.45rem;
   border-radius: 9999px;
-  background: #f1ebfb;
+  background: var(--unmute-chip-bg);
   overflow: hidden;
 
   span {
@@ -669,7 +669,7 @@ $soft: #4b4fa6;
   width: 3.2rem;
   height: 1.9rem;
   border-radius: 9999px;
-  background: #e5dff2;
+  background: var(--unmute-track);
   cursor: pointer;
 
   &::after {
@@ -680,7 +680,7 @@ $soft: #4b4fa6;
     width: 1.5rem;
     height: 1.5rem;
     border-radius: 50%;
-    background: #fff;
+    background: var(--unmute-card);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     transition: transform var(--unmute-transition-fast);
   }

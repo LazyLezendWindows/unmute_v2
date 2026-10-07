@@ -224,4 +224,4 @@ npm run build
 
 ## 6. Demo Accounts (development only)
 
-Demo profiles are no longer seeded automatically. To seed them into an empty development database, set `SEED_DEMO_USERS=true` in `backend/.env` (ignored when `NODE_ENV=production`).
+The app ships with no demo or sample member accounts: every profile is a real sign-up.

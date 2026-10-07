@@ -64,7 +64,7 @@ onBeforeUnmount(() => clearTimeout(timer));
   margin: 0 0.75rem 0.5rem;
   padding: 0.6rem;
   border-radius: 1.1rem;
-  background: #fff;
+  background: var(--unmute-card);
   box-shadow: 0 12px 30px -18px rgba(117, 48, 170, 0.6);
 }
 
@@ -75,15 +75,15 @@ onBeforeUnmount(() => clearTimeout(timer));
   padding: 0 0.4rem 0 0.8rem;
   min-height: 2.6rem;
   border-radius: 9999px;
-  background: #f5f1fc;
-  color: #6c70b8;
+  background: var(--unmute-chip-bg);
+  color: var(--unmute-text-muted);
 
-  input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: #10106b; }
+  input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--unmute-text-heading); }
 }
 
-.gif-close { border: 0; background: transparent; color: #6c70b8; font-size: 1.2rem; }
+.gif-close { border: 0; background: transparent; color: var(--unmute-text-muted); font-size: 1.2rem; }
 
-.gif-status { margin: 0.75rem 0; text-align: center; color: #6c70b8; font-size: 0.88rem; }
+.gif-status { margin: 0.75rem 0; text-align: center; color: var(--unmute-text-muted); font-size: 0.88rem; }
 
 .gif-grid {
   display: grid;
@@ -99,11 +99,11 @@ onBeforeUnmount(() => clearTimeout(timer));
   border: 0;
   border-radius: 0.6rem;
   overflow: hidden;
-  background: #f5f1fc;
+  background: var(--unmute-chip-bg);
   aspect-ratio: 1;
 
   img { width: 100%; height: 100%; object-fit: cover; display: block; }
 }
 
-.gif-credit { margin: 0.35rem 0 0; text-align: right; font-size: 0.65rem; color: #9a96b8; }
+.gif-credit { margin: 0.35rem 0 0; text-align: right; font-size: 0.65rem; color: var(--unmute-text-muted); }
 </style>

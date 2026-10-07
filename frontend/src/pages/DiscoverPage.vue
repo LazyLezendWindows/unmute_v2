@@ -409,8 +409,8 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
   gap: 0.5rem;
   padding: 0.6rem 0.9rem;
   border-radius: 1rem;
-  background: #e2f5fb;
-  color: #0e5f78;
+  background: var(--unmute-info-surface);
+  color: var(--unmute-info-text);
   font-size: 0.88rem;
   text-decoration: none;
 
@@ -425,8 +425,8 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
   padding: 0.5rem 1.1rem;
   border: 0;
   border-radius: var(--unmute-radius-pill);
-  background: #fff;
-  color: #2a1470;
+  background: var(--unmute-card);
+  color: var(--unmute-text-heading);
   font-weight: 700;
   font-size: 0.9rem;
 
@@ -484,7 +484,7 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
 
   i {
     font-size: 1.5rem;
-    color: #5a2bd9;
+    color: var(--unmute-subtitle);
   }
 
   &[aria-pressed='true'] {
@@ -601,7 +601,7 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
   gap: 0.2rem;
   padding: 0.15rem 0.5rem;
   border-radius: var(--unmute-radius-pill);
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 0.75rem;
   font-weight: 700;
@@ -642,7 +642,7 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
 
   i {
     flex-shrink: 0;
-    color: #5a2bd9;
+    color: var(--unmute-subtitle);
   }
 }
 
@@ -740,7 +740,7 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
   height: 2rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: #9b2de0;
   font-size: 1.1rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
@@ -770,8 +770,8 @@ $gradient: linear-gradient(100deg, #ff4f8e 0%, #f21872 45%, #c00078 100%);
   }
 
   &.is-online {
-    background: #e3f8ea;
-    color: #137a3a;
+    background: var(--unmute-success-surface);
+    color: var(--unmute-success-text);
 
     span { background: #1fc75b; }
   }

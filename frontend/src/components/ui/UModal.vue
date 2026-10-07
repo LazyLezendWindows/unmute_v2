@@ -155,7 +155,7 @@ const maxWidthClass = computed(() => {
 
   &:hover {
     background: var(--unmute-surface-active);
-    color: var(--unmute-text-primary, #0f172a);
+    color: var(--unmute-text-primary, var(--unmute-text-heading));
     transform: scale(1.1);
   }
 

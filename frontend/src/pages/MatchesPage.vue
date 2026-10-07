@@ -305,7 +305,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', updateTabsMore));
 </script>
 
 <style scoped lang="scss">
-$ink: #10106b;
+$ink: var(--unmute-text-heading);
 $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
 .matches-page {
@@ -338,7 +338,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 .page-sub {
   margin-bottom: 1rem;
   font-size: 1.25rem;
-  color: #5b4bc4;
+  color: var(--unmute-subtitle);
 }
 
 .pill-tabs {
@@ -354,7 +354,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin-bottom: 1.1rem;
   padding: 0.25rem;
   border-radius: var(--unmute-radius-pill);
-  background: #f3effc;
+  background: var(--unmute-chip-bg);
   overflow-x: auto;
   scrollbar-width: none;
 
@@ -369,7 +369,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     border: 0;
     border-radius: var(--unmute-radius-pill);
     background: transparent;
-    color: #4b3fb8;
+    color: var(--unmute-text-secondary);
     font-size: 0.92rem;
     white-space: nowrap;
   }
@@ -410,7 +410,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   flex-direction: column;
   overflow: hidden;
   border-radius: 1.4rem;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--unmute-card-soft);
   box-shadow: 0 12px 30px -20px rgba(117, 48, 170, 0.5);
 }
 
@@ -467,7 +467,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
 }
 
 .photo-more {
@@ -481,8 +481,8 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   height: 1.9rem;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
-  color: #333;
+  background: var(--unmute-card-soft);
+  color: var(--unmute-text-heading);
   font-size: 1.1rem;
 }
 
@@ -516,7 +516,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   align-items: center;
   gap: 0.2rem;
   flex-shrink: 0;
-  color: #3c3fa0;
+  color: var(--unmute-text-secondary);
   font-size: 0.95rem;
 }
 
@@ -536,7 +536,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   height: 1.6rem;
   padding: 0 0.45rem;
   border-radius: 9999px;
-  background: #faf1fb;
+  background: var(--unmute-chip-pink);
   color: $ink;
   font-size: 0.72rem;
   white-space: nowrap;
@@ -568,8 +568,8 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 }
 
 .act-hide {
-  background: #f1eefa;
-  color: #3c3fa0;
+  background: var(--unmute-chip-bg);
+  color: var(--unmute-text-secondary);
 }
 
 .act-chat {

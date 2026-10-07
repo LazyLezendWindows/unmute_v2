@@ -735,9 +735,9 @@ function formatMessageTime(iso: string): string {
 </script>
 
 <style scoped lang="scss">
-$ink: #10106b;
-$ink-soft: #3c3fa0;
-$muted: #6c70b8;
+$ink: var(--unmute-text-heading);
+$ink-soft: var(--unmute-text-secondary);
+$muted: var(--unmute-text-muted);
 $pink: #f21872;
 $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
@@ -776,7 +776,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 .list-sub {
   margin-bottom: 1.1rem;
   font-size: 1.3rem;
-  color: #5b4bc4;
+  color: var(--unmute-subtitle);
 }
 
 .list-search {
@@ -786,7 +786,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0 1.2rem;
   height: 3.4rem;
   border-radius: var(--unmute-radius-pill);
-  background: #f3effc;
+  background: var(--unmute-chip-bg);
   box-shadow: inset 0 0 0 1px rgba(123, 31, 214, 0.06);
   color: $ink-soft;
 
@@ -814,7 +814,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin: 1rem 0;
   padding: 0.25rem;
   border-radius: var(--unmute-radius-pill);
-  background: #f3effc;
+  background: var(--unmute-chip-bg);
 
   button {
     flex: 1;
@@ -826,7 +826,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     border: 0;
     border-radius: var(--unmute-radius-pill);
     background: transparent;
-    color: #4b3fb8;
+    color: var(--unmute-text-secondary);
     font-size: 1.05rem;
   }
 
@@ -880,7 +880,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.6rem 0.9rem 0.6rem 0.6rem;
   border: 0;
   border-radius: 1.4rem;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--unmute-card-soft);
   box-shadow: 0 6px 18px -12px rgba(117, 48, 170, 0.35);
   text-align: left;
 
@@ -933,7 +933,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #4b3fb8;
+  color: var(--unmute-text-secondary);
   font-size: 1rem;
 }
 
@@ -950,7 +950,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
 .conv-time {
   font-size: 0.85rem;
-  color: #5b5fa8;
+  color: var(--unmute-subtitle);
 
   &.is-unread {
     color: $pink;
@@ -982,7 +982,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     height: 100%;
     padding: 1rem 1.25rem;
     border-radius: 2rem;
-    background: rgba(255, 255, 255, 0.55);
+    background: var(--unmute-card-soft);
   }
 }
 
@@ -1053,7 +1053,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   gap: 0.5rem;
   margin: 0.2rem 0 0;
   font-size: 1.05rem;
-  color: #4b3fb8;
+  color: var(--unmute-text-secondary);
 
   .is-off {
     background: #cfc7ea;
@@ -1068,7 +1068,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   width: 3.4rem;
   height: 3.4rem;
   border-radius: 50%;
-  background: #fce4f2;
+  background: var(--unmute-chip-pink);
   color: #e5147c;
   font-size: 1.6rem;
   text-decoration: none;
@@ -1104,7 +1104,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   span {
     padding: 0.3rem 1.3rem;
     border-radius: var(--unmute-radius-pill);
-    background: #ebe5fb;
+    background: var(--unmute-chip-bg);
     color: $ink-soft;
     font-size: 0.9rem;
   }
@@ -1146,7 +1146,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 .bubble {
   padding: 0.7rem 1.1rem;
   border-radius: 1.3rem;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 1rem;
   line-height: 1.45;
@@ -1161,11 +1161,11 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   gap: 0.4rem;
   margin: 0.25rem 0.2rem 0.4rem;
   font-size: 0.85rem;
-  color: #6c70a8;
+  color: var(--unmute-text-muted);
 
   i {
     font-size: 1.1rem;
-    color: #b6a8d8;
+    color: var(--unmute-text-muted);
 
     &.is-read {
       color: #e5147c;
@@ -1185,18 +1185,18 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   gap: 0.7rem;
   padding: 0.5rem 0.9rem 0.5rem 0.5rem;
   border-radius: 1.2rem;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   text-decoration: none;
   box-shadow: 0 6px 16px -12px rgba(117, 48, 170, 0.35);
 
   &.is-missed .call-icon {
-    background: #fde7e9;
-    color: #e0334a;
+    background: var(--unmute-danger-surface);
+    color: var(--unmute-danger-text);
   }
 
   &.is-missed strong {
-    color: #e0334a;
+    color: var(--unmute-danger-text);
   }
 }
 
@@ -1206,7 +1206,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   width: 2.3rem;
   height: 2.3rem;
   border-radius: 50%;
-  background: #fbe4f2;
+  background: var(--unmute-chip-pink);
   color: #e5147c;
   font-size: 1.15rem;
 }
@@ -1215,7 +1215,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   display: flex;
   flex-direction: column;
   font-size: 0.78rem;
-  color: #6c70a8;
+  color: var(--unmute-text-muted);
 
   strong {
     font-size: 0.92rem;
@@ -1232,7 +1232,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 .bubble.is-photo {
   display: block;
   padding: 0.3rem;
-  background: #fff;
+  background: var(--unmute-card);
 
   img {
     display: block;
@@ -1240,7 +1240,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     min-height: 6rem;
     max-width: min(15rem, 60vw);
     max-height: 18rem;
-    background: #f3effc;
+    background: var(--unmute-chip-bg);
     border-radius: 1.1rem;
     object-fit: cover;
   }
@@ -1271,8 +1271,8 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 }
 
 .composer-round.is-cancel {
-  background: #f3effc;
-  color: #e0334a;
+  background: var(--unmute-chip-bg);
+  color: var(--unmute-danger-text);
 }
 
 .composer-round:disabled {
@@ -1310,7 +1310,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin-bottom: 0.4rem;
   overflow-x: auto;
   border-radius: var(--unmute-radius-pill);
-  background: #fff;
+  background: var(--unmute-card);
 
   button {
     border: 0;
@@ -1326,7 +1326,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.45rem;
   margin-bottom: env(safe-area-inset-bottom, 0px);
   border-radius: var(--unmute-radius-pill);
-  background: #fff;
+  background: var(--unmute-card);
   box-shadow: 0 10px 30px -18px rgba(117, 48, 170, 0.5);
 }
 
@@ -1359,7 +1359,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   height: 3.3rem;
   padding: 0 0.5rem 0 1.2rem;
   border-radius: var(--unmute-radius-pill);
-  background: #f3effc;
+  background: var(--unmute-chip-bg);
 
   input {
     flex-grow: 1;
@@ -1371,7 +1371,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     font-size: 1.05rem;
 
     &::placeholder {
-      color: #6c70a8;
+      color: var(--unmute-text-muted);
     }
   }
 }
@@ -1391,7 +1391,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   justify-content: center;
   gap: 0.5rem;
   border-radius: 2rem;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--unmute-card-soft);
   color: $muted;
 
   i {
@@ -1437,7 +1437,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.65rem 0.9rem;
   border: 1px solid rgba(123, 31, 214, 0.15);
   border-radius: 1rem;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 0.92rem;
   text-align: left;
@@ -1492,13 +1492,13 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.05rem 0.45rem;
   border: 1px solid rgba(123, 31, 214, 0.12);
   border-radius: 9999px;
-  background: #fff;
+  background: var(--unmute-card);
   font-size: 0.95rem;
   line-height: 1.5;
   box-shadow: 0 2px 6px -3px rgba(117, 48, 170, 0.4);
 
   span { font-size: 0.75rem; color: $muted; }
-  &.is-mine { border-color: $pink; background: #fdecf5; }
+  &.is-mine { border-color: $pink; background: var(--unmute-chip-pink); }
 }
 
 .msg-more {
@@ -1510,7 +1510,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #9a8fc4;
+  color: var(--unmute-text-muted);
 
   i { font-size: 1.1rem; color: inherit; }
   &:hover, &[aria-expanded='true'] { background: rgba(123, 31, 214, 0.08); color: $ink; }
@@ -1523,7 +1523,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin-bottom: 0.5rem;
   padding: 0.5rem;
   border-radius: 1rem;
-  background: #fff;
+  background: var(--unmute-card);
   box-shadow: 0 12px 28px -16px rgba(117, 48, 170, 0.55);
 }
 
@@ -1539,7 +1539,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     background: transparent;
     font-size: 1.3rem;
 
-    &:hover, &[aria-pressed='true'] { background: #fdecf5; }
+    &:hover, &[aria-pressed='true'] { background: var(--unmute-chip-pink); }
   }
 }
 
@@ -1557,11 +1557,11 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     padding: 0.35rem 0.7rem;
     border: 0;
     border-radius: 9999px;
-    background: #f5f1fc;
+    background: var(--unmute-chip-bg);
     color: $ink;
     font-size: 0.85rem;
 
-    &.is-danger { background: #fde7e9; color: #c62839; }
+    &.is-danger { background: var(--unmute-danger-surface); color: var(--unmute-danger-text); }
   }
 }
 
@@ -1573,7 +1573,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.5rem 0.75rem;
   border-left: 3px solid $pink;
   border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--unmute-card-soft);
   color: $ink;
 
   > i { color: $pink; font-size: 1.2rem; }

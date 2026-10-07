@@ -39,7 +39,7 @@ function goBack() {
 .legal-page {
   min-height: 100vh;
   padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
-  background: var(--unmute-app-bg, #fdf7fd);
+  background: var(--unmute-app-bg, var(--unmute-chip-pink));
 }
 
 .legal-card {

@@ -56,7 +56,7 @@ function dismiss() {
   margin-bottom: 1rem;
   padding: 0.75rem 0.6rem 0.75rem 0.8rem;
   border-radius: 1.2rem;
-  background: #fbe9f5;
+  background: var(--unmute-chip-pink);
 }
 
 .alerts-icon {
@@ -66,7 +66,7 @@ function dismiss() {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: var(--unmute-cta);
   font-size: 1.3rem;
 }

@@ -418,7 +418,7 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
   overflow-x: auto;
   scrollbar-width: none;
   border-radius: var(--unmute-radius-pill);
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--unmute-card-soft);
   box-shadow: 0 6px 18px -14px rgba(117, 48, 170, 0.5);
 
   button {
@@ -432,7 +432,7 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
     border: 0;
     border-radius: var(--unmute-radius-pill);
     background: transparent;
-    color: #2a2a8a;
+    color: var(--unmute-text-heading);
     font-size: 0.95rem;
     font-weight: 500;
     white-space: nowrap;
@@ -559,7 +559,7 @@ function onSafetyActionCompleted() { discoverStore.currentIndex++; }
   height: 3.9rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   box-shadow: 0 10px 24px -12px rgba(117, 48, 170, 0.45);
   font-size: 1.9rem;
   transition: transform var(--unmute-transition-bounce);

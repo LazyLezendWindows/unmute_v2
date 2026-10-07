@@ -5,3 +5,15 @@ backend/data/vapid.json
 backend/data/private/
 # Local environment settings (keys and passwords).
 backend/.env
+
+# Local database, logs and uploaded photos: development data, never shipped.
+backend/data/
+# Build output (deploys build from source).
+backend/dist/
+frontend/dist/
+frontend/dev-dist/
+node_modules/
+**/node_modules/
+test-results/
+playwright-report/
+frontend/.env

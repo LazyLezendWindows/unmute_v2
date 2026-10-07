@@ -173,7 +173,7 @@ function onSafetyCompleted() {
 </script>
 
 <style scoped lang="scss">
-$ink: #10106b;
+$ink: var(--unmute-text-heading);
 
 .person-page {
   width: 100%;
@@ -225,8 +225,8 @@ $ink: #10106b;
   gap: 0.4rem;
   padding: 0.3rem 0.85rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #1a7a3c;
+  background: var(--unmute-card-soft);
+  color: var(--unmute-success-text);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -253,7 +253,7 @@ $ink: #10106b;
   aspect-ratio: 1.1;
   border: 2px solid transparent;
   border-radius: 1.1rem;
-  background: #efe3f3 center 25% / cover;
+  background: var(--unmute-chip-pink) center 25% / cover;
   overflow: hidden;
 
   &.is-on {
@@ -299,7 +299,7 @@ $ink: #10106b;
   align-items: center;
   gap: 0.3rem 1rem;
   margin: 0 0 0.35rem;
-  color: #3c3fa0;
+  color: var(--unmute-text-secondary);
   font-size: 1.02rem;
 
   span {
@@ -309,22 +309,22 @@ $ink: #10106b;
   }
 
   i {
-    color: #3c3fa0;
+    color: var(--unmute-text-secondary);
     font-size: 1.15rem;
   }
 
   &.is-facts i {
-    color: #5b2bc4;
+    color: var(--unmute-subtitle);
   }
 
   .is-split {
     padding-left: 1rem;
-    border-left: 1px solid #d9d1f0;
+    border-left: 1px solid var(--unmute-line);
   }
 }
 
 .person-line.is-travel {
-  color: #0e7a9a;
+  color: var(--unmute-info-text);
 
   i { color: #0e9ac6; }
 }
@@ -340,8 +340,8 @@ $ink: #10106b;
   gap: 0.5rem;
   padding: 0.45rem 0.9rem 0.45rem 0.45rem;
   border-radius: 1.4rem;
-  background: #fbeaf6;
-  color: #3c3fa0;
+  background: var(--unmute-chip-pink);
+  color: var(--unmute-text-secondary);
   font-size: 0.85rem;
 
   strong {
@@ -361,8 +361,8 @@ $ink: #10106b;
   width: 2.7rem;
   height: 2.7rem;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 58%, transparent 60%),
-    conic-gradient(#f21872 calc(var(--pct) * 1%), #fbd3e7 0);
+  background: radial-gradient(circle, var(--unmute-card) 58%, transparent 60%),
+    conic-gradient(#f21872 calc(var(--pct) * 1%), var(--unmute-chip-pink) 0);
   color: #f21872;
   font-size: 1.3rem;
 }
@@ -383,7 +383,7 @@ $ink: #10106b;
   height: 4.3rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   box-shadow: 0 10px 24px -12px rgba(117, 48, 170, 0.45);
   font-size: 2rem;
 }

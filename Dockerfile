@@ -33,8 +33,12 @@ RUN npm --prefix backend ci --omit=dev
 
 # Copy built artifacts
 COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/data ./backend/data
+COPY --from=builder /app/backend/migrations ./backend/migrations
 COPY --from=builder /app/frontend/dist ./frontend/dist
+
+# Uploaded photos live here; mount a persistent volume (or set UPLOAD_DIR / PRIVATE_UPLOAD_DIR)
+# so they survive redeploys. The image itself never contains member data.
+RUN mkdir -p backend/data/uploads backend/data/private
 
 # Expose production port
 EXPOSE 5000

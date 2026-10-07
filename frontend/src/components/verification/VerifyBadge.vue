@@ -23,8 +23,8 @@ defineProps<{ status?: string }>();
   white-space: nowrap;
 }
 
-.is-ok { background: #e3f8ea; color: #137a3a; }
-.is-wait { background: #fff4dc; color: #9a6200; }
-.is-retry { background: #fde7e9; color: #c62839; }
-.is-todo { background: #fbe4f2; color: var(--unmute-cta); }
+.is-ok { background: var(--unmute-success-surface); color: var(--unmute-success-text); }
+.is-wait { background: var(--unmute-warn-surface); color: var(--unmute-warn-text); }
+.is-retry { background: var(--unmute-danger-surface); color: var(--unmute-danger-text); }
+.is-todo { background: var(--unmute-chip-pink); color: var(--unmute-cta); }
 </style>

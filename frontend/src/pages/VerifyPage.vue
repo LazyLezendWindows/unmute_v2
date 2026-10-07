@@ -385,7 +385,7 @@ $ink: var(--unmute-text-heading);
   gap: 0.9rem;
   padding: 0.9rem 1rem;
   border-radius: 1.3rem;
-  background: #fbe9f5;
+  background: var(--unmute-chip-pink);
   color: var(--unmute-text-secondary);
   font-size: 0.88rem;
 
@@ -404,7 +404,7 @@ $ink: var(--unmute-text-heading);
   width: 3.4rem;
   height: 3.4rem;
   border-radius: 1rem;
-  background: #fff;
+  background: var(--unmute-card);
   color: var(--unmute-cta);
   font-size: 2rem;
 }
@@ -438,7 +438,7 @@ $ink: var(--unmute-text-heading);
   width: 2.7rem;
   height: 2.7rem;
   border-radius: 50%;
-  background: #fbe9f5;
+  background: var(--unmute-chip-pink);
   color: var(--unmute-cta);
   font-size: 1.3rem;
 }
@@ -471,12 +471,12 @@ $ink: var(--unmute-text-heading);
 }
 
 .badge-ok {
-  background: #e3f8ea;
-  color: #137a3a;
+  background: var(--unmute-success-surface);
+  color: var(--unmute-success-text);
 }
 
 .badge-todo {
-  background: #fbe4f2;
+  background: var(--unmute-chip-pink);
   color: var(--unmute-cta);
 }
 
@@ -489,7 +489,7 @@ $ink: var(--unmute-text-heading);
 .art-card {
   padding: 1.2rem 1rem 1.3rem;
   border-radius: 1.5rem;
-  background: rgba(251, 233, 245, 0.7);
+  background: var(--unmute-chip-pink);
   text-align: center;
   color: var(--unmute-text-secondary);
   font-size: 0.88rem;
@@ -525,8 +525,8 @@ $ink: var(--unmute-text-heading);
   height: 10rem;
   overflow: hidden;
   border-radius: 1.3rem;
-  background: linear-gradient(160deg, #f3e8fb, #e2d3f3);
-  color: #8a6fb8;
+  background: linear-gradient(160deg, var(--unmute-chip-bg), var(--unmute-chip-bg));
+  color: var(--unmute-text-muted);
   font-size: 3.5rem;
   box-shadow: 0 14px 30px -16px rgba(74, 0, 91, 0.5);
 
@@ -542,10 +542,10 @@ $ink: var(--unmute-text-heading);
   position: absolute;
   inset: 22% 18%;
   background:
-    linear-gradient(#fff, #fff) left top / 14px 2px no-repeat, linear-gradient(#fff, #fff) left top / 2px 14px no-repeat,
-    linear-gradient(#fff, #fff) right top / 14px 2px no-repeat, linear-gradient(#fff, #fff) right top / 2px 14px no-repeat,
-    linear-gradient(#fff, #fff) left bottom / 14px 2px no-repeat, linear-gradient(#fff, #fff) left bottom / 2px 14px no-repeat,
-    linear-gradient(#fff, #fff) right bottom / 14px 2px no-repeat, linear-gradient(#fff, #fff) right bottom / 2px 14px no-repeat;
+    linear-gradient(var(--unmute-card), var(--unmute-card)) left top / 14px 2px no-repeat, linear-gradient(var(--unmute-card), var(--unmute-card)) left top / 2px 14px no-repeat,
+    linear-gradient(var(--unmute-card), var(--unmute-card)) right top / 14px 2px no-repeat, linear-gradient(var(--unmute-card), var(--unmute-card)) right top / 2px 14px no-repeat,
+    linear-gradient(var(--unmute-card), var(--unmute-card)) left bottom / 14px 2px no-repeat, linear-gradient(var(--unmute-card), var(--unmute-card)) left bottom / 2px 14px no-repeat,
+    linear-gradient(var(--unmute-card), var(--unmute-card)) right bottom / 14px 2px no-repeat, linear-gradient(var(--unmute-card), var(--unmute-card)) right bottom / 2px 14px no-repeat;
 }
 
 .scan {
@@ -580,7 +580,7 @@ $ink: var(--unmute-text-heading);
   width: 2.8rem;
   height: 2.8rem;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: var(--unmute-cta);
   font-size: 1.3rem;
   box-shadow: 0 6px 14px -8px rgba(117, 48, 170, 0.5);
@@ -632,7 +632,7 @@ $ink: var(--unmute-text-heading);
   max-height: 14rem;
   object-fit: contain;
   border-radius: 1rem;
-  background: #f3effc;
+  background: var(--unmute-chip-bg);
 }
 
 .id-pick {
@@ -643,7 +643,7 @@ $ink: var(--unmute-text-heading);
   min-height: 3rem;
   border: 2px dashed rgba(242, 24, 114, 0.45);
   border-radius: 1rem;
-  background: #fdf1f9;
+  background: var(--unmute-chip-pink);
   color: var(--unmute-cta);
   font-weight: 600;
   cursor: pointer;
@@ -651,7 +651,7 @@ $ink: var(--unmute-text-heading);
 .review-note {
   padding: 0.6rem 0.8rem;
   border-radius: 0.9rem;
-  background: #fff4dc;
-  color: #7a4d00;
+  background: var(--unmute-warn-surface);
+  color: var(--unmute-warn-text);
 }
 </style>

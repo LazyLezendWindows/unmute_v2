@@ -83,7 +83,7 @@ withDefaults(
   height: 11rem;
 }
 
-:global([data-theme='dark']) .auth-orb {
+:global([data-theme='dark'] .auth-orb) {
   background: rgba(121, 0, 110, 0.12);
 }
 
@@ -130,7 +130,7 @@ withDefaults(
   pointer-events: none;
 }
 
-:global([data-theme='dark']) .auth-wave {
+:global([data-theme='dark'] .auth-wave) {
   opacity: 0.25;
 }
 
@@ -227,8 +227,8 @@ withDefaults(
   color: var(--unmute-brand-plum);
 }
 
-:global([data-theme='dark']) .auth-column :deep(.u-input-prefix),
-:global([data-theme='dark']) .auth-column :deep(.u-input-reveal) {
+:global([data-theme='dark'] .auth-column .u-input-prefix),
+:global([data-theme='dark'] .auth-column .u-input-reveal) {
   color: var(--unmute-text-secondary);
 }
 

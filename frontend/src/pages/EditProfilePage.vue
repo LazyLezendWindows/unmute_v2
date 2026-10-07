@@ -494,8 +494,8 @@ async function saveProfile() {
 </script>
 
 <style scoped lang="scss">
-$ink: #10106b;
-$ink-soft: #3c3fa0;
+$ink: var(--unmute-text-heading);
+$ink-soft: var(--unmute-text-secondary);
 $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
 .edit-page {
@@ -521,7 +521,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   p {
     margin: 0;
     font-size: 1.2rem;
-    color: #5b4bc4;
+    color: var(--unmute-subtitle);
   }
 }
 
@@ -537,7 +537,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   border-radius: 1.3rem;
   background-size: cover;
   background-position: center;
-  background-color: #f7e6f4;
+  background-color: var(--unmute-chip-pink);
 }
 
 .photo-main {
@@ -550,7 +550,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   display: grid;
   place-items: center;
   font-size: 3rem;
-  color: #d6a0cf;
+  color: var(--unmute-text-muted);
 }
 
 .photo-camera {
@@ -563,7 +563,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   height: 2.6rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 1.35rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
@@ -586,7 +586,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     justify-content: center;
     gap: 0.2rem;
     border: 0;
-    background: #fbe4f3;
+    background: var(--unmute-chip-pink);
     color: #e5147c;
     font-size: 0.85rem;
 
@@ -606,7 +606,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   display: grid;
   place-items: center;
   border-radius: inherit;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--unmute-card-soft);
   color: #e5147c;
 }
 
@@ -620,7 +620,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   height: 1.5rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--unmute-card);
   color: #e5147c;
   font-size: 1rem;
 }
@@ -636,7 +636,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 .e-card {
   padding: 1rem 1rem 1.1rem;
   border-radius: 1.6rem;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--unmute-card-soft);
   box-shadow: 0 10px 30px -22px rgba(117, 48, 170, 0.5);
 }
 
@@ -682,7 +682,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0 0.8rem;
   border: 0;
   border-radius: 1rem;
-  background: #f6f3fc;
+  background: var(--unmute-chip-bg);
   color: $ink;
   text-align: left;
   text-decoration: none;
@@ -694,7 +694,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 }
 
 .row-label {
-  color: #4b4fa6;
+  color: var(--unmute-text-secondary);
   font-size: 1.02rem;
 }
 
@@ -706,7 +706,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   font-size: 1.02rem;
 
   &.is-empty {
-    color: #a39ccc;
+    color: var(--unmute-text-muted);
   }
 }
 
@@ -718,7 +718,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 .bio-box {
   position: relative;
   border-radius: 1.1rem;
-  background: #f6f3fc;
+  background: var(--unmute-chip-bg);
 
   textarea {
     display: block;
@@ -728,7 +728,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
     outline: none;
     resize: vertical;
     background: transparent;
-    color: #4b4fa6;
+    color: var(--unmute-text-secondary);
     font-size: 1.05rem;
     line-height: 1.5;
   }
@@ -739,7 +739,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   right: 1rem;
   bottom: 0.5rem;
   font-size: 0.85rem;
-  color: #5b5fa8;
+  color: var(--unmute-subtitle);
 }
 
 .chips {
@@ -754,8 +754,8 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   gap: 0.4rem;
   padding: 0.4rem 0.5rem 0.4rem 0.85rem;
   border-radius: var(--unmute-radius-pill);
-  background: #fbeaf6;
-  color: #c00078;
+  background: var(--unmute-chip-pink);
+  color: var(--unmute-accent-text);
   font-size: 0.98rem;
 
   .int-icon {
@@ -764,7 +764,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   }
 
   &.is-blue {
-    background: #eef0fd;
+    background: var(--unmute-chip-bg);
     color: $ink;
 
     .int-icon {
@@ -790,7 +790,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin-top: 0.7rem;
   min-height: 2.9rem;
   border-radius: var(--unmute-radius-pill);
-  background: #fbeaf6;
+  background: var(--unmute-chip-pink);
   color: #e5147c;
   font-size: 1.1rem;
   text-decoration: none;
@@ -800,8 +800,8 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.55rem 1rem;
   border: 0;
   border-radius: var(--unmute-radius-pill);
-  background: #f5f1fc;
-  color: #4b3fb8;
+  background: var(--unmute-chip-bg);
+  color: var(--unmute-text-secondary);
   font-size: 0.98rem;
 
   &.is-small {
@@ -824,20 +824,20 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   margin-bottom: 0.35rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #4b4fa6;
+  color: var(--unmute-text-secondary);
 }
 
 .e-hint {
   margin: -0.25rem 0 0.75rem;
   font-size: 0.85rem;
-  color: #6b6a9a;
+  color: var(--unmute-text-muted);
 }
 
 .prompt-edit {
   position: relative;
   padding: 0.75rem 0.85rem 1.4rem;
   border-radius: 1rem;
-  background: #f8f5fd;
+  background: var(--unmute-chip-bg);
 
   & + & { margin-top: 0.6rem; }
 }
@@ -860,8 +860,8 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   height: 1.8rem;
   border: 0;
   border-radius: 50%;
-  background: #fff;
-  color: #6b6a9a;
+  background: var(--unmute-card);
+  color: var(--unmute-text-muted);
 }
 
 .prompt-answer {
@@ -869,7 +869,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0.55rem 0.75rem;
   border: 1px solid rgba(74, 0, 91, 0.12);
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 0.95rem;
   resize: vertical;
@@ -880,7 +880,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   right: 0.9rem;
   bottom: 0.3rem;
   font-size: 0.72rem;
-  color: #8b8aa8;
+  color: var(--unmute-text-muted);
 }
 
 .prompt-add {
@@ -906,7 +906,7 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   padding: 0 0.75rem;
   border: 1px solid rgba(74, 0, 91, 0.12);
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--unmute-card);
   color: $ink;
   font-size: 0.95rem;
 }

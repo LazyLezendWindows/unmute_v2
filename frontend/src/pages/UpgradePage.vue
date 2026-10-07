@@ -132,7 +132,7 @@ p { color: var(--unmute-text-muted); }
 .plan { display: flex; align-items: center; gap: .75rem; padding: 1rem; border: 2px solid var(--unmute-glass-border); border-radius: 1rem; cursor: pointer; }
 .plan strong { margin-left: auto; }
 .plan.selected { border-color: var(--unmute-primary, #e94057); }
-.test-note { display: flex; gap: .5rem; padding: .75rem 1rem; border-radius: 1rem; background: #fff4dc; color: #7a4d00; font-size: .88rem; }
+.test-note { display: flex; gap: .5rem; padding: .75rem 1rem; border-radius: 1rem; background: var(--unmute-warn-surface); color: var(--unmute-warn-text); font-size: .88rem; }
 .current-plan { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 .tier { color: var(--unmute-text-muted); font-weight: 600; }
 .perks { display: grid; gap: .55rem; margin: 0; padding: 0; list-style: none; }
