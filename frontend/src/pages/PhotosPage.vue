@@ -95,11 +95,15 @@ async function onFiles(event: Event) {
         toast.error(`${file.name}: ${problem}`);
         continue;
       }
-      added.push(await uploadPhoto(file));
+      try {
+        added.push(await uploadPhoto(file));
+      } catch (err: any) {
+        toast.error(`${file.name}: Photo not uploaded. ${err.message}`);
+      }
     }
     if (added.length) await save([...photos.value, ...added]);
   } catch (err: any) {
-    toast.error(`Photo not uploaded. ${err.message}`);
+    toast.error(`Photos not saved. ${err.message}`);
   } finally {
     uploading.value = false;
   }

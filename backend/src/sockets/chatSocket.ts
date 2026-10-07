@@ -77,6 +77,16 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
     socket.on('leave_conversation', (conversationId: unknown) => {
       if (typeof conversationId === 'string') socket.leave(`conversation:${conversationId}`);
     });
+
+    socket.on('read_conversation', async (conversationId: unknown, acknowledge?: (result: { success: boolean }) => void) => {
+      if (typeof conversationId !== 'string' || conversationId.length > 64) return;
+      try {
+        await ChatService.readMessages(conversationId, userId);
+        if (typeof acknowledge === 'function') acknowledge({ success: true });
+      } catch {
+        if (typeof acknowledge === 'function') acknowledge({ success: false });
+      }
+    });
   });
 
   return ioInstance;

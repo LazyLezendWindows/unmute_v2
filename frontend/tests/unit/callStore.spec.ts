@@ -21,6 +21,7 @@ class Peer {
   onicecandidate: any;
   onconnectionstatechange: any;
   addTrack = vi.fn();
+  getSenders = vi.fn(() => []);
   close = vi.fn();
   createOffer = vi.fn(async () => ({ type: 'offer', sdp: 'test' }));
   setLocalDescription = vi.fn();
@@ -40,6 +41,28 @@ beforeEach(() => {
 });
 afterEach(() => { useCallStore().reset(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 describe('call lifecycle', () => {
+  it('honors mute and camera-off chosen while media permission is pending', async () => {
+    let resolve!: (stream: Stream) => void;
+    media.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const camera = { kind: 'video', stop: vi.fn(), enabled: true };
+    const microphone = { kind: 'audio', stop: vi.fn(), enabled: true };
+    const call = useCallStore(); const pending = call.start('conversation', 'video');
+    call.toggleMute(); call.toggleCamera();
+    resolve(new Stream([microphone, camera])); await pending;
+    expect(microphone.enabled).toBe(false); expect(camera.enabled).toBe(false);
+  });
+
+  it('stops a camera opened by a flip that finishes after hangup', async () => {
+    const camera = { kind: 'video', stop: vi.fn() };
+    media.mockResolvedValueOnce(new Stream([camera]));
+    const call = useCallStore(); await call.start('conversation', 'video');
+    let resolve!: (stream: Stream) => void;
+    media.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const fresh = { kind: 'video', stop: vi.fn() };
+    const flip = call.flipCamera(); call.hangUp(); resolve(new Stream([fresh]));
+    await expect(flip).resolves.toBe(false);
+    expect(fresh.stop).toHaveBeenCalled(); expect(call.localStream).toBeNull();
+  });
   it('stops a late microphone permission result after hangup without sending an invite', async () => {
     let resolve!: (stream: Stream) => void;
     media.mockReturnValueOnce(new Promise(r => { resolve = r; }));

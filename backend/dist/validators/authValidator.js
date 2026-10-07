@@ -19,6 +19,13 @@ const phoneNumber = zod_1.z
     return digits.startsWith('+') ? digits : `+${digits}`;
 })
     .refine((phone) => /^\+[1-9]\d{7,14}$/.test(phone), { message: 'Please enter a valid mobile number' });
+const dateOfBirth = zod_1.z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
+    .refine(age_1.isValidDateOfBirth, { message: 'Please enter a valid date of birth' })
+    .refine((dob) => !(0, age_1.isValidDateOfBirth)(dob) || (0, age_1.isAtLeast18YearsOld)(dob), {
+    message: 'You must be at least 18 years of age to join Unmute',
+});
 exports.registerSchema = zod_1.z.object({
     email: zod_1.z.string().email('Please enter a valid email address'),
     password: zod_1.z
@@ -30,12 +37,7 @@ exports.registerSchema = zod_1.z.object({
         .trim()
         .min(2, 'Display name must be at least 2 characters')
         .max(50, 'Display name cannot exceed 50 characters'),
-    dateOfBirth: zod_1.z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
-        .refine((dob) => (0, age_1.isAtLeast18YearsOld)(dob), {
-        message: 'You must be at least 18 years of age to join Unmute',
-    }),
+    dateOfBirth,
     /** Optional mobile number; it is linked (and usable for phone sign-in) only with its SMS code. */
     phone: phoneNumber.optional(),
     code: zod_1.z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS').optional(),
@@ -49,13 +51,7 @@ exports.loginSchema = zod_1.z.object({
 exports.googleAuthSchema = zod_1.z
     .object({
     credential: zod_1.z.string().min(20, 'Google credential is required').max(4096),
-    dateOfBirth: zod_1.z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
-        .refine((dob) => (0, age_1.isAtLeast18YearsOld)(dob), {
-        message: 'You must be at least 18 years of age to join Unmute',
-    })
-        .optional(),
+    dateOfBirth: dateOfBirth.optional(),
 })
     .strict();
 exports.phoneLinkSchema = zod_1.z
@@ -81,12 +77,6 @@ exports.phoneVerifySchema = zod_1.z
         .min(2, 'Display name must be at least 2 characters')
         .max(50, 'Display name cannot exceed 50 characters')
         .optional(),
-    dateOfBirth: zod_1.z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
-        .refine((dob) => (0, age_1.isAtLeast18YearsOld)(dob), {
-        message: 'You must be at least 18 years of age to join Unmute',
-    })
-        .optional(),
+    dateOfBirth: dateOfBirth.optional(),
 })
     .strict();

@@ -27,6 +27,9 @@ const router = createRouter({
       component: () => import('../pages/LoginPage.vue'),
       meta: { guestOnly: true },
     },
+    // Public legal pages: readable signed in or out.
+    { path: '/terms', name: 'terms', component: () => import('../pages/LegalPage.vue') },
+    { path: '/privacy', name: 'privacy', component: () => import('../pages/LegalPage.vue') },
     {
       path: '/register',
       name: 'register',
@@ -193,10 +196,12 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && !SUBSCRIPTION_FREE.includes(String(to.name))) {
     try { if (!(await useSubscriptionStore().fetchStatus()).active) return '/upgrade'; }
     // Only a real "no access" answer sends them to Upgrade; a connection failure doesn't.
-    catch (err) { if (err instanceof ApiError && err.status !== undefined) return '/upgrade'; }
+    catch (err) {
+      if (err instanceof ApiError && err.status === 402) return '/upgrade';
+      if (err instanceof ApiError && err.status === 401) return { path: '/login', query: { redirect: to.fullPath } };
+    }
   }
   return true;
 });
 
 export default router;
-

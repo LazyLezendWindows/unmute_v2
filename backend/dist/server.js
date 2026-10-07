@@ -3,6 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const planReminderService_1 = require("./services/planReminderService");
+const adminAuthService_1 = require("./services/adminAuthService");
 const http_1 = __importDefault(require("http"));
 const app_1 = require("./app");
 const env_1 = require("./config/env");
@@ -22,11 +24,14 @@ async function bootstrap() {
         if (!env_1.config.googleClientId) {
             console.warn('[Unmute] GOOGLE_CLIENT_ID is not set; Google sign-in will be unavailable.');
         }
+        await adminAuthService_1.AdminAuthService.announceSetup();
         // 3. Create app and HTTP server
         const app = (0, app_1.createApp)();
         const server = http_1.default.createServer(app);
         // 4. Initialize real-time Socket.io server
         (0, chatSocket_1.initSocketServer)(server);
+        // Reminders about trials and plans ending (checked every few minutes).
+        planReminderService_1.PlanReminderService.start();
         // 5. Start listening
         server.listen(env_1.config.port, () => {
             console.log(`[Unmute] Backend server running on http://localhost:${env_1.config.port}`);

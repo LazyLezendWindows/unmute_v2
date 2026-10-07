@@ -282,6 +282,7 @@ async function stopTravel() {
   }
 }
 const discoverStore = useDiscoverStore();
+discoverStore.syncFiltersOwner();
 const authStore = useAuthStore();
 // Distance works from home, or from the Travel mode city.
 const hasLocation = computed(() => Boolean(authStore.profile?.location || premium.overview?.travel));

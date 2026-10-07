@@ -93,7 +93,7 @@
         </router-link>
         <div class="min-w-0 flex-grow-1">
           <h2 class="thread-name">
-            {{ activeOtherUser.displayName }}, {{ activeOtherUser.age }}
+            <span class="thread-name-text">{{ activeOtherUser.displayName }}, {{ activeOtherUser.age }}</span>
             <i v-if="activeOtherUser.isVerified" class="ri-verified-badge-fill verified-badge" aria-label="Verified"></i><PremiumBadge v-if="activeOtherUser.isPremium" :plan="activeOtherUser.premiumPlan" />
           </h2>
           <p class="thread-status">
@@ -189,7 +189,7 @@
         <button v-if="inputContent.trim()" type="submit" class="composer-round is-send" aria-label="Send" :disabled="chatStore.sending">
           <i class="ri-send-plane-fill" aria-hidden="true"></i>
         </button>
-        <button v-else type="button" class="composer-round is-send" aria-label="Record a voice message" :disabled="uploading || !voiceSupported" @click="startRecording">
+        <button v-else type="button" class="composer-round is-send" aria-label="Record a voice message" :disabled="uploading || startingRecording || !voiceSupported || chatStore.loading" @click="startRecording">
           <i class="ri-mic-fill" aria-hidden="true"></i>
         </button>
       </form>
@@ -307,6 +307,7 @@ function startsNewDay(index: number) {
 
 onMounted(async () => {
   await chatStore.loadConversations();
+  if (disposed) return;
   chatStore.initSocketHandlers();
   if (route.params.id) await openFromRoute(route.params.id as string);
 });
@@ -317,12 +318,15 @@ async function openFromRoute(id: string) {
     await chatStore.openConversation(id);
     scrollToBottom();
   } catch (err: any) {
+    if (disposed || route.params.id !== id) return;
     useToastStore().error(`This conversation isn't available. ${err.message}`);
     router.replace('/chat');
   }
 }
 
+let disposed = false;
 onUnmounted(() => {
+  disposed = true;
   stopRecording(false);
   chatStore.leaveCurrentConversation();
 });
@@ -330,6 +334,8 @@ onUnmounted(() => {
 watch(
   () => route.params.id,
   async (newId) => {
+    stopRecording(false);
+    inputContent.value = '';
     emojiOpen.value = false;
     if (newId) await openFromRoute(newId as string);
     else chatStore.leaveCurrentConversation();
@@ -372,11 +378,12 @@ function pickPhoto(event: Event) {
 }
 async function confirmPhoto() {
   if (!selectedPhoto || uploading.value) return;
+  const conversation = photoConversation;
   uploading.value = true; photoError.value = '';
   try {
     const url = await uploadPhoto(selectedPhoto);
-    if (photoConversation !== activeConversationId.value) throw new Error('The conversation changed. Select the photo again in the intended chat.');
-    await chatStore.sendMessage(url, 'image');
+    if (disposed || conversation !== activeConversationId.value) return;
+    await chatStore.sendMessage(url, 'image', conversation);
     clearPhoto(); scrollToBottom();
   } catch (err) { photoError.value = `Photo not sent. ${(err as Error).message}`; }
   finally { uploading.value = false; }
@@ -393,37 +400,61 @@ function nearBottomScroll() {
 // ---- Voice messages ----
 const MAX_RECORD_SECONDS = 120;
 const recording = ref(false);
+const startingRecording = ref(false);
 const recordSeconds = ref(0);
 let recorder: MediaRecorder | null = null;
 let recordChunks: Blob[] = [];
 let recordTimer: ReturnType<typeof setInterval> | undefined;
 let sendWhenStopped = false;
+let recordingAttempt = 0;
 
 const recordLabel = computed(() => `${Math.floor(recordSeconds.value / 60)}:${String(recordSeconds.value % 60).padStart(2, '0')}`);
 
 async function startRecording() {
+  if (startingRecording.value || recording.value || uploading.value || !activeConversationId.value) return;
   if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
     return useToastStore().error('Voice messages need a newer browser.');
   }
+  const conversation = activeConversationId.value;
+  const attempt = ++recordingAttempt;
+  startingRecording.value = true;
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
   } catch {
-    return useToastStore().error('Allow microphone access in your browser to record a voice message.');
+    if (attempt === recordingAttempt) useToastStore().error('Allow microphone access in your browser to record a voice message.');
+    return;
+  } finally {
+    if (attempt === recordingAttempt) startingRecording.value = false;
+  }
+  if (disposed || attempt !== recordingAttempt || conversation !== activeConversationId.value) {
+    stream.getTracks().forEach((track) => track.stop());
+    return;
   }
   const type = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t));
-  recorder = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 48_000 } : undefined);
+  try {
+    recorder = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 48_000 } : undefined);
+  } catch {
+    stream.getTracks().forEach((track) => track.stop());
+    useToastStore().error('Voice recording is not available in this browser.');
+    return;
+  }
+  const currentRecorder = recorder;
+  sendWhenStopped = false;
   recordChunks = [];
   recorder.ondataavailable = (e) => e.data.size && recordChunks.push(e.data);
   recorder.onstop = async () => {
     stream.getTracks().forEach((t) => t.stop());
     clearInterval(recordTimer);
     recording.value = false;
-    const blob = new Blob(recordChunks, { type: recorder?.mimeType || 'audio/webm' });
+    const blob = new Blob(recordChunks, { type: currentRecorder.mimeType || 'audio/webm' });
+    recorder = null;
     if (!sendWhenStopped || recordSeconds.value < 1 || !blob.size) return;
     uploading.value = true;
     try {
-      await chatStore.sendMessage(await uploadVoice(blob), 'voice');
+      const url = await uploadVoice(blob);
+      if (disposed || conversation !== activeConversationId.value) return;
+      await chatStore.sendMessage(url, 'voice', conversation);
       scrollToBottom();
     } catch (err: any) {
       useToastStore().error(`Voice message not sent. ${err.message}`);
@@ -431,7 +462,14 @@ async function startRecording() {
       uploading.value = false;
     }
   };
-  recorder.start();
+  try {
+    recorder.start();
+  } catch {
+    stream.getTracks().forEach((track) => track.stop());
+    recorder = null;
+    useToastStore().error('Voice recording could not start. Please try again.');
+    return;
+  }
   recording.value = true;
   recordSeconds.value = 0;
   recordTimer = setInterval(() => {
@@ -441,21 +479,24 @@ async function startRecording() {
 }
 
 function stopRecording(send: boolean) {
+  recordingAttempt++;
+  startingRecording.value = false;
   sendWhenStopped = send;
   if (recorder?.state === 'recording') recorder.stop();
 }
 
 async function handleSend() {
   const text = inputContent.value.trim();
-  if (!text) return;
+  const conversation = activeConversationId.value;
+  if (!text || chatStore.sending || chatStore.loading) return;
   inputContent.value = '';
   emojiOpen.value = false;
   try {
-    await chatStore.sendMessage(text);
+    await chatStore.sendMessage(text, 'text', conversation);
     scrollToBottom();
   } catch (err: any) {
     // Give the unsent text back rather than losing it.
-    if (!inputContent.value) inputContent.value = text;
+    if (!disposed && conversation === activeConversationId.value && !inputContent.value) inputContent.value = text;
     useToastStore().error(`Message not sent. ${err.message}`);
   }
 }
@@ -772,10 +813,44 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 }
 
 .thread-name {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   margin: 0;
   font-size: 1.55rem;
   font-weight: 800;
   color: $ink;
+
+  > :not(.thread-name-text) { flex-shrink: 0; }
+}
+
+// One line: a long name ends in "…" rather than pushing the age onto a second line.
+.thread-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Phones: a smaller photo, name and call buttons leave the name room for one line.
+@media (max-width: 480px) {
+  .thread-head {
+    gap: 0.75rem;
+
+    .thread-avatar :deep(.u-avatar) {
+      width: 4.2rem;
+      height: 4.2rem;
+    }
+  }
+
+  .thread-name { font-size: 1.3rem; }
+  .thread-status { font-size: 0.95rem; }
+
+  .thread-head .call-btn {
+    width: 2.9rem;
+    height: 2.9rem;
+    font-size: 1.35rem;
+  }
 }
 
 .thread-status {

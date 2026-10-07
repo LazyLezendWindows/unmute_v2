@@ -15,10 +15,14 @@ function mariaConnectionOptions({ withDatabase = true } = {}) {
             const opts = {
                 host: parsed.hostname,
                 port: parseInt(parsed.port || '3306', 10),
+                // Stored times are UTC (UTC_TIMESTAMP()); read and write them as UTC, whatever the server's own time zone.
+                timezone: 'Z',
                 user: decodeURIComponent(parsed.username || ''),
                 password: decodeURIComponent(parsed.password || ''),
-                ...(withDatabase && parsed.pathname && parsed.pathname !== '/'
-                    ? { database: parsed.pathname.replace(/^\//, '') }
+                // An explicit database override must also apply to URL connections. Test/reset tools
+                // validate MARIADB_DATABASE before clearing tables, so ignoring it could erase app data.
+                ...(withDatabase
+                    ? { database: process.env.MARIADB_DATABASE || decodeURIComponent(parsed.pathname.replace(/^\//, '')) || env_1.config.mariadb.database }
                     : {}),
             };
             if (parsed.searchParams.get('ssl') === 'true' ||
@@ -29,11 +33,14 @@ function mariaConnectionOptions({ withDatabase = true } = {}) {
             }
             return opts;
         }
-        catch (e) {
-            console.warn('[DB] Failed to parse DATABASE_URL, falling back to individual variables:', e);
+        catch {
+            // URL parser errors can include credentials from the rejected URL.
+            console.warn('[DB] Failed to parse database URL, falling back to individual variables.');
         }
     }
     const opts = {
+        // Stored times are UTC (UTC_TIMESTAMP()); read and write them as UTC, whatever the server's own time zone.
+        timezone: 'Z',
         user: env_1.config.mariadb.user,
         password: env_1.config.mariadb.password,
         ...(withDatabase ? { database: env_1.config.mariadb.database } : {}),

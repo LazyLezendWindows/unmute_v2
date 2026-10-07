@@ -4,6 +4,8 @@ export interface User {
   email: string | null;
   /** The number the member signs in with (E.164), if any. */
   phone?: string | null;
+  /** False for phone- or Google-only accounts (deleting one is confirmed by typing DELETE). */
+  hasPassword?: boolean;
   profile: Profile | null;
 }
 

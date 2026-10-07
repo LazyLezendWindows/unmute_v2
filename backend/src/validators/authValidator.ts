@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isAtLeast18YearsOld } from '../utils/age';
+import { isAtLeast18YearsOld, isValidDateOfBirth } from '../utils/age';
 
 /**
  * A mobile number in international form. A bare 10-digit number starting 6–9 is taken as Indian
@@ -16,6 +16,14 @@ const phoneNumber = z
   })
   .refine((phone) => /^\+[1-9]\d{7,14}$/.test(phone), { message: 'Please enter a valid mobile number' });
 
+const dateOfBirth = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
+  .refine(isValidDateOfBirth, { message: 'Please enter a valid date of birth' })
+  .refine((dob) => !isValidDateOfBirth(dob) || isAtLeast18YearsOld(dob), {
+    message: 'You must be at least 18 years of age to join Unmute',
+  });
+
 export const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z
@@ -27,12 +35,7 @@ export const registerSchema = z.object({
     .trim()
     .min(2, 'Display name must be at least 2 characters')
     .max(50, 'Display name cannot exceed 50 characters'),
-  dateOfBirth: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
-    .refine((dob) => isAtLeast18YearsOld(dob), {
-      message: 'You must be at least 18 years of age to join Unmute',
-    }),
+  dateOfBirth,
   /** Optional mobile number; it is linked (and usable for phone sign-in) only with its SMS code. */
   phone: phoneNumber.optional(),
   code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS').optional(),
@@ -48,13 +51,7 @@ export const loginSchema = z.object({
 export const googleAuthSchema = z
   .object({
     credential: z.string().min(20, 'Google credential is required').max(4096),
-    dateOfBirth: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
-      .refine((dob) => isAtLeast18YearsOld(dob), {
-        message: 'You must be at least 18 years of age to join Unmute',
-      })
-      .optional(),
+    dateOfBirth: dateOfBirth.optional(),
   })
   .strict();
 
@@ -85,13 +82,7 @@ export const phoneVerifySchema = z
       .min(2, 'Display name must be at least 2 characters')
       .max(50, 'Display name cannot exceed 50 characters')
       .optional(),
-    dateOfBirth: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
-      .refine((dob) => isAtLeast18YearsOld(dob), {
-        message: 'You must be at least 18 years of age to join Unmute',
-      })
-      .optional(),
+    dateOfBirth: dateOfBirth.optional(),
   })
   .strict();
 

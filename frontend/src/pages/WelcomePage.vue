@@ -16,8 +16,8 @@
       </UButton>
 
       <div class="auth-divider" role="separator">or continue with</div>
-      <div class="social-row">
-        <GoogleSignIn text="continue_with" @authenticated="onSignedIn" />
+      <div class="social-row" :class="{ 'is-single': !googleAvailable }">
+        <GoogleSignIn v-if="googleAvailable" text="continue_with" @authenticated="onSignedIn" />
         <PhoneSignIn @authenticated="onSignedIn" />
       </div>
 
@@ -36,9 +36,12 @@ import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
 import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
 import { ONBOARDING_START } from '../onboarding';
+import { useGoogleAvailable } from '../composables/useGoogleIdentity';
 import couplePhoto from '../assets/welcome-couple.webp';
 
 const router = useRouter();
+// Google sign-in appears once GOOGLE_CLIENT_ID is set on the server.
+const googleAvailable = useGoogleAvailable();
 
 function onSignedIn(isNewUser: boolean) {
   router.push(isNewUser ? ONBOARDING_START : '/discover');
@@ -107,8 +110,14 @@ function onSignedIn(isNewUser: boolean) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
 
-  &:has(.is-gis) {
+  &:has(.is-gis),
+  &.is-single {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  // Phone on its own: centred, like the full-width buttons above it.
+  &.is-single :deep(.social-btn) {
+    justify-content: center;
   }
 
   :deep(.social-btn) {

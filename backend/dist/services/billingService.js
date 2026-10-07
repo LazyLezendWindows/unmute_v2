@@ -85,13 +85,18 @@ class BillingService {
             if (order.fulfilled_at)
                 return;
             const plan = subscriptionService_1.PLANS.find(p => p.id === order.plan);
+            // A plan starts when the free week (or any time already paid for) ends.
             const sub = await tx.get(`SELECT TIMESTAMPDIFF(SECOND, '1970-01-01', GREATEST(UTC_TIMESTAMP(),
-        DATE_ADD(trial_started_at, INTERVAL 7 DAY), COALESCE(plan_expires_at, trial_started_at))) AS start
+        DATE_ADD(trial_started_at, INTERVAL 7 DAY), COALESCE(plan_expires_at, trial_started_at))) AS start,
+        COALESCE(plan_expires_at > UTC_TIMESTAMP(), 0) AS hasPlan
         FROM subscriptions WHERE user_id = ? FOR UPDATE`, [order.user_id]);
             if (!sub)
                 throw new errorHandler_1.AppError('Sign in again before upgrading.', 409);
             const end = (0, subscriptionService_1.planEnd)(new Date(Number(sub.start) * 1000), plan);
-            await tx.run('UPDATE subscriptions SET plan = ?, plan_started_at = UTC_TIMESTAMP(), plan_expires_at = ? WHERE user_id = ?', [plan.id, end.toISOString().slice(0, 19).replace('T', ' '), order.user_id]);
+            const sqlTime = (d) => d.toISOString().slice(0, 19).replace('T', ' ');
+            // Renewing keeps the current (or already queued) plan's start; otherwise the paid period
+            // starts at `start`, e.g. when the free trial ends for a purchase made during it.
+            await tx.run(`UPDATE subscriptions SET plan = ?, plan_started_at = IF(?, plan_started_at, ?), plan_expires_at = ? WHERE user_id = ?`, [plan.id, Number(sub.hasPlan) ? 1 : 0, sqlTime(new Date(Number(sub.start) * 1000)), sqlTime(end), order.user_id]);
             await tx.run('UPDATE billing_orders SET payment_id = ?, fulfilled_at = UTC_TIMESTAMP() WHERE id = ?', [payment.id, order.id]);
         });
     }

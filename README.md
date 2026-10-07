@@ -197,7 +197,7 @@ npm test            # backend API/integration tests + frontend unit tests (Vites
 npm run test:e2e    # Playwright end-to-end smoke tests (needs MariaDB running)
 ```
 
-Backend tests run against a separate `unmute_test_db` database (created automatically) and refuse to run against any database not named `*_test_db`. The end-to-end suite starts its own backend (port 5100, database `unmute_e2e_db`, dropped and recreated each run) and Vite (port 5174), and drives the installed Google Chrome; set `PW_CHANNEL=` after `npx playwright install chromium` to use Playwright's browser instead.
+Backend tests create a separate `unmute_<runner-pid>_test_db` database for each run and remove it afterwards, so concurrent test runs cannot overwrite each other's fixtures. Set `UNMUTE_TEST_DATABASE=unmute_debug_test_db` to keep a specific test database for inspection; names must end with `*_test_db`. An explicit `MARIADB_DATABASE` also overrides the database in a connection URL. The end-to-end suite starts its own backend (port 5100, database `unmute_e2e_db`, dropped and recreated each run) and Vite (port 5174), and drives the installed Google Chrome; set `PW_CHANNEL=` after `npx playwright install chromium` to use Playwright's browser instead.
 
 ### PWA & Native Apps (Capacitor)
 

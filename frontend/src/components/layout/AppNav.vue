@@ -84,6 +84,7 @@ function badgeFor(item: NavItem): number {
 
 // The tab badges need both lists wherever the app is opened; notifications arrive live from then on.
 onMounted(() => {
+  chatStore.initSocketHandlers();
   if (!chatStore.matches.length) chatStore.loadMatches();
   if (!chatStore.conversations.length) chatStore.loadConversations();
   notificationStore.bindSocket();

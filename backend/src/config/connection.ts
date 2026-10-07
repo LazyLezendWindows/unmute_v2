@@ -15,8 +15,10 @@ export function mariaConnectionOptions({ withDatabase = true } = {}): mysql.Conn
         timezone: 'Z',
         user: decodeURIComponent(parsed.username || ''),
         password: decodeURIComponent(parsed.password || ''),
-        ...(withDatabase && parsed.pathname && parsed.pathname !== '/'
-          ? { database: parsed.pathname.replace(/^\//, '') }
+        // An explicit database override must also apply to URL connections. Test/reset tools
+        // validate MARIADB_DATABASE before clearing tables, so ignoring it could erase app data.
+        ...(withDatabase
+          ? { database: process.env.MARIADB_DATABASE || decodeURIComponent(parsed.pathname.replace(/^\//, '')) || config.mariadb.database }
           : {}),
       };
       if (
@@ -28,8 +30,9 @@ export function mariaConnectionOptions({ withDatabase = true } = {}): mysql.Conn
         opts.ssl = { rejectUnauthorized: false };
       }
       return opts;
-    } catch (e) {
-      console.warn('[DB] Failed to parse DATABASE_URL, falling back to individual variables:', e);
+    } catch {
+      // URL parser errors can include credentials from the rejected URL.
+      console.warn('[DB] Failed to parse database URL, falling back to individual variables.');
     }
   }
 

@@ -15,43 +15,49 @@ export const useNotificationStore = defineStore('notifications', () => {
   const loading = ref(false);
   const loaded = ref(false);
   const hasMore = ref(false);
+  let generation = 0;
 
   async function load() {
+    const attempt = generation;
     loading.value = true;
     try {
       const res = await api.get('/notifications', { params: { limit: PAGE_SIZE } });
+      if (attempt !== generation) return;
       items.value = res.data.data.items;
       unreadCount.value = res.data.data.unreadCount;
       hasMore.value = items.value.length === PAGE_SIZE;
       loaded.value = true;
     } catch (err: any) {
-      useToastStore().error(`Couldn't load your notifications. ${err.message}`);
+      if (attempt === generation) useToastStore().error(`Couldn't load your notifications. ${err.message}`);
     } finally {
-      loading.value = false;
+      if (attempt === generation) loading.value = false;
     }
   }
 
   async function loadMore() {
     if (loading.value || !hasMore.value) return;
+    const attempt = generation;
     loading.value = true;
     try {
       const res = await api.get('/notifications', { params: { limit: PAGE_SIZE, offset: items.value.length } });
+      if (attempt !== generation) return;
       const page: AppNotification[] = res.data.data.items;
       items.value = [...items.value, ...page.filter((n) => !items.value.some((i) => i.id === n.id))];
       unreadCount.value = res.data.data.unreadCount;
       hasMore.value = page.length === PAGE_SIZE;
     } catch (err: any) {
-      useToastStore().error(`Couldn't load more notifications. ${err.message}`);
+      if (attempt === generation) useToastStore().error(`Couldn't load more notifications. ${err.message}`);
     } finally {
-      loading.value = false;
+      if (attempt === generation) loading.value = false;
     }
   }
 
   /** Just the badge, for screens that don't show the feed. */
   async function refreshCount() {
+    const attempt = generation;
     try {
       const res = await api.get('/notifications/unread-count', { silent: true });
-      unreadCount.value = res.data.data.unreadCount;
+      if (attempt === generation) unreadCount.value = res.data.data.unreadCount;
     } catch {
       // The badge keeps its last value.
     }
@@ -59,38 +65,44 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   async function markRead(notification: AppNotification) {
     if (notification.read) return;
+    const attempt = generation;
     notification.read = true;
     unreadCount.value = Math.max(0, unreadCount.value - 1);
     try {
       const res = await api.post(`/notifications/${notification.id}/read`, null, { silent: true });
-      unreadCount.value = res.data.data.unreadCount;
+      if (attempt === generation) unreadCount.value = res.data.data.unreadCount;
     } catch {
       // Stays read on screen; the server catches up on the next load.
     }
   }
 
   async function markAllRead() {
-    const previous = items.value.map((n) => n.read);
+    const attempt = generation;
+    const previous = new Map(items.value.map((n) => [n.id, n.read]));
     items.value.forEach((n) => (n.read = true));
     const before = unreadCount.value;
     unreadCount.value = 0;
     try {
       await api.post('/notifications/read-all');
     } catch (err: any) {
-      items.value.forEach((n, i) => (n.read = previous[i]));
-      unreadCount.value = before;
+      if (attempt !== generation) return;
+      items.value.forEach((n) => { if (previous.has(n.id)) n.read = previous.get(n.id)!; });
+      unreadCount.value = Math.max(before, unreadCount.value);
+      void refreshCount();
       useToastStore().error(err.message);
     }
   }
 
   async function remove(notification: AppNotification) {
+    const attempt = generation;
     const index = items.value.indexOf(notification);
     items.value = items.value.filter((n) => n.id !== notification.id);
     try {
       const res = await api.delete(`/notifications/${notification.id}`, { silent: true });
-      unreadCount.value = res.data.data.unreadCount;
+      if (attempt === generation) unreadCount.value = res.data.data.unreadCount;
     } catch (err: any) {
-      items.value.splice(index, 0, notification);
+      if (attempt !== generation) return;
+      if (!items.value.some((n) => n.id === notification.id)) items.value.splice(Math.max(0, index), 0, notification);
       useToastStore().error(err.message);
     }
   }
@@ -137,10 +149,12 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   function reset() {
+    generation++;
     items.value = [];
     unreadCount.value = 0;
     loaded.value = false;
     hasMore.value = false;
+    loading.value = false;
   }
 
   return {

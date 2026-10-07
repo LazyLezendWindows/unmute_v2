@@ -23,6 +23,14 @@ export class AuthAccountRepository {
     return row?.phone ?? null;
   }
 
+  static async hasPassword(userId: string): Promise<boolean> {
+    const row = await getDatabase().get<{ id: string }>(
+      "SELECT id FROM auth_accounts WHERE user_id = ? AND provider = 'password' AND password_hash IS NOT NULL",
+      [userId]
+    );
+    return Boolean(row);
+  }
+
   /** Email lookup for password sign-in; password_hash is null when the account has no password. */
   static findPasswordLogin(email: string): Promise<{ id: string; is_active: number; password_hash: string | null } | null> {
     return getDatabase().get(

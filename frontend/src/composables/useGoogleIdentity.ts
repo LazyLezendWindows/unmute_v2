@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { api } from '../services/api';
 
 /**
@@ -107,4 +107,16 @@ export function useGoogleIdentity() {
   }
 
   return { clientId, resolveClientId, renderButton, disableAutoSelect };
+}
+
+/**
+ * Whether Google sign-in is set up on the server (GOOGLE_CLIENT_ID). Sign-in screens show the
+ * Google button only when it is, so adding the client ID later turns it on with no code change.
+ */
+export function useGoogleAvailable() {
+  const available = ref(false);
+  onMounted(async () => {
+    available.value = Boolean(await useGoogleIdentity().resolveClientId());
+  });
+  return available;
 }

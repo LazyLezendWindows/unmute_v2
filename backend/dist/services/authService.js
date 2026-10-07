@@ -15,7 +15,6 @@ const profileRepository_1 = require("../repositories/profileRepository");
 const interestRepository_1 = require("../repositories/interestRepository");
 const googleIdentity_1 = require("./auth/googleIdentity");
 const phoneAuthService_1 = require("./phoneAuthService");
-const verificationService_1 = require("./verificationService");
 const phoneCodeRepository_1 = require("../repositories/phoneCodeRepository");
 async function createUserWithProfile(tx, input) {
     const userId = await userRepository_1.UserRepository.insert(tx, input.email);
@@ -138,7 +137,6 @@ class AuthService {
             id: user.id,
             email: user.email,
             phone,
-            isAdmin: verificationService_1.VerificationService.isAdmin(user.email),
             profile: profile ? (0, profileMapper_1.toOwnProfile)(profile, interests) : null,
         };
     }

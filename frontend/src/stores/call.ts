@@ -69,11 +69,17 @@ export const useCallStore = defineStore('call', () => {
   let effectTimer: ReturnType<typeof setInterval> | undefined;
   let effectSource: HTMLVideoElement | null = null;
   let effectCtx: CanvasRenderingContext2D | null = null;
+  let flipping = false;
 
   async function useVideoTrack(track: MediaStreamTrack | null) {
     if (!track || !localStream.value) return;
+    const attempt = generation;
     track.enabled = !cameraOff.value;
     await pc?.getSenders().find((s) => s.track?.kind === 'video')?.replaceTrack(track);
+    if (attempt !== generation || !localStream.value) {
+      track.stop();
+      return;
+    }
     localStream.value = new MediaStream([...localStream.value.getAudioTracks(), track]);
   }
 
@@ -206,6 +212,8 @@ export const useCallStore = defineStore('call', () => {
     }
     localStream.value = stream;
     cameraTrack = stream.getVideoTracks()[0] ?? null;
+    stream.getAudioTracks().forEach((track) => { track.enabled = !muted.value; });
+    stream.getVideoTracks().forEach((track) => { track.enabled = !cameraOff.value; });
     return true;
   }
 
@@ -362,19 +370,33 @@ export const useCallStore = defineStore('call', () => {
 
   /** Switches between the front and back camera (phones), without dropping the call. */
   async function flipCamera() {
-    if (mode.value !== 'video' || !localStream.value) return;
+    if (mode.value !== 'video' || !localStream.value || flipping) return false;
+    const attempt = generation;
+    flipping = true;
     const next = facing.value === 'user' ? 'environment' : 'user';
+    let fresh: MediaStream | undefined;
     try {
-      const fresh = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: next } } });
+      fresh = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: next } } });
+      if (attempt !== generation || !inCall.value) {
+        fresh.getTracks().forEach((track) => track.stop());
+        return false;
+      }
       const track = fresh.getVideoTracks()[0];
+      if (!track) throw new Error('No camera track');
       const old = cameraTrack;
-      cameraTrack = track;
       if (effectSource) effectSource.srcObject = new MediaStream([track]);
       else await useVideoTrack(track);
+      if (attempt !== generation) return false;
+      cameraTrack = track;
       old?.stop();
       facing.value = next;
+      return true;
     } catch {
-      useToastStore().show('This device has only one camera.');
+      fresh?.getTracks().forEach((track) => track.stop());
+      if (attempt === generation) useToastStore().show('This device has only one camera.');
+      return false;
+    } finally {
+      if (attempt === generation) flipping = false;
     }
   }
 
@@ -414,6 +436,7 @@ export const useCallStore = defineStore('call', () => {
     muted.value = false;
     cameraOff.value = false;
     facing.value = 'user';
+    flipping = false;
     incomingReaction.value = null;
     effect.value = 'none';
   }

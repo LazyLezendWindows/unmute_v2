@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MatchingService = exports.SUPER_LIKES_PER_DAY = void 0;
+exports.MatchingService = void 0;
 const errorHandler_1 = require("../middleware/errorHandler");
 const chatSocket_1 = require("../sockets/chatSocket");
 const profileMapper_1 = require("../mappers/profileMapper");
@@ -11,11 +11,10 @@ const messageRepository_1 = require("../repositories/messageRepository");
 const profileRepository_1 = require("../repositories/profileRepository");
 const interestRepository_1 = require("../repositories/interestRepository");
 const userGuards_1 = require("./userGuards");
+const premiumService_1 = require("./premiumService");
 const notificationService_1 = require("./notificationService");
 const userLocationRepository_1 = require("../repositories/userLocationRepository");
 const distance_service_1 = require("./location/distance.service");
-/** Super Likes each member can send per 24 hours. */
-exports.SUPER_LIKES_PER_DAY = 5;
 class MatchingService {
     static async recordLike(likerId, likeeId, superLike = false) {
         if (likerId === likeeId) {
@@ -25,8 +24,11 @@ class MatchingService {
         const newSuper = superLike && !(await interactionRepository_1.InteractionRepository.isSuperLike(likerId, likeeId));
         if (newSuper) {
             const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
-            if ((await interactionRepository_1.InteractionRepository.countSuperLikesSince(likerId, dayAgo)) >= exports.SUPER_LIKES_PER_DAY) {
-                throw new errorHandler_1.AppError(`You've used your ${exports.SUPER_LIKES_PER_DAY} Super Likes for today. Try again tomorrow.`, 429);
+            const limit = await premiumService_1.PremiumService.superLikesPerDay(likerId);
+            if ((await interactionRepository_1.InteractionRepository.countSuperLikesSince(likerId, dayAgo)) >= limit) {
+                throw new errorHandler_1.AppError(limit < premiumService_1.PREMIUM_SUPER_LIKES_PER_DAY
+                    ? `You've used your ${limit} Super Likes for today. Premium members get ${premiumService_1.PREMIUM_SUPER_LIKES_PER_DAY} a day.`
+                    : `You've used your ${limit} Super Likes for today. Try again tomorrow.`, 429);
             }
         }
         // A repeated like changes nothing and notifies no one again (upgrading it to a Super Like does).

@@ -63,7 +63,10 @@ export class VerificationService {
       );
     const [selfie, id, phone] = await Promise.all([latest('selfie'), latest('id'), AuthAccountRepository.phoneOf(userId)]);
     const state = (verified: boolean, row: RequestRow | null) =>
-      verified ? { status: 'verified' as const, reason: null } : row ? { status: row.status, reason: row.status === 'rejected' ? row.reason : null } : { status: 'none' as const, reason: null };
+      verified ? { status: 'verified' as const, reason: null }
+        // A previous approval does not restore a badge that an admin subsequently removed.
+        : row && row.status !== 'approved' ? { status: row.status, reason: row.status === 'rejected' ? row.reason : null }
+          : { status: 'none' as const, reason: null };
     return {
       email: { address: user?.email ?? null, verified: Boolean(user?.email_verified_at) },
       phone: { number: phone, verified: Boolean(phone) },
@@ -175,9 +178,9 @@ export class VerificationService {
   /** Approves or rejects; the image is deleted either way. */
   static async decide(moderatorId: string, requestId: string, approve: boolean, reason?: string) {
     const db = getDatabase();
-    const row = await db.get<RequestRow>("SELECT * FROM verification_requests WHERE id = ? AND status = 'pending'", [requestId]);
-    if (!row) throw new AppError('This request was already reviewed.', 404);
-    await db.transaction(async (tx) => {
+    const fileName = await db.transaction(async (tx) => {
+      const row = await tx.get<RequestRow>("SELECT * FROM verification_requests WHERE id = ? AND status = 'pending' FOR UPDATE", [requestId]);
+      if (!row) throw new AppError('This request was already reviewed.', 404);
       await tx.run(
         'UPDATE verification_requests SET status = ?, reason = ?, reviewed_at = UTC_TIMESTAMP(), reviewed_by = ?, file_name = NULL WHERE id = ?',
         [approve ? 'approved' : 'rejected', approve ? null : (reason || 'The photo didn’t meet the requirements.').slice(0, 200), moderatorId, requestId]
@@ -185,7 +188,8 @@ export class VerificationService {
       if (approve) {
         await tx.run(`UPDATE profiles SET ${row.kind === 'selfie' ? 'is_verified' : 'id_verified'} = 1 WHERE user_id = ?`, [row.user_id]);
       }
+      return row.file_name;
     });
-    await removePrivate(row.file_name);
+    await removePrivate(fileName);
   }
 }

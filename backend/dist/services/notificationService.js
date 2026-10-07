@@ -83,6 +83,10 @@ class NotificationService {
     static async messageReceived(recipientId, senderId, conversationId, content) {
         await this.deliver(recipientId, () => notificationRepository_1.NotificationRepository.upsertMessage(recipientId, senderId, conversationId, truncate(content)));
     }
+    /** A reminder that the free trial or a plan is ending or has ended (opens the Upgrade page). */
+    static async planReminder(userId, text) {
+        await this.deliver(userId, () => notificationRepository_1.NotificationRepository.insert(userId, 'plan', { preview: text }));
+    }
     static async conversationRead(userId, conversationId) {
         await notificationRepository_1.NotificationRepository.markConversationRead(userId, conversationId).catch(logFailure);
     }

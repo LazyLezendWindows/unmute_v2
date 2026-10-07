@@ -190,6 +190,7 @@ export const useDiscoverStore = defineStore('discover', () => {
 
   // Typing a search fires overlapping requests; only the newest one may fill the deck.
   let feedRequest = 0;
+  let generation = 0;
 
   async function loadFeed() {
     syncFiltersOwner();
@@ -215,6 +216,7 @@ export const useDiscoverStore = defineStore('discover', () => {
    * the feed straight away; if the server rejects it they come back, so a failed like is never lost.
    */
   async function interact(target: DiscoveryCandidate, action: 'like' | 'pass', superLike = false): Promise<boolean> {
+    const requestGeneration = generation;
     const index = feed.value.findIndex((p) => p.id === target.id);
     if (index === -1) return false;
     feed.value = feed.value.filter((p) => p.id !== target.id);
@@ -222,12 +224,14 @@ export const useDiscoverStore = defineStore('discover', () => {
 
     try {
       const res = await api.post(`/interactions/${action}`, { targetUserId: target.id, ...(superLike ? { superLike: true } : {}) });
+      if (requestGeneration !== generation) return false;
       if (action === 'like' && res.data.data.matched) {
         activeMatch.value = { conversationId: res.data.data.conversationId, person: target };
       }
       lastPassed.value = action === 'pass' ? target : null;
       return true;
     } catch (err: any) {
+      if (requestGeneration !== generation) return false;
       if (!feed.value.some((p) => p.id === target.id)) {
         const at = Math.min(index, feed.value.length);
         feed.value = [...feed.value.slice(0, at), target, ...feed.value.slice(at)];
@@ -258,17 +262,19 @@ export const useDiscoverStore = defineStore('discover', () => {
     if (undoing.value) return;
     const person = lastPassed.value;
     if (!person) return;
+    const requestGeneration = generation;
     undoing.value = true;
     try {
       await api.delete('/interactions/pass', { data: { targetUserId: person.id } });
+      if (requestGeneration !== generation) return;
       lastPassed.value = null;
       if (!feed.value.some((p) => p.id === person.id)) {
         const at = currentIndex.value;
         feed.value = [...feed.value.slice(0, at), person, ...feed.value.slice(at)];
       }
     } catch (err: any) {
-      useToastStore().error(err.message);
-    } finally { undoing.value = false; }
+      if (requestGeneration === generation) useToastStore().error(err.message);
+    } finally { if (requestGeneration === generation) undoing.value = false; }
   }
 
   async function blockUser(targetUserId: string, reason = '') {
@@ -285,6 +291,23 @@ export const useDiscoverStore = defineStore('discover', () => {
     activeMatch.value = null;
   }
 
+  function reset() {
+    generation++;
+    feedRequest++;
+    feed.value = [];
+    currentIndex.value = 0;
+    recommendedOrder = [];
+    sort.value = 'recommended';
+    filters.value = emptyFilters();
+    filtersOwner = null;
+    search.value = '';
+    activeMatch.value = null;
+    lastPassed.value = null;
+    loading.value = false;
+    error.value = null;
+    undoing.value = false;
+  }
+
   return {
     feed,
     currentIndex,
@@ -297,6 +320,8 @@ export const useDiscoverStore = defineStore('discover', () => {
     filters,
     search,
     activeFilterCount,
+    syncFiltersOwner,
+    reset,
     setSort,
     setFilters,
     setSearch,

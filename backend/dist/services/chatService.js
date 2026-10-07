@@ -76,6 +76,13 @@ class ChatService {
             messages: rows.map(messageMapper_1.toMessage),
         };
     }
+    /** Records messages read while the conversation remains open. */
+    static async readMessages(conversationId, userId) {
+        await this.requireAccessible(conversationId, userId, 'Access to this conversation is restricted');
+        await messageRepository_1.MessageRepository.markRead(conversationId, userId);
+        await notificationService_1.NotificationService.conversationRead(userId, conversationId);
+        (0, chatSocket_1.getSocketServer)()?.to(`conversation:${conversationId}`).emit('messages_read', { conversationId, readerId: userId });
+    }
     /** Adds a call to the chat history, as the caller's message; a missed call also notifies the other person. */
     static async recordCall(conversationId, callerId, call) {
         const conv = await conversationRepository_1.ConversationRepository.findForParticipant(conversationId, callerId);

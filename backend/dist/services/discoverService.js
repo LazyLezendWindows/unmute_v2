@@ -9,6 +9,7 @@ const discoverValidator_1 = require("../validators/discoverValidator");
 const distance_service_1 = require("./location/distance.service");
 const geolocation_service_1 = require("./location/geolocation.service");
 const educationService_1 = require("./educationService");
+const premiumService_1 = require("./premiumService");
 /** `YYYY-MM-DD` for today minus `years`, in UTC. */
 function yearsAgo(years) {
     const d = new Date();
@@ -18,7 +19,12 @@ function yearsAgo(years) {
 class DiscoverService {
     /** Turns validated query options into repository filters, resolving anything relative to the viewer. */
     static async resolveFilters(viewerId, query) {
-        const origin = await geolocation_service_1.UserLocationService.originFor(viewerId);
+        // Travel mode (Premium) searches around the place being visited instead of home.
+        const origin = (await premiumService_1.PremiumService.travelOrigin(viewerId)) ?? (await geolocation_service_1.UserLocationService.originFor(viewerId));
+        const advanced = query.verifiedOnly || query.drinking || query.smoking || query.workout || query.educationLevel || query.professionField;
+        if (advanced && !(await premiumService_1.PremiumService.isPremium(viewerId))) {
+            throw new errorHandler_1.AppError('Verified-only, lifestyle, education and profession filters are Premium features. Upgrade to use them.', 403);
+        }
         if (query.radiusKm !== undefined && !origin) {
             throw new errorHandler_1.AppError('Set your area on your profile to filter by distance.', 400);
         }

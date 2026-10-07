@@ -94,6 +94,22 @@ describe('Realtime chat authorization', () => {
     expect(await outsiderReceives).toBeNull();
   });
 
+  it('marks live messages read only for an authorized conversation participant', async () => {
+    const bSocket = await openSocket(b.cookie);
+    const outsiderSocket = await openSocket(outsider.cookie);
+    const sent = await request(app).post(`/api/v1/conversations/${conversationId}/messages`)
+      .set('Cookie', a.cookie).send({ content: 'Read while the chat stays open' });
+    expect(sent.status).toBe(201);
+    const status = async () => (await getDatabase().get('SELECT status FROM messages WHERE id = ?', [sent.body.data.id])).status;
+    const read = (socket: Socket) => socket.timeout(2000).emitWithAck('read_conversation', conversationId);
+    expect(await read(outsiderSocket)).toEqual({ success: false });
+    expect(await status()).not.toBe('read');
+    expect(await read(bSocket)).toEqual({ success: true });
+    expect(await status()).toBe('read');
+    const conversations = await request(app).get('/api/v1/conversations').set('Cookie', b.cookie);
+    expect(conversations.body.data.find((c: any) => c.id === conversationId).unreadCount).toBe(0);
+  });
+
   it('relays call signals to the other participant only, and never while blocked', async () => {
     const aSocket = await openSocket(a.cookie);
     const bSocket = await openSocket(b.cookie);

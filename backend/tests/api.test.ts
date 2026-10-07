@@ -758,6 +758,29 @@ describe('Unmute API', () => {
       expect((await member.agent.get('/api/v1/users/me')).body.data.isVerified).toBe(true);
       // The image is deleted once reviewed.
       expect((await mod.agent.get(`/api/v1/admin/verifications/${selfie.id}/image`)).status).toBe(404);
+
+      const revoked = await mod.agent.post(`/api/v1/admin/users/${member.id}/verified`).send({ verified: false });
+      expect(revoked.status).toBe(200);
+      expect((await member.agent.get('/api/v1/users/me')).body.data.isVerified).toBe(false);
+      expect((await member.agent.get('/api/v1/users/me/verification')).body.data.selfie.status).toBe('none');
+    });
+
+    it('allows only one moderator decision when the same submission is reviewed at once', async () => {
+      const member = await registerAgent('verify-race@example.com', 'Review Race');
+      const moderator = await adminAgent();
+      const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+      const { requestId } = (await member.agent.post('/api/v1/users/me/verification/selfie/start')).body.data;
+      expect((await member.agent.post(`/api/v1/users/me/verification/selfie/${requestId}`).set('Content-Type', 'image/png').send(png)).status).toBe(201);
+
+      const decisions = await Promise.all([
+        moderator.post(`/api/v1/admin/verifications/${requestId}/decision`).send({ approve: true }),
+        moderator.post(`/api/v1/admin/verifications/${requestId}/decision`).send({ approve: false, reason: 'Not clear enough.' }),
+      ]);
+      expect(decisions.map((result) => result.status).sort()).toEqual([200, 404]);
+      const approved = decisions[0].status === 200;
+      const status = (await member.agent.get('/api/v1/users/me/verification')).body.data;
+      expect(status.selfie.status).toBe(approved ? 'verified' : 'rejected');
+      expect((await member.agent.get('/api/v1/users/me')).body.data.isVerified).toBe(approved);
     });
   });
 

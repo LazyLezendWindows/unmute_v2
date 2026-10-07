@@ -92,6 +92,9 @@ function toOwnProfile(row, interests) {
         interactionPreferences: parsePreferences(row.interaction_preferences),
         interests,
         isVerified: Boolean(row.is_verified),
+        isPremium: Boolean(row.is_premium),
+        premiumPlan: row.is_premium ? row.premium_plan ?? null : null,
+        travellingTo: row.travel_label ?? null,
         gender: row.gender,
         ...profileDetails(row),
     };
@@ -109,5 +112,11 @@ function toPublicProfile(userId, row) {
         education: publicEducation(row),
         ...profileDetails(row),
         isOnline: (0, presence_1.isOnline)(userId),
+        /** A paid member (shown as a crown badge). */
+        isPremium: Boolean(row?.is_premium),
+        /** Which paid plan, so its badge (Day Pass … Platinum) can be shown. */
+        premiumPlan: row?.is_premium ? row?.premium_plan ?? null : null,
+        /** Travel mode: the place they're visiting, e.g. "Goa, Goa". */
+        travellingTo: row?.travel_label ?? null,
     };
 }

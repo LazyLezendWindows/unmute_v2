@@ -134,7 +134,7 @@
             <li v-for="r in u.reports" :key="r.id" class="report-item">
               <div class="report-body">
                 <strong>{{ r.category }}</strong>
-                <span class="muted-text"> by <router-link :to="`/admin/users/${r.reporter.id}`">{{ r.reporter.name || 'member' }}</router-link> · {{ when(r.createdAt) }}</span>
+                <span class="muted-text"> by <router-link v-if="r.reporter.id" :to="`/admin/users/${r.reporter.id}`">{{ r.reporter.name || 'member' }}</router-link><template v-else>a deleted account</template> · {{ when(r.createdAt) }}</span>
                 <p v-if="r.details" class="pre report-detail">{{ r.details }}</p>
               </div>
               <span v-if="r.status !== 'pending'" class="badge is-ok">{{ r.status }}</span>

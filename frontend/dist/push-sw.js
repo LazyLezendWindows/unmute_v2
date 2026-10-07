@@ -38,7 +38,7 @@ self.addEventListener('push', (event) => {
         });
       })
     );
-  } else if (data.type === 'message') {
+  } else if (data.type === 'message' || data.type === 'plan') {
     event.waitUntil(
       self.registration.showNotification(data.title, {
         body: data.body,

@@ -1,6 +1,8 @@
 import { Response, NextFunction } from 'express';
 import { ProfileService } from '../services/profileService';
 import { MediaService } from '../services/mediaService';
+import { AccountService } from '../services/accountService';
+import { SessionService } from '../services/sessionService';
 import { AuthRequest } from '../middleware/auth';
 
 export class ProfileController {
@@ -23,6 +25,17 @@ export class ProfileController {
         success: true,
         data: updated,
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Deletes the account and everything in it, then signs this browser out. */
+  static async deleteMyAccount(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await AccountService.deleteAccount(req.user!.userId, req.body);
+      SessionService.clearCookie(res);
+      res.status(200).json({ success: true, data: null });
     } catch (err) {
       next(err);
     }

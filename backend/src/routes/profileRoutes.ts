@@ -5,9 +5,9 @@ import { ProfileController } from '../controllers/profileController';
 import { LocationController } from '../controllers/locationController';
 import { EducationController } from '../controllers/educationController';
 import { requireAuth } from '../middleware/auth';
-import { locationRateLimiter } from '../middleware/rateLimiter';
+import { authRateLimiter, locationRateLimiter } from '../middleware/rateLimiter';
 import { validateBody } from '../middleware/validate';
-import { updateProfileSchema } from '../validators/profileValidator';
+import { deleteAccountSchema, updateProfileSchema } from '../validators/profileValidator';
 import { setLocationSchema, updatePrecisionSchema } from '../validators/locationValidator';
 import { setEducationSchema } from '../validators/educationValidator';
 
@@ -17,6 +17,8 @@ router.use(requireAuth);
 
 router.get('/me', ProfileController.getMyProfile);
 router.patch('/me', validateBody(updateProfileSchema), ProfileController.updateMyProfile);
+// Permanently deletes the account (password, or the word DELETE for accounts without one).
+router.delete('/me', authRateLimiter, validateBody(deleteAccountSchema), ProfileController.deleteMyAccount);
 router.get('/interests', ProfileController.getInterests);
 // The photo is the request body itself (no multipart), up to 5 MB; its bytes decide the type.
 router.post(

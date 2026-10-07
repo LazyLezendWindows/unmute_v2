@@ -80,23 +80,12 @@
       @close="codeOpen = false"
     />
 
-    <!-- Draft summaries: replace with the full legal documents before public launch. -->
-    <UModal :is-open="legalOpen === 'terms'" title="Terms of Service" max-width="lg" @close="legalOpen = null">
-      <div class="legal-body">
-        <p>Unmute is for adults aged 18 and over. Use it respectfully and lawfully; harassment, scams, solicitation and fake profiles lead to removal.</p>
-        <p>You are responsible for what you share. Report or block anyone who makes you uncomfortable.</p>
-        <p><strong>Free trial and plans.</strong> Every new account gets 7 days of full access. After that, continued access needs a plan (from ₹2 for a day to ₹200 for a year). Plans are one-time payments through Razorpay and do not renew automatically.</p>
-        <p class="legal-note">This is a summary. The full terms will be published before public launch.</p>
-      </div>
-    </UModal>
-    <UModal :is-open="legalOpen === 'privacy'" title="Privacy Policy" max-width="lg" @close="legalOpen = null">
-      <div class="legal-body">
-        <p><strong>What we collect:</strong> your name, email, date of birth, phone number if you add one, photos, profile details and interests, your approximate area, and the messages you send.</p>
-        <p><strong>What others see:</strong> your profile, your age (never your date of birth), and only an area name at the precision you choose, never your exact location. Your email and phone number are never shown.</p>
-        <p><strong>Payments</strong> are handled by Razorpay; Unmute never sees your card or UPI details.</p>
-        <p>We do not sell your data. To delete your account, contact Unmute support.</p>
-        <p class="legal-note">This is a summary. The full privacy policy will be published before public launch.</p>
-      </div>
+    <UModal :is-open="legalOpen !== null" :title="legalOpen === 'privacy' ? PRIVACY.title : TERMS.title" max-width="lg" @close="legalOpen = null">
+      <LegalDocumentView :doc="legalOpen === 'privacy' ? PRIVACY : TERMS" />
+      <template #footer>
+        <router-link :to="legalOpen === 'privacy' ? '/privacy' : '/terms'" target="_blank" class="auth-link small me-auto">Open in a new tab</router-link>
+        <UButton variant="primary" size="md" @click="legalOpen = null">Done</UButton>
+      </template>
     </UModal>
   </AuthStage>
 </template>
@@ -107,6 +96,8 @@ import { useRouter } from 'vue-router';
 import UInput from '../components/ui/UInput.vue';
 import UModal from '../components/ui/UModal.vue';
 import AuthStage from '../components/auth/AuthStage.vue';
+import LegalDocumentView from '../components/legal/LegalDocumentView.vue';
+import { PRIVACY, TERMS } from '../content/legal';
 import UButton from '../components/ui/UButton.vue';
 import PhoneCodeDialog from '../components/auth/PhoneCodeDialog.vue';
 import { useAuthStore } from '../stores/auth';
@@ -298,23 +289,4 @@ async function finishWithCode(code: string) {
     accent-color: var(--unmute-cta);
   }
 }
-
-.legal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  font-size: 0.95rem;
-  color: var(--unmute-text-secondary);
-  line-height: 1.6;
-
-  p { margin: 0; }
-
-  strong { color: var(--unmute-text-heading); }
-}
-
-.legal-note {
-  font-size: 0.85rem;
-  color: var(--unmute-text-muted);
-}
-
 </style>

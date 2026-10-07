@@ -91,6 +91,19 @@ function initSocketServer(server) {
             if (typeof conversationId === 'string')
                 socket.leave(`conversation:${conversationId}`);
         });
+        socket.on('read_conversation', async (conversationId, acknowledge) => {
+            if (typeof conversationId !== 'string' || conversationId.length > 64)
+                return;
+            try {
+                await chatService_1.ChatService.readMessages(conversationId, userId);
+                if (typeof acknowledge === 'function')
+                    acknowledge({ success: true });
+            }
+            catch {
+                if (typeof acknowledge === 'function')
+                    acknowledge({ success: false });
+            }
+        });
     });
     return ioInstance;
 }

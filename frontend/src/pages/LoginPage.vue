@@ -13,7 +13,7 @@
 
       <div class="auth-divider" role="separator">or continue with</div>
       <div class="d-flex flex-column gap-2">
-        <GoogleSignIn text="continue_with" @authenticated="onSignedIn" />
+        <GoogleSignIn v-if="googleAvailable" text="continue_with" @authenticated="onSignedIn" />
         <PhoneSignIn @authenticated="onSignedIn" />
       </div>
 
@@ -61,10 +61,13 @@ import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { api } from '../services/api';
 import { ONBOARDING_START } from '../onboarding';
+import { useGoogleAvailable } from '../composables/useGoogleIdentity';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+// Google sign-in appears once GOOGLE_CLIENT_ID is set on the server.
+const googleAvailable = useGoogleAvailable();
 
 const email = ref('');
 const password = ref('');

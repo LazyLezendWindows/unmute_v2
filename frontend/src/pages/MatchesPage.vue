@@ -19,8 +19,8 @@
     <h1 class="page-title">Matches</h1>
     <p class="page-sub">{{ SUBTITLES[view] }}</p>
 
-    <div class="pill-tabs" role="group" aria-label="Match views">
-      <button v-for="tab in tabs" :key="tab.value" type="button" :aria-pressed="view === tab.value" @click="view = tab.value">
+    <div ref="tabStrip" class="pill-tabs" :class="{ 'has-more': tabsMore }" role="group" aria-label="Match views" @scroll.passive="updateTabsMore">
+      <button v-for="tab in tabs" :key="tab.value" type="button" :aria-pressed="view === tab.value" @click="pickTab(tab.value, $event)">
         {{ tab.label }}<span v-if="tab.count" class="tab-count">{{ tab.count }}</span>
       </button>
     </div>
@@ -131,7 +131,7 @@
             <span v-if="statusOf(match)" class="status" :class="statusOf(match)!.tone">
               <span class="status-dot" aria-hidden="true"></span>{{ statusOf(match)!.label }}
             </span>
-            <button type="button" class="photo-more" :aria-label="`Report or block ${match.user.displayName}`" @click="safetyTarget = match.user">
+            <button type="button" class="photo-more" :aria-label="`Report or block ${match.user.displayName}`" @click.stop="safetyTarget = match.user" @keydown.enter.stop>
               <i class="ri-more-fill" aria-hidden="true"></i>
             </button>
           </div>
@@ -176,7 +176,7 @@
 
 <script setup lang="ts">
 import PremiumBadge from '../components/premium/PremiumBadge.vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import { photoBackground } from '../services/media';
@@ -199,6 +199,18 @@ const chatStore = useChatStore();
 const router = useRouter();
 type View = 'all' | 'new' | 'nearby' | 'likesYou' | 'liked';
 const view = ref<View>('all');
+const tabStrip = ref<HTMLElement | null>(null);
+const tabsMore = ref(false);
+
+function updateTabsMore() {
+  const el = tabStrip.value;
+  tabsMore.value = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+}
+
+function pickTab(value: View, event: MouseEvent) {
+  view.value = value;
+  (event.currentTarget as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+}
 const SUBTITLES: Record<View, string> = {
   all: 'People who liked you back',
   new: 'Matches you haven’t messaged yet',
@@ -298,7 +310,12 @@ function onSafetyCompleted() {
 onMounted(() => {
   chatStore.loadMatches();
   chatStore.loadLikedProfiles();
+  updateTabsMore();
+  window.addEventListener('resize', updateTabsMore);
 });
+// Counts arriving change the tabs' width.
+watch(tabs, () => nextTick(updateTabsMore), { deep: true });
+onBeforeUnmount(() => window.removeEventListener('resize', updateTabsMore));
 </script>
 
 <style scoped lang="scss">
@@ -340,6 +357,14 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
 
 .pill-tabs {
   display: flex;
+  transition: mask-image 0.2s;
+
+  // More tabs off to the right: fade the edge so it reads as scrollable.
+  &.has-more {
+    -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent);
+    mask-image: linear-gradient(90deg, #000 82%, transparent);
+  }
+
   margin-bottom: 1.1rem;
   padding: 0.25rem;
   border-radius: var(--unmute-radius-pill);

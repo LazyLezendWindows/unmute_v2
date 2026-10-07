@@ -6,6 +6,9 @@ import { useGoogleIdentity } from '../composables/useGoogleIdentity';
 import { useNotificationStore } from './notifications';
 import { useCallStore } from './call';
 import { usePremiumStore } from './premium';
+import { useChatStore } from './chat';
+import { useDiscoverStore } from './discover';
+import { useSubscriptionStore } from './subscription';
 import { unregisterPush } from '../services/push';
 import { User, Profile, LocationPrecision } from '../types';
 
@@ -46,6 +49,9 @@ export const useAuthStore = defineStore('auth', () => {
     // Signing out stops any call (camera and microphone included).
     useCallStore().reset();
     usePremiumStore().reset();
+    useChatStore().reset();
+    useDiscoverStore().reset();
+    useSubscriptionStore().reset();
   }
 
   onUnauthorized(() => {
@@ -155,27 +161,31 @@ export const useAuthStore = defineStore('auth', () => {
   /** Adds a confirmed phone number to the signed-in account. */
   function linkPhone(phone: string, code: string) {
     return run(async () => {
+      const userId = user.value?.id;
       const res = await api.post('/auth/phone/link', { phone, code });
-      user.value = res.data.data.user;
+      if (user.value && user.value.id === userId) user.value = res.data.data.user;
     });
   }
 
   async function fetchMe() {
+    const userId = user.value?.id;
     const res = await api.get('/auth/me');
-    user.value = res.data.data;
+    if (user.value && user.value.id === userId) user.value = res.data.data;
     return user.value;
   }
 
   /** Reloads the own profile (it carries live counts such as likes received). */
   async function refreshProfile() {
+    const userId = user.value?.id;
     const res = await api.get('/users/me');
-    if (user.value) user.value.profile = res.data.data;
+    if (user.value && user.value.id === userId) user.value.profile = res.data.data;
   }
 
   function updateProfile(data: Partial<Profile> & { interestIds?: string[] }) {
     return run(async () => {
+      const userId = user.value?.id;
       const res = await api.patch('/users/me', data);
-      if (user.value) {
+      if (user.value && user.value.id === userId) {
         user.value.profile = res.data.data;
       }
       return res.data.data;
@@ -184,8 +194,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** Location and education endpoints respond with the updated own profile. */
   async function applyProfile(request: Promise<{ data: { data: Profile } }>): Promise<Profile> {
+    const userId = user.value?.id;
     const res = await request;
-    if (user.value) {
+    if (user.value && user.value.id === userId) {
       user.value.profile = res.data.data;
     }
     return res.data.data;
@@ -214,6 +225,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clearEducation() {
     return applyProfile(api.delete('/users/me/education'));
+  }
+
+  /** Permanently deletes the account; the server signs this browser out. */
+  async function deleteAccount(confirmation: { password?: string; confirm?: string }) {
+    await api.delete('/users/me', { data: confirmation });
+    try { await unregisterPush(); } catch { /* the subscription went with the account */ }
+    useGoogleIdentity().disableAutoSelect();
+    setUnauthenticated();
   }
 
   async function logout() {
@@ -249,5 +268,6 @@ export const useAuthStore = defineStore('auth', () => {
     setEducation,
     clearEducation,
     logout,
+    deleteAccount,
   };
 });

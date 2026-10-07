@@ -14,6 +14,10 @@
         <span v-if="!photos.length" class="photo-initial">{{ person.displayName.charAt(0) }}</span>
         <span v-if="person.isOnline" class="online-pill"><span class="online-dot" aria-hidden="true"></span>Online now</span>
         <span v-if="photos.length" class="photo-count">{{ current + 1 }}/{{ photos.length }}</span>
+        <template v-if="photos.length > 1">
+          <button type="button" class="gallery-arrow is-previous" aria-label="Previous photo" @click="movePhoto(-1)"><i class="ri-arrow-left-s-line" aria-hidden="true"></i></button>
+          <button type="button" class="gallery-arrow is-next" aria-label="Next photo" @click="movePhoto(1)"><i class="ri-arrow-right-s-line" aria-hidden="true"></i></button>
+        </template>
       </div>
       <div v-if="photos.length > 1" class="gallery-thumbs">
         <button
@@ -24,9 +28,9 @@
           :class="{ 'is-on': index + thumbStart === current }"
           :style="photoBackground(url)"
           :aria-label="`Photo ${index + thumbStart + 1}`"
+          :aria-pressed="index + thumbStart === current"
           @click="current = index + thumbStart"
         >
-          <span v-if="index === thumbs.length - 1 && hiddenCount" class="thumb-more">+{{ hiddenCount }}</span>
         </button>
       </div>
     </section>
@@ -39,7 +43,7 @@
         </h1>
         <p v-if="person.isPremium" class="person-plan"><PremiumBadge :plan="person.premiumPlan" label /></p>
         <p class="person-line">
-          <span v-if="person.distanceKm !== null"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ person.distanceKm }} km away</span>
+          <span v-if="person.distanceKm != null"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ person.distanceKm }} km away</span>
           <span v-else-if="person.approximateLocation"><i class="ri-map-pin-2-fill" aria-hidden="true"></i>{{ person.approximateLocation }}</span>
           <span v-if="person.isOnline"><span class="online-dot" aria-hidden="true"></span>Online now</span>
         </p>
@@ -82,7 +86,7 @@
 
 <script setup lang="ts">
 import PremiumBadge from '../components/premium/PremiumBadge.vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import CandidateDetails from '../components/discovery/CandidateDetails.vue';
@@ -94,7 +98,7 @@ import { photoBackground, photosOf } from '../services/media';
 import { educationLine, matchPercent } from '../utils/profileFormat';
 import { useToastStore } from '../stores/toast';
 
-/** Thumbnails shown beside the main photo; the last one says how many more there are. */
+/** Keep three thumbnails visible while the arrows reach every photo. */
 const THUMBS = 3;
 
 const route = useRoute();
@@ -106,7 +110,9 @@ const authStore = useAuthStore();
 const id = computed(() => route.params.id as string);
 const candidate = computed(() => discoverStore.feed.find((p) => p.id === id.value) ?? null);
 const matchEntry = computed(() => chatStore.matches.find((m) => m.user.id === id.value) ?? null);
-const person = computed(() => candidate.value ?? matchEntry.value?.user ?? null);
+const person = computed(() => candidate.value ?? matchEntry.value?.user
+  ?? chatStore.likesReceived.find((p) => p.id === id.value)
+  ?? chatStore.likedProfiles.find((p) => p.id === id.value) ?? null);
 const conversationId = computed(() => matchEntry.value?.conversationId ?? null);
 // Anyone still in Discover can be liked or passed from here.
 const isCandidate = computed(() => Boolean(candidate.value));
@@ -114,15 +120,20 @@ const isCandidate = computed(() => Boolean(candidate.value));
 const current = ref(0);
 const safetyOpen = ref(false);
 
-onMounted(async () => {
-  if (!person.value) await chatStore.loadMatches();
-  if (!person.value) router.replace('/discover');
-});
+watch(id, async (requestedId) => {
+  current.value = 0;
+  safetyOpen.value = false;
+  if (!person.value) await Promise.all([chatStore.loadMatches(), chatStore.loadLikedProfiles(), discoverStore.loadFeed()]);
+  if (id.value === requestedId && !person.value) router.replace('/discover');
+}, { immediate: true });
 
 const photos = computed(() => (person.value ? photosOf(person.value) : []));
-const thumbStart = 1;
-const thumbs = computed(() => photos.value.slice(thumbStart, thumbStart + THUMBS));
-const hiddenCount = computed(() => Math.max(0, photos.value.length - thumbStart - THUMBS));
+const thumbStart = computed(() => Math.min(Math.max(0, current.value - 1), Math.max(0, photos.value.length - THUMBS)));
+const thumbs = computed(() => photos.value.slice(thumbStart.value, thumbStart.value + THUMBS));
+
+function movePhoto(direction: number) {
+  current.value = (current.value + direction + photos.value.length) % photos.value.length;
+}
 
 const myInterests = computed(() => new Set((authStore.profile?.interests || []).map((i) => i.name)));
 const interestNames = computed(() =>
@@ -250,15 +261,22 @@ $ink: #10106b;
   }
 }
 
-.thumb-more {
+.gallery-arrow {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: grid;
   place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
   background: rgba(30, 20, 30, 0.45);
   color: #fff;
   font-size: 1.5rem;
-  font-weight: 600;
+
+  &.is-previous { left: 0.5rem; }
+  &.is-next { right: 0.5rem; }
 }
 
 .person-head {

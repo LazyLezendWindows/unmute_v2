@@ -261,8 +261,7 @@ function endCall() {
 }
 
 async function flip() {
-  await call.flipCamera();
-  flipped.value = !flipped.value;
+  if (await call.flipCamera()) flipped.value = !flipped.value;
 }
 
 type SinkElement = Omit<HTMLMediaElement, 'setSinkId'> & { setSinkId?: (id: string) => Promise<void> };

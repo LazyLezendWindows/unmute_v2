@@ -4,9 +4,10 @@ import path from 'path';
 import mysql from 'mysql2/promise';
 import { mariaConnectionOptions } from '../src/config/connection';
 import { runMigrations } from '../src/config/migrate';
+import { config } from '../src/config/env';
 
 // A throwaway database shaped like a pre-migration install (credentials on `users`).
-const LEGACY_DB = 'unmute_migration_test_db';
+const LEGACY_DB = config.mariadb.database.replace(/_test_db$/, '_migration_test_db');
 const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
 
 let conn: mysql.Connection;

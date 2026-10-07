@@ -40,9 +40,6 @@ async function removePrivate(name) {
         await promises_1.default.unlink(path_1.default.join(env_1.config.privateUploadDir, path_1.default.basename(name))).catch(() => undefined);
 }
 class VerificationService {
-    static isAdmin(email) {
-        return Boolean(email && env_1.config.adminEmails.includes(email.toLowerCase()));
-    }
     /** Everything the Verify screen shows. */
     static async status(userId) {
         const db = (0, database_1.getDatabase)();
@@ -50,12 +47,17 @@ class VerificationService {
        FROM users u LEFT JOIN profiles p ON p.user_id = u.id WHERE u.id = ?`, [userId]);
         const latest = async (kind) => db.get(`SELECT * FROM verification_requests WHERE user_id = ? AND kind = ? AND status <> 'draft' ORDER BY created_at DESC LIMIT 1`, [userId, kind]);
         const [selfie, id, phone] = await Promise.all([latest('selfie'), latest('id'), authAccountRepository_1.AuthAccountRepository.phoneOf(userId)]);
-        const state = (verified, row) => verified ? { status: 'verified', reason: null } : row ? { status: row.status, reason: row.status === 'rejected' ? row.reason : null } : { status: 'none', reason: null };
+        const state = (verified, row) => verified ? { status: 'verified', reason: null }
+            // A previous approval does not restore a badge that an admin subsequently removed.
+            : row && row.status !== 'approved' ? { status: row.status, reason: row.status === 'rejected' ? row.reason : null }
+                : { status: 'none', reason: null };
         return {
             email: { address: user?.email ?? null, verified: Boolean(user?.email_verified_at) },
             phone: { number: phone, verified: Boolean(phone) },
             selfie: state(Boolean(user?.is_verified), selfie),
             id: state(Boolean(user?.id_verified), id),
+            /** False until an admin account exists (npm run admin:create); submissions wait until then. */
+            reviewersAvailable: Number((await db.get('SELECT COUNT(*) AS n FROM admins'))?.n ?? 0) > 0,
         };
     }
     // ---- Email ----
@@ -142,16 +144,17 @@ class VerificationService {
     /** Approves or rejects; the image is deleted either way. */
     static async decide(moderatorId, requestId, approve, reason) {
         const db = (0, database_1.getDatabase)();
-        const row = await db.get("SELECT * FROM verification_requests WHERE id = ? AND status = 'pending'", [requestId]);
-        if (!row)
-            throw new errorHandler_1.AppError('This request was already reviewed.', 404);
-        await db.transaction(async (tx) => {
+        const fileName = await db.transaction(async (tx) => {
+            const row = await tx.get("SELECT * FROM verification_requests WHERE id = ? AND status = 'pending' FOR UPDATE", [requestId]);
+            if (!row)
+                throw new errorHandler_1.AppError('This request was already reviewed.', 404);
             await tx.run('UPDATE verification_requests SET status = ?, reason = ?, reviewed_at = UTC_TIMESTAMP(), reviewed_by = ?, file_name = NULL WHERE id = ?', [approve ? 'approved' : 'rejected', approve ? null : (reason || 'The photo didn’t meet the requirements.').slice(0, 200), moderatorId, requestId]);
             if (approve) {
                 await tx.run(`UPDATE profiles SET ${row.kind === 'selfie' ? 'is_verified' : 'id_verified'} = 1 WHERE user_id = ?`, [row.user_id]);
             }
+            return row.file_name;
         });
-        await removePrivate(row.file_name);
+        await removePrivate(fileName);
     }
 }
 exports.VerificationService = VerificationService;

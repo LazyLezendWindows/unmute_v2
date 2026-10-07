@@ -11,6 +11,10 @@ interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   readonly VITE_APP_NAME?: string;
   readonly VITE_GOOGLE_CLIENT_ID?: string;
+  /** Shown in the Terms of Service and Privacy Policy. */
+  readonly VITE_LEGAL_ENTITY?: string;
+  readonly VITE_LEGAL_ADDRESS?: string;
+  readonly VITE_SUPPORT_EMAIL?: string;
 }
 
 interface ImportMeta {

@@ -5,6 +5,7 @@ import { createApp } from './app';
 import { config } from './config/env';
 import { initDatabase } from './config/database';
 import { initSocketServer } from './sockets/chatSocket';
+import { readinessReport } from './utils/readiness';
 import { seedInterests, seedReferenceData, seedDemoUsersIfEmpty } from './utils/seed';
 
 async function bootstrap() {
@@ -18,9 +19,7 @@ async function bootstrap() {
     if (config.seedDemoUsers) {
       await seedDemoUsersIfEmpty();
     }
-    if (!config.googleClientId) {
-      console.warn('[Unmute] GOOGLE_CLIENT_ID is not set; Google sign-in will be unavailable.');
-    }
+    for (const line of readinessReport()) console.log(`[Unmute] ${line}`);
     await AdminAuthService.announceSetup();
 
     // 3. Create app and HTTP server

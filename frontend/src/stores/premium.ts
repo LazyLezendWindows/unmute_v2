@@ -13,10 +13,17 @@ export interface PremiumOverview {
 export const usePremiumStore = defineStore('premium', () => {
   const overview = ref<PremiumOverview | null>(null);
   const isPremium = computed(() => Boolean(overview.value?.isPremium));
+  let generation = 0;
+
+  async function apply(request: Promise<{ data: { data: PremiumOverview } }>) {
+    const requestGeneration = generation;
+    const res = await request;
+    if (requestGeneration === generation) overview.value = res.data.data;
+  }
 
   async function load() {
     try {
-      overview.value = (await api.get('/users/me/premium', { silent: true })).data.data;
+      await apply(api.get('/users/me/premium', { silent: true }));
     } catch {
       // Without it the app simply shows the free options.
     }
@@ -24,18 +31,19 @@ export const usePremiumStore = defineStore('premium', () => {
   }
 
   async function boost() {
-    overview.value = (await api.post('/users/me/premium/boost')).data.data;
+    await apply(api.post('/users/me/premium/boost'));
   }
 
   async function setTravel(placeId: string) {
-    overview.value = (await api.put('/users/me/premium/travel', { placeId })).data.data;
+    await apply(api.put('/users/me/premium/travel', { placeId }));
   }
 
   async function clearTravel() {
-    overview.value = (await api.delete('/users/me/premium/travel')).data.data;
+    await apply(api.delete('/users/me/premium/travel'));
   }
 
   function reset() {
+    generation++;
     overview.value = null;
   }
 

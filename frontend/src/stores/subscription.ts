@@ -19,10 +19,16 @@ export interface AccessState {
 }
 export const useSubscriptionStore = defineStore('subscription', () => {
   const access = ref<AccessState | null>(null);
+  let generation = 0;
   async function fetchStatus() {
+    const requestGeneration = generation;
     const res = await api.get('/subscriptions', { silent: true });
-    access.value = res.data.data;
-    return access.value!;
+    if (requestGeneration === generation) access.value = res.data.data;
+    return res.data.data as AccessState;
   }
-  return { access, fetchStatus };
+  function reset() {
+    generation++;
+    access.value = null;
+  }
+  return { access, fetchStatus, reset };
 });

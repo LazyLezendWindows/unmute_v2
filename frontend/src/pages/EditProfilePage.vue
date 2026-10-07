@@ -11,14 +11,14 @@
       <div class="photo-main" :style="photoBackground(form.avatarUrl)">
         <span v-if="!form.avatarUrl" class="photo-empty"><i class="ri-user-3-line" aria-hidden="true"></i></span>
         <span v-if="uploading === 'main'" class="photo-busy"><span class="spinner-border" aria-hidden="true"></span></span>
-        <button type="button" class="photo-camera" aria-label="Change main photo" :disabled="Boolean(uploading)" @click="pick('main')">
+        <button type="button" class="photo-camera" aria-label="Change main photo" :disabled="Boolean(uploading) || saving" @click="pick('main')">
           <i class="ri-camera-line" aria-hidden="true"></i>
         </button>
       </div>
       <div class="photo-slots">
         <template v-for="index in MAX_PHOTOS" :key="index">
           <div v-if="form.photos[index - 1]" class="photo-slot" :style="photoBackground(form.photos[index - 1])">
-            <button type="button" class="photo-remove" :aria-label="`Remove photo ${index}`" :disabled="Boolean(uploading)" @click="removePhoto(index - 1)">
+            <button type="button" class="photo-remove" :aria-label="`Remove photo ${index}`" :disabled="Boolean(uploading) || saving" @click="removePhoto(index - 1)">
               <i class="ri-close-line" aria-hidden="true"></i>
             </button>
           </div>
@@ -26,7 +26,7 @@
             v-else-if="index - 1 === form.photos.length"
             type="button"
             class="photo-slot is-add"
-            :disabled="Boolean(uploading)"
+            :disabled="Boolean(uploading) || saving"
             @click="pick('add')"
           >
             <span v-if="uploading === 'add'" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
@@ -132,7 +132,7 @@
       </div>
     </section>
 
-    <button type="button" class="save-btn" :disabled="saving" @click="saveProfile">
+    <button type="button" class="save-btn" :disabled="saving || Boolean(uploading)" @click="saveProfile">
       <span v-if="saving" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Save Changes
     </button>
 
@@ -246,9 +246,10 @@ const genderLabel = computed(() => GENDERS.find((g) => g.value === form.gender)?
 // ---- Photos ----
 const fileInput = ref<HTMLInputElement | null>(null);
 const picking = ref<'main' | 'add'>('add');
-const uploading = ref<'main' | 'add' | null>(null);
+const uploading = ref<'main' | 'add' | 'remove' | null>(null);
 
 function pick(which: 'main' | 'add') {
+  if (uploading.value || saving.value) return;
   picking.value = which;
   fileInput.value?.click();
 }
@@ -257,7 +258,7 @@ async function onFiles(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files || []);
   input.value = ''; // Picking the same file again should still fire.
-  if (!files.length) return;
+  if (!files.length || uploading.value || saving.value) return;
   const toast = useToastStore();
   const which = picking.value;
   const room = which === 'main' ? 1 : MAX_PHOTOS - form.photos.length;
@@ -265,6 +266,8 @@ async function onFiles(event: Event) {
   if (files.length > room) toast.show(`Only ${room} more photo${room === 1 ? '' : 's'} can be added.`);
 
   uploading.value = which;
+  let avatarUrl = form.avatarUrl;
+  const photos = [...form.photos];
   try {
     for (const file of chosen) {
       const problem = photoProblem(file);
@@ -272,30 +275,39 @@ async function onFiles(event: Event) {
         toast.error(`${file.name}: ${problem}`);
         continue;
       }
-      const url = await uploadPhoto(file);
-      if (which === 'main') form.avatarUrl = url;
-      else form.photos.push(url);
+      try {
+        const url = await uploadPhoto(file);
+        if (which === 'main') avatarUrl = url;
+        else photos.push(url);
+      } catch (err: any) {
+        toast.error(`${file.name}: Photo not uploaded. ${err.message}`);
+      }
     }
-    await savePhotos();
+    if (avatarUrl !== form.avatarUrl || photos.length !== form.photos.length) await savePhotos(avatarUrl, photos);
   } catch (err: any) {
-    toast.error(`Photo not uploaded. ${err.message}`);
+    toast.error(`Photos not saved. ${err.message}`);
   } finally {
     uploading.value = null;
   }
 }
 
 async function removePhoto(index: number) {
-  form.photos.splice(index, 1);
+  if (uploading.value || saving.value) return;
+  uploading.value = 'remove';
   try {
-    await savePhotos();
+    await savePhotos(form.avatarUrl, form.photos.filter((_, i) => i !== index));
   } catch (err: any) {
     useToastStore().error(`Photo not removed. ${err.message}`);
+  } finally {
+    uploading.value = null;
   }
 }
 
 /** Photo changes save on their own, so an upload is never lost by leaving without Save Changes. */
-async function savePhotos() {
-  await authStore.updateProfile({ avatarUrl: form.avatarUrl, photos: form.photos });
+async function savePhotos(avatarUrl: string, photos: string[]) {
+  await authStore.updateProfile({ avatarUrl, photos });
+  form.avatarUrl = avatarUrl;
+  form.photos = photos;
   useToastStore().success('Photos updated.');
 }
 
@@ -368,6 +380,7 @@ function applyField() {
 }
 
 async function saveProfile() {
+  if (saving.value || uploading.value) return;
   saving.value = true;
   errorMsg.value = null;
   try {
