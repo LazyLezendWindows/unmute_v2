@@ -43,7 +43,8 @@ export default defineConfig({
         ],
       },
       // The service worker also runs in `npm run dev`, so push notifications can be tried locally.
-      devOptions: { enabled: true, navigateFallbackAllowlist: [/^\/$/] },
+      // There are no built files to precache in dev, so the empty-glob warning is expected and hidden.
+      devOptions: { enabled: true, navigateFallbackAllowlist: [/^\/$/], suppressWarnings: true },
       workbox: {
         // Shows call and message notifications while the app is closed.
         importScripts: ['/push-sw.js'],
