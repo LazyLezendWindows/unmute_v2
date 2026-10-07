@@ -143,7 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** Texts a sign-in code to the number; resolves with how long until another can be sent. */
-  async function requestPhoneCode(phone: string): Promise<{ resendAfter: number; devCode?: string }> {
+  async function requestPhoneCode(phone: string): Promise<{ resendAfter: number }> {
     const res = await api.post('/auth/phone/start', { phone });
     return res.data.data;
   }

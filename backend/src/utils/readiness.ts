@@ -9,7 +9,7 @@ import { ModerationService } from '../services/moderationService';
  */
 export function readinessReport(): string[] {
   const { email, sms, ice, push } = config;
-  const preview = (provider: string) => (provider === 'console' ? 'development preview (codes shown on screen, nothing sent)' : null);
+  const preview = (provider: string) => (provider === 'console' ? 'development preview (codes printed in this terminal, nothing sent)' : null);
   const billing = BillingService.mode();
   return [
     `Email codes:   ${email.provider === 'smtp' && email.smtp.host && email.smtp.from ? `SMTP via ${email.smtp.host}` : preview(email.provider) ?? 'NOT SET: set EMAIL_PROVIDER=smtp and SMTP_*'}`,

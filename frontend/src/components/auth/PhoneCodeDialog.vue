@@ -5,10 +5,6 @@
       <p class="small mb-0 u-text-secondary">
         Enter the 6-digit code we sent to <strong class="u-text-primary">{{ phone }}</strong>.
       </p>
-      <p v-if="devCode" class="dev-code mb-0" role="note">
-        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
-        Development mode, no SMS is sent. Your code is <strong>{{ devCode }}</strong>
-      </p>
       <input
         ref="codeInput"
         v-model="code"
@@ -58,7 +54,6 @@ const authStore = useAuthStore();
 const code = ref('');
 const sending = ref(false);
 const sendError = ref<string | null>(null);
-const devCode = ref<string | null>(null);
 const resendIn = ref(0);
 const codeInput = ref<HTMLInputElement | null>(null);
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -70,7 +65,6 @@ async function send() {
   sendError.value = null;
   try {
     const result = await authStore.requestPhoneCode(props.phone);
-    devCode.value = result.devCode ?? null;
     code.value = '';
     clearInterval(timer);
     resendIn.value = result.resendAfter;
@@ -125,22 +119,6 @@ onBeforeUnmount(() => clearInterval(timer));
   &:focus {
     border-color: var(--unmute-primary);
     box-shadow: 0 0 0 4px var(--unmute-primary-surface);
-  }
-}
-
-.dev-code {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: var(--unmute-radius-sm);
-  background: var(--unmute-surface-overlay);
-  color: var(--unmute-text-secondary);
-  font-size: 0.8rem;
-
-  strong {
-    color: var(--unmute-text-heading);
-    letter-spacing: 0.15em;
   }
 }
 

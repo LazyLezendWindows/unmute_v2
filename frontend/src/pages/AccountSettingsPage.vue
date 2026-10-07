@@ -66,7 +66,6 @@
       </form>
       <form v-else id="account-email-form" class="d-flex flex-column gap-3" @submit.prevent="confirmEmail">
         <p class="small mb-0 u-text-secondary">Enter the code we sent to <strong class="u-text-primary">{{ newEmail }}</strong>.</p>
-        <p v-if="emailDevCode" class="small mb-0 u-text-muted"><i class="ri-code-s-slash-line me-1"></i>Development mode, no email is sent. Your code is <strong>{{ emailDevCode }}</strong></p>
         <UInput v-model="emailCode" inputmode="numeric" :maxlength="6" required placeholder="6-digit code" icon="ri-shield-keyhole-line" autocomplete="one-time-code" />
       </form>
       <p v-if="emailError" class="small text-danger mt-3 mb-0" role="alert">{{ emailError }}</p>
@@ -170,7 +169,6 @@ const emailOpen = ref(false);
 const emailSent = ref(false);
 const newEmail = ref('');
 const emailCode = ref('');
-const emailDevCode = ref<string | null>(null);
 const emailBusy = ref(false);
 const emailError = ref<string | null>(null);
 
@@ -178,7 +176,6 @@ function openEmail() {
   emailSent.value = false;
   newEmail.value = '';
   emailCode.value = '';
-  emailDevCode.value = null;
   emailError.value = null;
   emailOpen.value = true;
 }
@@ -190,8 +187,7 @@ async function sendEmailCode() {
     if (newEmail.value.trim().toLowerCase() === email.value?.toLowerCase() && emailVerified.value) {
       throw new Error('That is already your email address.');
     }
-    const res = await api.post('/users/me/verification/email/start', { email: newEmail.value.trim() });
-    emailDevCode.value = res.data.data?.devCode ?? null;
+    await api.post('/users/me/verification/email/start', { email: newEmail.value.trim() });
     emailSent.value = true;
   } catch (err: any) {
     emailError.value = err.message || 'Could not send a code.';

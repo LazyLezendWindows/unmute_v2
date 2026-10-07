@@ -33,7 +33,6 @@
         <p class="small mb-0 u-text-secondary">
           If <strong class="u-text-primary">{{ forgotEmail }}</strong> has an Unmute account, we've sent a code to it (check spam too) and to its verified phone number.
         </p>
-        <p v-if="forgotDevCode" class="small mb-0 u-text-muted"><i class="ri-code-s-slash-line me-1"></i>Development mode, no email or SMS is sent. Your code is <strong>{{ forgotDevCode }}</strong></p>
         <UInput v-model="resetCode" inputmode="numeric" :maxlength="6" required placeholder="6-digit code" icon="ri-shield-keyhole-line" autocomplete="one-time-code" />
         <UInput v-model="resetPassword" type="password" required :minlength="8" placeholder="New password (8+ characters)" icon="ri-lock-line" autocomplete="new-password" />
         <p v-if="resetError" class="small text-danger mb-0" role="alert">{{ resetError }}</p>
@@ -76,7 +75,6 @@ const forgotOpen = ref(false);
 const forgotEmail = ref('');
 const forgotLoading = ref(false);
 const forgotSent = ref(false);
-const forgotDevCode = ref<string | null>(null);
 const resetCode = ref('');
 const resetPassword = ref('');
 const resetError = ref<string | null>(null);
@@ -84,7 +82,6 @@ const resetError = ref<string | null>(null);
 function closeForgot() {
   forgotOpen.value = false;
   forgotSent.value = false;
-  forgotDevCode.value = null;
   resetCode.value = '';
   resetPassword.value = '';
   resetError.value = null;
@@ -114,8 +111,7 @@ async function handleLogin() {
 async function handleForgot() {
   forgotLoading.value = true;
   try {
-    const res = await api.post('/auth/password/forgot', { email: forgotEmail.value });
-    forgotDevCode.value = res.data.data?.devCode ?? null;
+    await api.post('/auth/password/forgot', { email: forgotEmail.value });
     forgotSent.value = true;
   } catch (err: any) {
     useToastStore().error([404, 501, 502, 503].includes(err.status)

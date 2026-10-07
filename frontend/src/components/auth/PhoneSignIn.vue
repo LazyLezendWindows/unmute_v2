@@ -31,10 +31,6 @@
         Enter the code sent to <strong class="u-text-primary">{{ displayPhone }}</strong>.
         <button type="button" class="link-btn" @click="changeNumber">Change</button>
       </p>
-      <p v-if="devCode" class="dev-code mb-0" role="note">
-        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
-        Development mode, no SMS is sent. Your code is <strong>{{ devCode }}</strong>
-      </p>
       <input
         ref="codeInput"
         v-model="code"
@@ -102,7 +98,6 @@ const busy = ref(false);
 const error = ref<string | null>(null);
 const resendIn = ref(0);
 /** Shown on screen when the backend runs locally without an SMS provider. */
-const devCode = ref<string | null>(null);
 const phoneInput = ref<HTMLInputElement | null>(null);
 const codeInput = ref<HTMLInputElement | null>(null);
 let resendTimer: ReturnType<typeof setInterval> | undefined;
@@ -162,8 +157,7 @@ async function sendCode() {
   busy.value = true;
   error.value = null;
   try {
-    const { resendAfter, devCode: shownCode } = await authStore.requestPhoneCode(fullPhone.value);
-    devCode.value = shownCode ?? null;
+    const { resendAfter } = await authStore.requestPhoneCode(fullPhone.value);
     step.value = 'code';
     code.value = '';
     startResendTimer(resendAfter);
@@ -292,22 +286,6 @@ onBeforeUnmount(() => clearInterval(resendTimer));
   &:focus {
     border-color: var(--unmute-primary);
     box-shadow: 0 0 0 4px var(--unmute-primary-surface);
-  }
-}
-
-.dev-code {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: var(--unmute-radius-sm);
-  background: var(--unmute-surface-overlay);
-  color: var(--unmute-text-secondary);
-  font-size: 0.8rem;
-
-  strong {
-    color: var(--unmute-text-heading);
-    letter-spacing: 0.15em;
   }
 }
 

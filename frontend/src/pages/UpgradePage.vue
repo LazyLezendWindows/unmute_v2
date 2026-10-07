@@ -39,14 +39,10 @@
           </label>
         </fieldset>
         <p v-if="sub.access && !sub.access.paymentsAvailable" role="status">Payments are not available yet. Please check again later.</p>
-        <p v-if="testMode" class="test-note" role="note">
-          <i class="ri-flask-line" aria-hidden="true"></i>
-          Test mode (local development): the plan is activated without taking any money. Add Razorpay keys to the server to take real payments.
-        </p>
         <p v-if="error" role="alert" class="text-danger">{{ error }}</p>
         <p v-if="message" role="status">{{ message }}</p>
         <UButton block :disabled="!selected || !sub.access?.paymentsAvailable" :loading="busy" @click="pay">
-          {{ testMode ? `Activate ${planLabel} (test, no charge)` : `Pay ₹${price} with Razorpay` }}
+          Pay ₹{{ price }}
         </UButton>
         <UButton v-if="!testMode" variant="secondary" :disabled="busy" @click="checkPayment">Already paid? Check payment status</UButton>
       </template>
@@ -77,7 +73,6 @@ const busy = ref(false);
 const error = ref('');
 const message = ref('');
 const price = computed(() => (sub.access?.plans.find(p => p.id === selected.value)?.amount || 0) / 100);
-const planLabel = computed(() => sub.access?.plans.find(p => p.id === selected.value)?.label || 'plan');
 const testMode = computed(() => sub.access?.paymentMode === 'test');
 /** Android/iOS app build: no in-app selling unless store billing is set up (VITE_NATIVE_PURCHASES=razorpay to override). */
 const inStoreApp = Capacitor.isNativePlatform() && import.meta.env.VITE_NATIVE_PURCHASES !== 'razorpay';
