@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import fs from 'fs';
 import path from 'path';
 import { config } from './config/env';
-import { apiRateLimiter } from './middleware/rateLimiter';
+import { apiIpRateLimiter, apiRateLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import { requireTrustedOrigin } from './middleware/originCheck';
 import apiRouter from './routes';
@@ -47,7 +47,7 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // General rate limiter and CSRF origin check for cookie-authenticated requests
-  app.use('/api', apiRateLimiter);
+  app.use('/api', apiIpRateLimiter, apiRateLimiter);
   app.use('/api', requireTrustedOrigin);
 
   // Health check

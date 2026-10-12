@@ -103,6 +103,18 @@ export class MessageRepository {
     );
   }
 
+  /** The sender's latest text messages in a conversation from the last `minutes`, newest first (up to 5). */
+  static async recentTextBySender(conversationId: string, senderId: string, minutes: number): Promise<string[]> {
+    const since = new Date(Date.now() - minutes * 60_000).toISOString();
+    const rows = await getDatabase().query<{ content: string }>(
+      `SELECT content FROM messages
+       WHERE conversation_id = ? AND sender_id = ? AND kind = 'text' AND deleted_at IS NULL AND created_at > ?
+       ORDER BY created_at DESC, id DESC LIMIT 5`,
+      [conversationId, senderId, since]
+    );
+    return rows.map((r) => r.content);
+  }
+
   /** Unsend: the row stays (so replies and order still make sense) but its content is cleared. */
   static async softDelete(messageId: string): Promise<void> {
     const db = getDatabase();

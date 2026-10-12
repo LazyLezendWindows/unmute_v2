@@ -216,6 +216,10 @@
         </template>
       </div>
 
+      <p v-if="phoneInMessage" class="phone-warning" role="alert">
+        <i class="ri-shield-keyhole-line" aria-hidden="true"></i>
+        For your safety, phone numbers can’t be shared in chat. Keep talking here, or use a voice or video call.
+      </p>
       <div v-if="replyingTo" class="reply-bar" role="status">
         <i class="ri-reply-line" aria-hidden="true"></i>
         <span class="reply-bar-text">
@@ -254,7 +258,7 @@
             <i class="ri-emotion-happy-line" aria-hidden="true"></i>
           </button>
         </label>
-        <button v-if="inputContent.trim()" type="submit" class="composer-round is-send" aria-label="Send" :disabled="chatStore.sending">
+        <button v-if="inputContent.trim()" type="submit" class="composer-round is-send" aria-label="Send" :disabled="chatStore.sending || phoneInMessage">
           <i class="ri-send-plane-fill" aria-hidden="true"></i>
         </button>
         <button v-else type="button" class="composer-round is-send" aria-label="Record a voice message" :disabled="uploading || startingRecording || !voiceSupported || chatStore.loading" @click="startRecording">
@@ -306,6 +310,7 @@ import { useToastStore } from '../stores/toast';
 import { mediaUrl, photoProblem, uploadPhoto, uploadVoice } from '../services/media';
 import { Message } from '../types';
 import { PROMPT_QUESTIONS } from '../content/profileOptions';
+import { containsPhoneNumber } from '../utils/contactFilter';
 import GifPicker from '../components/chat/GifPicker.vue';
 import { useAppConfig } from '../composables/useAppConfig';
 
@@ -346,6 +351,8 @@ const activeOtherUser = computed(() => chatStore.activeOtherUser);
 const activeMatchId = computed(() => chatStore.conversations.find((c) => c.id === activeConversationId.value)?.matchId ?? null);
 const otherTyping = computed(() => Boolean(activeConversationId.value && chatStore.typingIn[activeConversationId.value]));
 const messageInput = ref<HTMLInputElement | null>(null);
+// Phone numbers aren't allowed in chat (the server refuses them too); warn before sending.
+const phoneInMessage = computed(() => containsPhoneNumber(inputContent.value));
 
 // ---- Reply, react, unsend ----
 const menuFor = ref<string | null>(null);
@@ -664,7 +671,7 @@ function stopRecording(send: boolean) {
 async function handleSend() {
   const text = inputContent.value.trim();
   const conversation = activeConversationId.value;
-  if (!text || chatStore.sending || chatStore.loading) return;
+  if (!text || chatStore.sending || chatStore.loading || phoneInMessage.value) return;
   const replyTo = replyingTo.value?.id ?? null;
   inputContent.value = '';
   emojiOpen.value = false;
@@ -1616,5 +1623,20 @@ $gradient: linear-gradient(95deg, #ff3d8b 0%, #e0149a 50%, #8a1fe0 100%);
   max-width: 14rem;
   max-height: 14rem;
   border-radius: 1rem;
+}
+
+.phone-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0.75rem 0.45rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.9rem;
+  background: var(--unmute-warn-surface);
+  color: var(--unmute-warn-text);
+  font-size: 0.85rem;
+  line-height: 1.35;
+
+  i { flex-shrink: 0; font-size: 1.1rem; }
 }
 </style>

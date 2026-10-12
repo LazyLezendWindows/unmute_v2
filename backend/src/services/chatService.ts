@@ -13,6 +13,7 @@ import { NotificationService } from './notificationService';
 import { PushService } from './pushService';
 import { MEDIA_PATH, MediaService } from './mediaService';
 import { GifService } from './gifService';
+import { PHONE_NUMBER_MESSAGE, containsPhoneNumber, isNumberFragment } from '../utils/contactFilter';
 
 /** 5:12, or 1:02:09 for an hour or more. */
 function formatDuration(seconds: number): string {
@@ -20,6 +21,22 @@ function formatDuration(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   const s = String(seconds % 60).padStart(2, '0');
   return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
+/**
+ * Refuses phone numbers in chat, including one sent in pieces: a message that is only digits (or
+ * number words) is read together with the sender's previous such messages from the last 10 minutes.
+ */
+async function assertNoPhoneNumber(conversationId: string, senderId: string, content: string) {
+  if (containsPhoneNumber(content)) throw new AppError(PHONE_NUMBER_MESSAGE, 422);
+  if (!isNumberFragment(content)) return;
+  const recent = await MessageRepository.recentTextBySender(conversationId, senderId, 10);
+  const pieces: string[] = [];
+  for (const text of recent) {
+    if (!isNumberFragment(text)) break;
+    pieces.unshift(text);
+  }
+  if (pieces.length && containsPhoneNumber([...pieces, content].join(' '))) throw new AppError(PHONE_NUMBER_MESSAGE, 422);
 }
 
 export class ChatService {
@@ -138,6 +155,7 @@ export class ChatService {
     } else if (kind !== 'text' && !MediaService.isOwnUploadOfKind(content, senderId, kind)) {
       throw new AppError(kind === 'image' ? 'Upload the photo before sending it.' : 'Record the voice message before sending it.', 400);
     }
+    if (kind === 'text') await assertNoPhoneNumber(conversationId, senderId, content);
     const replyTo = replyToId ? await MessageRepository.findInConversation(replyToId, conversationId) : null;
     if (replyToId && !replyTo) throw new AppError('The message you are replying to is no longer here.', 400);
 

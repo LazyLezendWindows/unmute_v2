@@ -72,14 +72,29 @@ export const useAuthStore = defineStore('auth', () => {
           if (authenticated) setAuthenticated(sessionUser);
           else setUnauthenticated();
         })
-        .catch((err) => {
-          // Can't reach the server: that isn't being signed out. Stay put (the offline screen shows)
-          // and check again later, instead of sending the member to the sign-in screens.
-          if (err instanceof ApiError && err.status === undefined) {
-            status.value = 'UNKNOWN';
+        .catch(async (err) => {
+          // Only the server saying "not signed in" signs the member out. A busy server (429, 5xx)
+          // is retried briefly; unreachable means offline. Neither sends them to the sign-in screen.
+          if (err instanceof ApiError && err.status === 401) {
+            setUnauthenticated();
             return;
           }
-          setUnauthenticated();
+          for (const wait of [800, 2000]) {
+            await new Promise((resolve) => setTimeout(resolve, wait));
+            try {
+              const res = await api.get('/auth/session');
+              const { authenticated, user: sessionUser } = res.data.data;
+              if (authenticated) setAuthenticated(sessionUser);
+              else setUnauthenticated();
+              return;
+            } catch (retryErr) {
+              if (retryErr instanceof ApiError && retryErr.status === 401) {
+                setUnauthenticated();
+                return;
+              }
+            }
+          }
+          status.value = 'UNKNOWN';
         })
         .finally(() => {
           sessionCheck = null;

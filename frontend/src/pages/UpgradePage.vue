@@ -48,7 +48,6 @@
       </template>
       <router-link v-if="sub.access?.active" to="/discover">Continue to the app</router-link>
       <router-link to="/safety">Privacy &amp; safety</router-link>
-      <button class="signout" :disabled="busy" @click="auth.logout()">Sign out</button>
     </div>
   </section>
 </template>
@@ -135,6 +134,5 @@ p { color: var(--unmute-text-muted); }
 .perks li span { display: flex; flex-direction: column; }
 .perks li strong { color: var(--unmute-text-heading); font-size: .95rem; }
 .perks i { display: grid; place-items: center; flex-shrink: 0; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: linear-gradient(135deg, #ffd66b, #f5a524); color: #fff; }
-.signout { border: 0; background: transparent; color: inherit; padding: .5rem; }
 @media (max-width: 480px) { .upgrade-page { padding: 1rem .75rem; } .upgrade-card { padding: 1.25rem; } }
 </style>

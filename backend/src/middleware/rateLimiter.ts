@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
+import { SessionService } from '../services/sessionService';
 import { AuthRequest } from './auth';
 
 export const authRateLimiter = rateLimit({
@@ -37,12 +39,33 @@ export const phoneVerifyRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * General API limit, per signed-in session (per IP address for visitors). Many people can share
+ * one public IP (mobile carriers, offices, colleges), so a per-IP limit alone would slow everyone
+ * on that network down together.
+ */
 export const apiRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: Number(process.env.API_RATE_LIMIT) || 300, // 300 requests per minute
+  keyGenerator: (req) => {
+    const token = SessionService.tokenFromRequest(req);
+    return token ? `session:${crypto.createHash('sha256').update(token).digest('hex').slice(0, 32)}` : `ip:${req.ip}`;
+  },
   message: {
     success: false,
     error: 'Too many requests. Please slow down.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** A much higher ceiling per IP address, so made-up session cookies can't get around the limit above. */
+export const apiIpRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: Number(process.env.API_IP_RATE_LIMIT) || 2000,
+  message: {
+    success: false,
+    error: 'Too many requests from this network. Please try again shortly.',
   },
   standardHeaders: true,
   legacyHeaders: false,

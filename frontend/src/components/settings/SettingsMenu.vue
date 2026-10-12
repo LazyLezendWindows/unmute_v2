@@ -41,10 +41,6 @@
     </nav>
 
     <div class="menu-list">
-      <button type="button" class="menu-row is-danger" @click="handleLogout">
-        <i class="ri-logout-box-r-line" aria-hidden="true"></i>
-        <span class="menu-text"><span class="menu-title">Log out</span></span>
-      </button>
       <button type="button" class="menu-row is-danger" @click="deleteOpen = true">
         <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
         <span class="menu-text"><span class="menu-title">Delete account</span><span class="menu-sub">Permanently remove your profile and data</span></span>
@@ -124,11 +120,6 @@ async function confirmDelete() {
   } finally {
     deleting.value = false;
   }
-}
-
-async function handleLogout() {
-  await authStore.logout();
-  router.push('/login');
 }
 </script>
 
