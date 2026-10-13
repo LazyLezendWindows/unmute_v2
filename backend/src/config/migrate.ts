@@ -45,7 +45,10 @@ export async function runMigrations(options: { database?: string } = {}): Promis
       const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8');
       console.log(`[DB] Applying migration ${file}`);
       await conn.query(sql);
-      await conn.query('INSERT INTO schema_migrations (version, applied_at) VALUES (?, UTC_TIMESTAMP())', [file]);
+      await conn.query(
+        'INSERT INTO schema_migrations (version, applied_at) VALUES (?, UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE applied_at = VALUES(applied_at)',
+        [file]
+      );
     }
   } finally {
     await conn.query('SELECT RELEASE_LOCK(?)', [LOCK_NAME]).catch(() => undefined);

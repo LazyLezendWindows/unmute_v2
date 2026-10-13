@@ -1,4 +1,4 @@
-CREATE TABLE notification_preferences (
+CREATE TABLE IF NOT EXISTS notification_preferences (
   user_id VARCHAR(64) PRIMARY KEY,
   calls BOOLEAN NOT NULL DEFAULT TRUE,
   messages BOOLEAN NOT NULL DEFAULT TRUE,

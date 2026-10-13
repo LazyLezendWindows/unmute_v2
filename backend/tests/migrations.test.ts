@@ -93,4 +93,88 @@ describe('Schema migrations', () => {
     );
     expect((rows as { cols: string }[])[0].cols).toBe('conversation_id,created_at');
   });
+
+  it('safely applies migration 007 when columns like profession already exist, preserving existing data', async () => {
+    const PARTIAL_DB = config.mariadb.database.replace(/_test_db$/, '_partial_migration_test_db');
+    const admin = await mysql.createConnection(mariaConnectionOptions({ withDatabase: false }));
+    await admin.query(`DROP DATABASE IF EXISTS \`${PARTIAL_DB}\``);
+    await admin.query(`CREATE DATABASE \`${PARTIAL_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+    await admin.end();
+
+    const pConn = await mysql.createConnection({ ...mariaConnectionOptions(), database: PARTIAL_DB, multipleStatements: true });
+    try {
+      // Setup migrations 001 through 006
+      await pConn.query(
+        `CREATE TABLE schema_migrations (version VARCHAR(255) PRIMARY KEY, applied_at DATETIME NOT NULL);`
+      );
+
+      const earlyMigrations = ['001_baseline.sql', '002_server_sessions.sql', '003_password_credentials_to_auth_accounts.sql', '004_drop_legacy_user_credentials.sql', '005_index_cleanup.sql', '006_places_and_education.sql'];
+      for (const m of earlyMigrations) {
+        const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, m), 'utf-8');
+        await pConn.query(sql);
+        await pConn.query('INSERT INTO schema_migrations VALUES (?, UTC_TIMESTAMP())', [m]);
+      }
+
+      // Insert a user and profile row
+      await pConn.query(
+        `INSERT INTO users (id, email, is_active, created_at) VALUES ('p-user', 'partial@example.com', 1, '2025-01-01T00:00:00.000Z');
+         INSERT INTO profiles (id, user_id, display_name, date_of_birth, bio, created_at, updated_at) VALUES
+           ('p-prof', 'p-user', 'Partial Tester', '1995-05-15', 'Preserve my bio', '2025-01-01T00:00:00.000Z', '2025-01-01T00:00:00.000Z');`
+      );
+
+      // Simulate the exact production failure state:
+      // A previous run added profession and gender, but failed or was interrupted before recording 007_profile_details.sql in schema_migrations
+      await pConn.query(`
+        ALTER TABLE profiles
+          ADD COLUMN profession VARCHAR(80) NOT NULL DEFAULT '',
+          ADD COLUMN gender VARCHAR(16) DEFAULT NULL;
+        CREATE INDEX idx_profiles_gender ON profiles (gender);
+        UPDATE profiles SET profession = 'Lead Architect', gender = 'woman' WHERE id = 'p-prof';
+      `);
+
+      // Verify profession is present before running migration 007
+      const [colRows] = await pConn.query(
+        'SELECT column_name FROM information_schema.columns WHERE table_schema = ? AND table_name = "profiles" AND column_name = "profession"',
+        [PARTIAL_DB]
+      );
+      expect((colRows as any[]).length).toBe(1);
+
+      // Now run migrations - migration 007 must NOT fail with ER_DUP_FIELDNAME
+      await runMigrations({ database: PARTIAL_DB });
+
+      // Verify all 7 columns from migration 007 exist
+      const [allCols] = await pConn.query(
+        'SELECT column_name AS name FROM information_schema.columns WHERE table_schema = ? AND table_name = "profiles"',
+        [PARTIAL_DB]
+      );
+      const colNames = (allCols as { name: string }[]).map((c) => c.name);
+      expect(colNames).toContain('gender');
+      expect(colNames).toContain('profession');
+      expect(colNames).toContain('height_cm');
+      expect(colNames).toContain('drinking');
+      expect(colNames).toContain('smoking');
+      expect(colNames).toContain('workout');
+      expect(colNames).toContain('photos');
+
+      // Verify existing row data was preserved and not overwritten
+      const [profileRows] = await pConn.query<{ profession: string; gender: string; bio: string }[]>(
+        'SELECT profession, gender, bio FROM profiles WHERE id = "p-prof"'
+      );
+      expect(profileRows[0].profession).toBe('Lead Architect');
+      expect(profileRows[0].gender).toBe('woman');
+      expect(profileRows[0].bio).toBe('Preserve my bio');
+
+      // Verify 007 is recorded in schema_migrations
+      const [applied007] = await pConn.query(
+        'SELECT version FROM schema_migrations WHERE version = "007_profile_details.sql"'
+      );
+      expect((applied007 as any[]).length).toBe(1);
+
+      // Verify repeated migration run is completely idempotent
+      await expect(runMigrations({ database: PARTIAL_DB })).resolves.not.toThrow();
+    } finally {
+      await pConn.query(`DROP DATABASE IF EXISTS \`${PARTIAL_DB}\``).catch(() => undefined);
+      await pConn.end();
+    }
+  });
 });
