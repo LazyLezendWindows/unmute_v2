@@ -7,7 +7,7 @@ import path from 'path';
 import { config } from './config/env';
 import { apiIpRateLimiter, apiRateLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
-import { requireTrustedOrigin } from './middleware/originCheck';
+import { requireTrustedOrigin, isAllowedOrigin } from './middleware/originCheck';
 import apiRouter from './routes';
 
 export function createApp(): Express {
@@ -32,7 +32,13 @@ export function createApp(): Express {
   // CORS
   app.use(
     cors({
-      origin: config.corsOrigins,
+      origin: (requestOrigin, callback) => {
+        if (!requestOrigin || isAllowedOrigin(requestOrigin)) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],

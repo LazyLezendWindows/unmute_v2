@@ -6,13 +6,20 @@ import { SessionService } from '../services/sessionService';
 import { ChatService } from '../services/chatService';
 import { markConnected, markDisconnected, recordHeartbeat } from './presence';
 import { registerCallSignals } from './callSignals';
+import { isAllowedOrigin } from '../middleware/originCheck';
 
 let ioInstance: SocketIOServer | null = null;
 
 export function initSocketServer(server: HttpServer): SocketIOServer {
   ioInstance = new SocketIOServer(server, {
     cors: {
-      origin: config.corsOrigins,
+      origin: (requestOrigin, callback) => {
+        if (!requestOrigin || isAllowedOrigin(requestOrigin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Origin not allowed'));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -22,7 +29,7 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
   ioInstance.use(async (socket: Socket, next) => {
     try {
       const origin = socket.handshake.headers.origin;
-      if (origin && !config.corsOrigins.includes(origin)) {
+      if (origin && !isAllowedOrigin(origin, socket.handshake.headers.host)) {
         return next(new Error('Origin not allowed'));
       }
       const session = await SessionService.resolve(SessionService.readToken(socket.handshake.headers.cookie));
