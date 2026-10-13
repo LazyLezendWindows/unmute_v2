@@ -9,6 +9,9 @@ import { AppError } from '../../middleware/errorHandler';
  * With no usable provider, phone sign-in reports itself unavailable.
  */
 export function smsAvailable(): boolean {
+  if (process.env.PHONE_SIGNIN_ENABLED === 'false' || process.env.DISABLE_PHONE_SIGNIN === 'true') {
+    return false;
+  }
   const { provider, twilio } = config.sms;
   if (provider === 'console') return !config.isProduction;
   if (provider === 'twilio') return Boolean(twilio.accountSid && twilio.authToken && twilio.from);

@@ -87,8 +87,8 @@ function resolveAuthConfig(): Promise<{ googleClientId: string; phoneClient: boo
         if (!clientId.value && data.googleClientId) {
           clientId.value = String(data.googleClientId);
         }
-        phoneSignIn.value = Boolean(data.phoneSignIn);
-        return { googleClientId: clientId.value, phoneSignIn: phoneSignIn.value };
+        phoneSignIn.value = false;
+        return { googleClientId: clientId.value, phoneSignIn: false };
       })
       .catch(() => {
         configLoader = null; // try again next time a sign-in screen mounts
@@ -276,13 +276,9 @@ export function useGoogleAvailable() {
 
 /**
  * Whether optional SMS phone sign-in is configured on the server (`phoneSignIn` from `/auth/config`).
- * When false, SMS/phone OTP options are hidden so sign-up and sign-in never require paid SMS delivery.
+ * Disabled for now as requested.
  */
 export function usePhoneSignInAvailable() {
-  const available = ref(phoneSignIn.value);
-  onMounted(async () => {
-    const cfg = await resolveAuthConfig();
-    available.value = cfg.phoneSignIn;
-  });
+  const available = ref(false);
   return available;
 }
