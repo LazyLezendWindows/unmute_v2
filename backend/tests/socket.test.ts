@@ -225,7 +225,7 @@ describe('Realtime chat authorization', () => {
   it('rejects expired access and disconnects an idle socket when its trial ends', async () => {
     await getDatabase().run('UPDATE subscriptions SET trial_started_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 8 DAY) WHERE user_id = ?', [outsider.id]);
     await expect(openSocket(outsider.cookie)).rejects.toThrow(/upgrade/);
-    await getDatabase().run('UPDATE subscriptions SET trial_started_at = DATE_ADD(DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY), INTERVAL 2 SECOND) WHERE user_id = ?', [outsider.id]);
+    await getDatabase().run('UPDATE subscriptions SET trial_started_at = DATE_ADD(DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY), INTERVAL 2 SECOND) WHERE user_id = ?', [outsider.id]);
     const expiring = await openSocket(outsider.cookie);
     const disconnected = new Promise(resolve => expiring.once('disconnect', resolve));
     await expect(disconnected).resolves.toBeDefined();

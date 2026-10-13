@@ -88,18 +88,18 @@
       {{ setup.step.value ? 'Continue' : 'Done' }} <i class="ri-arrow-right-line ms-2" aria-hidden="true"></i>
     </UButton>
 
-    <!-- Number first, then the SMS code -->
+    <!-- Phone number verification (no OTP required) -->
     <UModal :is-open="numberOpen" title="Verify Mobile Number" max-width="sm" @close="numberOpen = false">
       <form id="verify-number" class="d-flex flex-column gap-2" @submit.prevent="sendToNumber">
-        <p class="small mb-1 u-text-secondary">We'll text a 6-digit code to confirm it's yours.</p>
+        <p class="small mb-1 u-text-secondary">Enter your phone number to verify your account.</p>
         <UInput v-model="typed" type="tel" placeholder="Phone number" icon="ri-phone-line" autocomplete="tel" hint="Indian numbers can be typed as is; others with their country code, like +44…" />
+        <p v-if="linkError" class="small text-danger mb-0" role="alert">{{ linkError }}</p>
       </form>
       <template #footer>
         <UButton variant="secondary" size="md" @click="numberOpen = false">Cancel</UButton>
-        <UButton type="submit" form="verify-number" variant="primary" size="md" :disabled="!validNumber">Send code</UButton>
+        <UButton type="submit" form="verify-number" variant="primary" size="md" :loading="linking" :disabled="!validNumber">Verify Number</UButton>
       </template>
     </UModal>
-    <PhoneCodeDialog :is-open="codeOpen" :phone="pendingPhone" :busy="linking" :error="linkError" @submit="confirm" @close="codeOpen = false" />
 
     <!-- Email: address, then the code from the email -->
     <UModal :is-open="emailOpen" title="Verify Email Address" max-width="sm" @close="emailOpen = false">
@@ -160,7 +160,6 @@ import SetupProgress from '../components/layout/SetupProgress.vue';
 import UButton from '../components/ui/UButton.vue';
 import UInput from '../components/ui/UInput.vue';
 import UModal from '../components/ui/UModal.vue';
-import PhoneCodeDialog from '../components/auth/PhoneCodeDialog.vue';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { useSetupStep } from '../composables/useSetupStep';
@@ -174,9 +173,7 @@ const setup = useSetupStep();
 
 const phone = computed(() => authStore.user?.phone ?? null);
 const numberOpen = ref(false);
-const codeOpen = ref(false);
 const typed = ref('');
-const pendingPhone = ref('');
 const linking = ref(false);
 const linkError = ref<string | null>(null);
 
@@ -337,24 +334,19 @@ function displayPhone(p: string) {
 
 function startPhone() {
   typed.value = '';
+  linkError.value = null;
   numberOpen.value = true;
 }
 
-function sendToNumber() {
+async function sendToNumber() {
   if (!validNumber.value) return;
-  pendingPhone.value = normalise(typed.value);
-  linkError.value = null;
-  numberOpen.value = false;
-  codeOpen.value = true;
-}
-
-async function confirm(code: string) {
+  const num = normalise(typed.value);
   linking.value = true;
   linkError.value = null;
   try {
-    await authStore.linkPhone(pendingPhone.value, code);
-    codeOpen.value = false;
-    useToastStore().success('Mobile number verified.');
+    await authStore.linkPhone(num);
+    numberOpen.value = false;
+    useToastStore().success('Mobile number verified successfully!');
   } catch (err: any) {
     linkError.value = err.message || 'Could not verify that number.';
   } finally {

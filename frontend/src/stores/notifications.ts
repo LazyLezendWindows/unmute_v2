@@ -131,6 +131,13 @@ export const useNotificationStore = defineStore('notifications', () => {
     if (window.location.pathname !== '/notifications') {
       useToastStore().info(announcement(notification));
     }
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+      new Notification(notification.type === 'match' ? "It's a Match! 🎉" : (notification.actor?.displayName || 'Unmute'), {
+        body: announcement(notification),
+        icon: notification.actor?.avatarUrl || '/pwa-192x192.png',
+        tag: `notif-${notification.id}`,
+      });
+    }
   }
 
   /** Listens on the current socket; safe to call again after a reconnect or re-login. */

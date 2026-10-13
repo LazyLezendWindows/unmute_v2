@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import QRCode from 'qrcode';
 import { getDatabase } from '../config/database';
 import { config } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
@@ -6,6 +7,38 @@ import { freeEndSql, PLANS, planEnd, SubscriptionService } from './subscriptionS
 
 interface Payment { id: string; order_id: string; amount: number; currency: string; status: string; amount_refunded?: number }
 interface Order { id: string; user_id: string; plan: string; amount: number; fulfilled_at: unknown }
+
+export const DEFAULT_UPI_ID = process.env.UPI_ID || 'unmutebandari007@slc';
+export const DEFAULT_UPI_PAYEE_NAME = process.env.UPI_PAYEE_NAME || 'Unmute';
+
+let cachedQrKey = '';
+let cachedQrMap: Record<string, { upiUri: string; qrCodeDataUrl: string }> | null = null;
+
+export async function getUpiQrCodes(
+  upiId = process.env.UPI_ID || DEFAULT_UPI_ID,
+  payeeName = process.env.UPI_PAYEE_NAME || DEFAULT_UPI_PAYEE_NAME
+) {
+  const key = `${upiId}|${payeeName}`;
+  if (cachedQrMap && cachedQrKey === key) {
+    return { upiId, upiPayeeName: payeeName, upiQrByPlan: cachedQrMap };
+  }
+  const map: Record<string, { upiUri: string; qrCodeDataUrl: string }> = {};
+  for (const plan of PLANS) {
+    const amountRupees = (plan.amount / 100).toFixed(2);
+    const note = `Unmute ${plan.label} membership`;
+    const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amountRupees}&cu=INR&tn=${encodeURIComponent(note)}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(upiUri, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 240,
+      color: { dark: '#111111', light: '#ffffff' },
+    });
+    map[plan.id] = { upiUri, qrCodeDataUrl };
+  }
+  cachedQrKey = key;
+  cachedQrMap = map;
+  return { upiId, upiPayeeName: payeeName, upiQrByPlan: map };
+}
 
 export function verifySignature(body: string | Buffer, signature: string, secret: string): boolean {
   if (!secret || !/^[a-f0-9]{64}$/.test(signature)) return false;
@@ -32,6 +65,26 @@ export class BillingService {
     const orderId = `order_test${crypto.randomBytes(8).toString('hex')}`;
     await getDatabase().run('INSERT INTO billing_orders (id, user_id, plan, amount) VALUES (?, ?, ?, ?)', [orderId, userId, plan.id, plan.amount]);
     await this.fulfill({ id: `pay_test${crypto.randomBytes(8).toString('hex')}`, order_id: orderId, amount: plan.amount, currency: 'INR', status: 'captured' });
+    return SubscriptionService.status(userId);
+  }
+
+  /** Confirms a UPI QR payment to unmutebandari007@slc using the 12-digit UPI UTR / Reference ID. */
+  static async confirmUpiPayment(userId: string, planId: string, utr?: string) {
+    const plan = PLANS.find(p => p.id === planId);
+    if (!plan) throw new AppError('Choose a valid upgrade plan.', 400);
+    const cleanUtr = (utr || '').trim().replace(/\s+/g, '');
+    if (config.env !== 'development' && !/^\d{12}$/.test(cleanUtr)) {
+      throw new AppError('Enter a valid 12-digit UPI UTR / Transaction Reference ID from your payment app.', 400);
+    }
+    const refSuffix = cleanUtr || crypto.randomBytes(6).toString('hex');
+    const paymentId = `pay_upi_${refSuffix}`;
+    if (cleanUtr) {
+      const existing = await getDatabase().get<{ id: string }>('SELECT id FROM billing_orders WHERE payment_id = ?', [paymentId]);
+      if (existing) throw new AppError('This UPI transaction reference has already been used.', 409);
+    }
+    const orderId = `order_upi_${crypto.randomBytes(8).toString('hex')}`;
+    await getDatabase().run('INSERT INTO billing_orders (id, user_id, plan, amount) VALUES (?, ?, ?, ?)', [orderId, userId, plan.id, plan.amount]);
+    await this.fulfill({ id: paymentId, order_id: orderId, amount: plan.amount, currency: 'INR', status: 'captured' });
     return SubscriptionService.status(userId);
   }
 

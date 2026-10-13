@@ -3,26 +3,28 @@ import { getDatabase } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
 export const PLANS = [
-  { id: 'day', label: '1 day', amount: 200, days: 1, months: 0 },
-  { id: 'week', label: '1 week', amount: 1000, days: 7, months: 0 },
-  { id: 'month', label: '1 month', amount: 3000, days: 0, months: 1 },
-  { id: '2months', label: '2 months', amount: 5000, days: 0, months: 2 },
-  { id: '3months', label: '3 months', amount: 7000, days: 0, months: 3 },
-  { id: '6months', label: '6 months', amount: 12000, days: 0, months: 6 },
-  { id: 'year', label: '1 year', amount: 20000, days: 0, months: 12 },
+  { id: '1hour', label: '1 hour', amount: 1000, hours: 1, days: 0, months: 0 },
+  { id: 'day', label: '1 day', amount: 2500, hours: 0, days: 1, months: 0 },
+  { id: 'week', label: '1 week', amount: 7000, hours: 0, days: 7, months: 0 },
+  { id: 'month', label: '1 month', amount: 15000, hours: 0, days: 0, months: 1 },
+  { id: '2months', label: '2 months', amount: 25000, hours: 0, days: 0, months: 2 },
+  { id: '3months', label: '3 months', amount: 35000, hours: 0, days: 0, months: 3 },
+  { id: '6months', label: '6 months', amount: 60000, hours: 0, days: 0, months: 6 },
+  { id: 'year', label: '1 year', amount: 100000, hours: 0, days: 0, months: 12 },
 ] as const;
 
 /**
- * When free access ends: the 7-day trial, or later if referral rewards added free time
+ * When free access ends: the 1-day trial, or later if referral rewards added free time
  * (`free_until`). `alias` is the subscriptions table alias in the query, e.g. 's.'.
  */
 export function freeEndSql(alias = ''): string {
-  return `GREATEST(DATE_ADD(${alias}trial_started_at, INTERVAL 7 DAY), COALESCE(${alias}free_until, ${alias}trial_started_at))`;
+  return `GREATEST(DATE_ADD(${alias}trial_started_at, INTERVAL 1 DAY), COALESCE(${alias}free_until, ${alias}trial_started_at))`;
 }
 
 export function planEnd(start: Date, plan: typeof PLANS[number]): Date {
   const end = new Date(start);
-  if (plan.days) end.setUTCDate(end.getUTCDate() + plan.days);
+  if (plan.hours) end.setUTCHours(end.getUTCHours() + plan.hours);
+  else if (plan.days) end.setUTCDate(end.getUTCDate() + plan.days);
   else {
     const day = end.getUTCDate();
     end.setUTCDate(1);
@@ -35,7 +37,7 @@ export function planEnd(start: Date, plan: typeof PLANS[number]): Date {
 
 export class SubscriptionService {
   /**
-   * Starts the member's 7-day free trial at their first sign-in; every account gets one, on any
+   * Starts the member's 1-day free trial at their first sign-in; every account gets one, on any
    * device. Signing in again (or on another device) never restarts it.
    */
   static async startTrial(userId: string, _req?: Request, _res?: Response) {

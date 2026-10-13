@@ -110,9 +110,11 @@ const router = createRouter({
     { path: '/admin', name: 'admin-dashboard', component: () => import('../pages/admin/AdminDashboardPage.vue'), meta: { admin: true } },
     { path: '/admin/users', name: 'admin-users', component: () => import('../pages/admin/AdminUsersPage.vue'), meta: { admin: true } },
     { path: '/admin/users/:id', name: 'admin-user', component: () => import('../pages/admin/AdminUserPage.vue'), meta: { admin: true } },
-    { path: '/admin/admins', name: 'admin-admins', component: () => import('../pages/admin/AdminAdminsPage.vue'), meta: { admin: true } },
+    { path: '/admin/roles', name: 'admin-roles', component: () => import('../pages/admin/AdminRolesPage.vue'), meta: { admin: true } },
+    { path: '/admin/admins', redirect: '/admin/roles' },
     { path: '/admin/reports', name: 'admin-reports', component: () => import('../pages/admin/AdminReportsPage.vue'), meta: { admin: true } },
     { path: '/admin/verifications', name: 'admin-verifications', component: () => import('../pages/admin/AdminVerificationsPage.vue'), meta: { admin: true } },
+    { path: '/admin/audit-logs', name: 'admin-audit-logs', component: () => import('../pages/admin/AdminAuditLogsPage.vue'), meta: { admin: true } },
     {
       path: '/verify',
       name: 'verify',

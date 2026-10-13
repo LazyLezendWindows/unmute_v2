@@ -10,6 +10,7 @@ export interface PlanTier {
 }
 
 export const PLAN_TIERS: Record<string, PlanTier> = {
+  '1hour': { id: '1hour', name: 'Hourly', length: '1 hour', icon: 'ri-time-fill', gradient: 'linear-gradient(135deg, #ff9a76, #f25f5c)' },
   day: { id: 'day', name: 'Day Pass', length: '1 day', icon: 'ri-sun-fill', gradient: 'linear-gradient(135deg, #7fb2ff, #4a7bea)' },
   week: { id: 'week', name: 'Weekly', length: '1 week', icon: 'ri-calendar-event-fill', gradient: 'linear-gradient(135deg, #4fe0c5, #0f9f8c)' },
   month: { id: 'month', name: 'Monthly', length: '1 month', icon: 'ri-heart-3-fill', gradient: 'linear-gradient(135deg, #ff6fa5, #e0147c)' },

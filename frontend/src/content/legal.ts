@@ -75,8 +75,8 @@ export const TERMS: LegalDocument = {
     {
       heading: '6. Free trial and paid plans',
       bullets: [
-        'Every new account gets 7 days of full access, free.',
-        'After the trial, continued access needs a paid plan: 1 day ₹2, 1 week ₹10, 1 month ₹30, 2 months ₹50, 3 months ₹70, 6 months ₹120, or 1 year ₹200. Prices include applicable taxes and may change; a change never affects a plan you have already bought.',
+        'Every new account gets 1 day of full access, free.',
+        'After the trial, continued access needs a paid plan: 1 hour ₹10, 1 day ₹25, 1 week ₹70, 1 month ₹150, 2 months ₹250, 3 months ₹350, 6 months ₹600, or 1 year ₹1,000. Prices include applicable taxes and may change; a change never affects a plan you have already bought.',
         'Plans are one-time payments through Razorpay. They do not renew automatically. A plan bought during your trial starts when the trial ends; a plan bought while another is active starts when that plan ends.',
         'Paid plans include the Premium features shown on the Upgrade page (plan badge, Profile Boost, Super Likes, priority likes, advanced filters and Travel mode). Features may be improved or changed over time.',
         'Payments are non-refundable except where the law requires a refund, or where you were charged but the plan was not activated. If that happens, contact us and we will activate the plan or refund you.',

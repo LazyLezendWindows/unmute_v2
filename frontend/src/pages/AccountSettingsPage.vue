@@ -78,18 +78,18 @@
       </template>
     </UModal>
 
-    <!-- Phone: the new number, then the SMS code -->
+    <!-- Phone: enter number to save & verify directly (no OTP required) -->
     <UModal :is-open="numberOpen" :title="authStore.user?.phone ? 'Change mobile number' : 'Add mobile number'" max-width="sm" @close="numberOpen = false">
       <form id="account-number" class="d-flex flex-column gap-2" @submit.prevent="sendToNumber">
-        <p class="small mb-1 u-text-secondary">We'll text a 6-digit code to the new number. You'll sign in with it from then on.</p>
+        <p class="small mb-1 u-text-secondary">Enter your phone number to verify and update your account.</p>
         <UInput v-model="typedPhone" type="tel" placeholder="Phone number" icon="ri-phone-line" autocomplete="tel" hint="Indian numbers can be typed as is; others with their country code, like +44…" />
+        <p v-if="linkError" class="small text-danger mb-0" role="alert">{{ linkError }}</p>
       </form>
       <template #footer>
         <UButton variant="secondary" size="md" @click="numberOpen = false">Cancel</UButton>
-        <UButton type="submit" form="account-number" variant="primary" size="md" :disabled="!validNumber">Send code</UButton>
+        <UButton type="submit" form="account-number" variant="primary" size="md" :loading="linking" :disabled="!validNumber">Save &amp; Verify</UButton>
       </template>
     </UModal>
-    <PhoneCodeDialog :is-open="codeOpen" :phone="pendingPhone" :busy="linking" :error="linkError" @submit="confirmPhone" @close="codeOpen = false" />
   </SectionShell>
 </template>
 
@@ -102,7 +102,6 @@ import TwoFactorSettingsCard from '../components/settings/TwoFactorSettingsCard.
 import UInput from '../components/ui/UInput.vue';
 import UButton from '../components/ui/UButton.vue';
 import UModal from '../components/ui/UModal.vue';
-import PhoneCodeDialog from '../components/auth/PhoneCodeDialog.vue';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { api } from '../services/api';
@@ -218,9 +217,7 @@ async function confirmEmail() {
 
 // ---- Phone ----
 const numberOpen = ref(false);
-const codeOpen = ref(false);
 const typedPhone = ref('');
-const pendingPhone = ref('');
 const linking = ref(false);
 const linkError = ref<string | null>(null);
 
@@ -235,25 +232,19 @@ function openPhone() {
   numberOpen.value = true;
 }
 
-function sendToNumber() {
+async function sendToNumber() {
   if (!validNumber.value) return;
-  if (normalise(typedPhone.value) === authStore.user?.phone) {
+  const num = normalise(typedPhone.value);
+  if (num === authStore.user?.phone) {
     toast.error('That is already your number.');
     return;
   }
-  pendingPhone.value = normalise(typedPhone.value);
-  linkError.value = null;
-  numberOpen.value = false;
-  codeOpen.value = true;
-}
-
-async function confirmPhone(code: string) {
   linking.value = true;
   linkError.value = null;
   try {
-    await authStore.linkPhone(pendingPhone.value, code);
-    codeOpen.value = false;
-    toast.success('Mobile number updated.');
+    await authStore.linkPhone(num);
+    numberOpen.value = false;
+    toast.success('Mobile number verified and updated successfully!');
   } catch (err: any) {
     linkError.value = err.message || 'Could not verify that number.';
   } finally {

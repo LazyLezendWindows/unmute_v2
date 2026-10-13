@@ -26,6 +26,13 @@ router.post('/test-purchase', validateBody(z.object({ planId: z.string().max(20)
   try { res.json({ success: true, data: await BillingService.testPurchase(req.user!.userId, req.body.planId) }); }
   catch (err) { next(err); }
 });
+router.post('/upi-confirm', validateBody(z.object({
+  planId: z.string().max(20),
+  utr: z.string().max(32).optional(),
+})), async (req: AuthRequest, res, next) => {
+  try { res.json({ success: true, data: await BillingService.confirmUpiPayment(req.user!.userId, req.body.planId, req.body.utr) }); }
+  catch (err) { next(err); }
+});
 router.post('/reconcile', async (req: AuthRequest, res, next) => {
   try { res.json({ success: true, data: await BillingService.reconcile(req.user!.userId) }); }
   catch (err) { next(err); }

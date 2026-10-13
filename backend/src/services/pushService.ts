@@ -117,6 +117,22 @@ export class PushService {
     await sendTo(userId, { type: 'plan', title: 'Unmute', body: text, url: '/upgrade' }, { TTL: 86400 });
   }
 
+  /** A new mutual match: alerts the member so they can start chatting. */
+  static async matched(userId: string, partnerName: string, conversationId: string, avatarUrl?: string | null) {
+    await sendTo(
+      userId,
+      {
+        type: 'match',
+        conversationId,
+        title: "It's a Match! 🎉",
+        body: `You and ${partnerName} liked each other. Say hello!`,
+        icon: avatarUrl || '/pwa-192x192.png',
+        url: `/chat/${conversationId}`,
+      },
+      { TTL: 86400, urgency: 'high' }
+    );
+  }
+
   /** A new message while the member has no app open. */
   static async message(recipientId: string, senderName: string, conversationId: string, text: string) {
     if (isOnline(recipientId)) return;

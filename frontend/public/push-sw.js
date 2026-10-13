@@ -38,6 +38,18 @@ self.addEventListener('push', (event) => {
         });
       })
     );
+  } else if (data.type === 'match') {
+    event.waitUntil(
+      self.registration.showNotification(data.title || "It's a Match! 🎉", {
+        body: data.body || "You have a new mutual match!",
+        icon: data.icon || '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: `match-${data.conversationId || 'new'}`,
+        renotify: true,
+        vibrate: [200, 100, 200],
+        data: { url: data.url || '/matches' },
+      })
+    );
   } else if (data.type === 'message' || data.type === 'plan') {
     event.waitUntil(
       self.registration.showNotification(data.title, {

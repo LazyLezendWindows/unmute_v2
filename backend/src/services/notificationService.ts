@@ -1,5 +1,6 @@
 import { AppError } from '../middleware/errorHandler';
 import { EmailAlertService } from './emailAlertService';
+import { PushService } from './pushService';
 import { getSocketServer } from '../sockets/chatSocket';
 import { toPublicProfile } from '../mappers/profileMapper';
 import { NotificationRepository, NotificationRow } from '../repositories/notificationRepository';
@@ -94,8 +95,16 @@ export class NotificationService {
     await this.deliver(likerId, () =>
       NotificationRepository.insert(likerId, 'match', { actorId: likeeId, conversationId, read: true })
     );
+    // Send push notification like real dating apps so the other user is notified immediately
+    const [likerName, likeeName, profiles] = await Promise.all([
+      this.nameOf(likerId),
+      this.nameOf(likeeId),
+      ProfileRepository.findByUserIds([likerId, likeeId]),
+    ]);
+    void PushService.matched(likeeId, likerName, conversationId, profiles.get(likerId)?.avatar_url);
+    void PushService.matched(likerId, likeeName, conversationId, profiles.get(likeeId)?.avatar_url);
     // Whoever liked first may be away: email them (the other just saw the match screen).
-    void this.nameOf(likerId).then((name) => EmailAlertService.matched(likeeId, name, conversationId));
+    void EmailAlertService.matched(likeeId, likerName, conversationId);
   }
 
   static async messageReceived(recipientId: string, senderId: string, conversationId: string, content: string) {

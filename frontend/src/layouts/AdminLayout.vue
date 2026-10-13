@@ -23,7 +23,10 @@
       <div class="admin-me">
         <div class="admin-me-avatar" aria-hidden="true">{{ initials }}</div>
         <div class="admin-me-info">
-          <span class="admin-me-name">{{ admin?.name }}</span>
+          <div class="admin-name-row">
+            <span class="admin-me-name">{{ admin?.name }}</span>
+            <span v-if="admin?.role" class="admin-role-pill" :class="admin.role">{{ roleLabel }}</span>
+          </div>
           <span class="admin-me-email">{{ admin?.email }}</span>
         </div>
         <button type="button" class="admin-signout" title="Sign out" @click="signOut">
@@ -49,13 +52,19 @@ const NAV = [
   { to: '/admin/users',        name: 'admin-user',          label: 'Users',          icon: 'ri-group-line',        exact: false },
   { to: '/admin/reports',      name: 'admin-reports',       label: 'Reports',        icon: 'ri-flag-line',         exact: true },
   { to: '/admin/verifications',name: 'admin-verifications', label: 'Verifications',  icon: 'ri-shield-check-line', exact: true },
-  { to: '/admin/admins',       name: 'admin-admins',        label: 'Admins',         icon: 'ri-shield-user-line',  exact: true },
+  { to: '/admin/roles',        name: 'admin-roles',         label: 'Roles & Access', icon: 'ri-shield-user-line',  exact: false },
+  { to: '/admin/audit-logs',   name: 'admin-audit-logs',    label: 'Audit Trail',    icon: 'ri-file-list-3-line',  exact: true },
 ];
 
 const route = useRoute();
 const router = useRouter();
 const admin = ref<AdminUser | null>(null);
 const initials = computed(() => (admin.value?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase());
+const roleLabel = computed(() => {
+  if (admin.value?.role === 'super_admin') return 'Super Admin';
+  if (admin.value?.role === 'moderator') return 'Moderator';
+  return 'Admin';
+});
 
 onMounted(async () => {
   admin.value = await adminSession();
@@ -231,7 +240,39 @@ async function signOut() {
   @media (max-width: 767.98px) { display: none; }
 }
 
+.admin-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .admin-me-name { font-size: 0.82rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.admin-role-pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  flex-shrink: 0;
+
+  &.super_admin {
+    background: linear-gradient(135deg, #ffd66b, #e59a0b);
+    color: #1d1633;
+  }
+  &.admin {
+    background: rgba(127, 178, 255, 0.25);
+    color: #7fb2ff;
+  }
+  &.moderator {
+    background: rgba(79, 224, 197, 0.25);
+    color: #4fe0c5;
+  }
+}
+
 .admin-me-email { font-size: 0.72rem; color: rgba(255,255,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .admin-signout {

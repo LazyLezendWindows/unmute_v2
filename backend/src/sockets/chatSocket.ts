@@ -4,7 +4,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { config } from '../config/env';
 import { SessionService } from '../services/sessionService';
 import { ChatService } from '../services/chatService';
-import { markConnected, markDisconnected } from './presence';
+import { markConnected, markDisconnected, recordHeartbeat } from './presence';
 import { registerCallSignals } from './callSignals';
 
 let ioInstance: SocketIOServer | null = null;
@@ -60,6 +60,8 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
     socket.join(`session:${socket.data.sessionId}`);
     markConnected(userId);
     socket.on('disconnect', () => markDisconnected(userId));
+    socket.on('presence:heartbeat', () => recordHeartbeat(userId));
+    socket.onAny(() => recordHeartbeat(userId));
 
     registerCallSignals(ioInstance!, socket, userId);
 

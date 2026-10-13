@@ -1,8 +1,8 @@
 # Trials and Razorpay membership
 
-Every account gets seven days (168 hours) beginning with its first successful sign-in. Logging out, changing its linked phone number, and signing in again do not reset the trial. Existing accounts without a trial record start their trial on the first session restoration/sign-in after deployment.
+Every account gets one day (24 hours) beginning with its first successful sign-in. Logging out, changing its linked phone number, and signing in again do not reset the trial. Existing accounts without a trial record start their trial on the first session restoration/sign-in after deployment.
 
-Plans are one-time purchases, without automatic renewal: 1 day ₹2, 1 week ₹10, 1 month ₹30, 2 months ₹50, 3 months ₹70, 6 months ₹120, 1 year ₹200. Amounts are stored and sent to Razorpay in paise. Months and years use UTC calendar arithmetic, clamping to the last valid day of the destination month. Renewals add to the later of now, the trial end, and existing paid expiry.
+Plans are one-time purchases, without automatic renewal: 1 hour ₹10, 1 day ₹25, 1 week ₹70, 1 month ₹150, 2 months ₹250, 3 months ₹350, 6 months ₹600, 1 year ₹1,000. Amounts are stored and sent in paise. Months and years use UTC calendar arithmetic, clamping to the last valid day of the destination month. Renewals add to the later of now, the trial end, and existing paid expiry.
 
 ## Setup
 

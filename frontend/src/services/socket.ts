@@ -25,8 +25,22 @@ export function connectSocket(): Socket {
     reconnectionDelayMax: 10_000,
   });
 
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
   socket.on('connect', () => {
     useCallStore().bindSocket();
+    socket?.emit('presence:heartbeat');
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(() => {
+      if (socket?.connected) socket.emit('presence:heartbeat');
+    }, 30_000);
+  });
+
+  socket.on('disconnect', () => {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
   });
 
   socket.on('subscription:expired', notifySubscriptionRequired);

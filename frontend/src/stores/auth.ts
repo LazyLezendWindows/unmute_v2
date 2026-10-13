@@ -258,10 +258,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** Adds a confirmed phone number to the signed-in account. */
-  function linkPhone(phone: string, code: string) {
+  function linkPhone(phone: string, code?: string) {
     return run(async () => {
       const userId = user.value?.id;
-      const res = await api.post('/auth/phone/link', { phone, code });
+      const res = await api.post('/auth/phone/link', { phone, ...(code ? { code } : {}) });
       if (user.value && user.value.id === userId) user.value = res.data.data.user;
     });
   }

@@ -59,7 +59,10 @@ export const googleAuthSchema = z
   .strict();
 
 export const phoneLinkSchema = z
-  .object({ phone: phoneNumber, code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS') })
+  .object({
+    phone: phoneNumber,
+    code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from the SMS').optional(),
+  })
   .strict();
 
 export const forgotPasswordSchema = z.object({ email: z.string().email('Please enter a valid email address') }).strict();

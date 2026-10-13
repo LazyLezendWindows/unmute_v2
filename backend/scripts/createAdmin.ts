@@ -35,8 +35,8 @@ function askHidden(question: string): Promise<string> {
   const password = process.env.ADMIN_PASSWORD || (await askHidden('Admin password (10+ characters): '));
   await initDatabase();
   try {
-    await AdminAuthService.createAdmin(email, name, password);
-    console.log(`Admin ${email} created. Sign in at /admin`);
+    await AdminAuthService.createAdmin(email, name, password, 'super_admin');
+    console.log(`Admin ${email} created with super_admin role. Sign in at /admin`);
     process.exit(0);
   } catch (err: any) {
     console.error(err?.code === 'ER_DUP_ENTRY' ? 'An admin with that email already exists.' : err.message);

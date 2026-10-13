@@ -33,9 +33,9 @@ async function registerAgent(email: string, displayName: string, dateOfBirth = '
 }
 
 /** An admin-panel session (a separate admin account, created directly). */
-async function adminAgent(email = `admin.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@example.com`) {
+async function adminAgent(email = `admin.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@example.com`, role: any = 'super_admin') {
   const { AdminAuthService } = await import('../src/services/adminAuthService');
-  await AdminAuthService.createAdmin(email, 'Test Admin', 'AdminPassword123!');
+  await AdminAuthService.createAdmin(email, 'Test Admin', 'AdminPassword123!', role);
   const agent = request.agent(app);
   const res = await agent.post('/api/v1/admin/login').send({ email, password: 'AdminPassword123!' });
   expect(res.status).toBe(200);
@@ -896,6 +896,105 @@ describe('Unmute API', () => {
       await admin.post(`/api/v1/admin/users/${member.id}/verified`).send({ verified: true });
       expect((await member.agent.get('/api/v1/users/me')).body.data.isVerified).toBe(true);
       expect((await admin.get('/api/v1/admin/users?filter=verified&q=Verify')).body.data.users.map((u: any) => u.id)).toContain(member.id);
+    });
+
+    it('enforces RBAC: moderators cannot perform super admin actions or access audit logs', async () => {
+      const superAdmin = await adminAgent('super@example.com', 'super_admin');
+      const mod = await adminAgent('mod@example.com', 'moderator');
+
+      // Moderator cannot access roles, admins, or audit logs
+      expect((await mod.get('/api/v1/admin/roles')).status).toBe(403);
+      expect((await mod.post('/api/v1/admin/admins').send({ email: 'new@example.com', name: 'New', password: 'Password123!' })).status).toBe(403);
+      expect((await mod.get('/api/v1/admin/audit-logs')).status).toBe(403);
+
+      // Super admin can access roles and audit logs
+      expect((await superAdmin.get('/api/v1/admin/roles')).status).toBe(200);
+      expect((await superAdmin.get('/api/v1/admin/audit-logs')).status).toBe(200);
+
+      // Super admin can update moderator's role or suspend them
+      const list = (await superAdmin.get('/api/v1/admin/roles')).body.data;
+      const modRecord = list.find((a: any) => a.email === 'mod@example.com');
+      expect(modRecord).toBeTruthy();
+
+      const suspend = await superAdmin.patch(`/api/v1/admin/roles/${modRecord.id}`).send({ isActive: false });
+      expect(suspend.status).toBe(200);
+
+      // Suspended moderator session is revoked immediately
+      expect((await mod.get('/api/v1/admin/users')).status).toBe(401);
+      // Login attempt is refused with 403
+      expect((await request(app).post('/api/v1/admin/login').send({ email: 'mod@example.com', password: 'AdminPassword123!' })).status).toBe(403);
+    });
+
+    it('enforces MFA/TOTP setup and 2-step challenge for administrator accounts', async () => {
+      const admin = await adminAgent('mfa-admin@example.com', 'admin');
+      const setupRes = await admin.post('/api/v1/admin/mfa/setup');
+      expect(setupRes.status).toBe(200);
+      expect(setupRes.body.data.secret).toBeTruthy();
+      expect(setupRes.body.data.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
+
+      const secret = setupRes.body.data.secret;
+      // Invalid code fails
+      expect((await admin.post('/api/v1/admin/mfa/confirm').send({ code: '000000' })).status).toBe(400);
+
+      // Valid code confirms and enables MFA
+      const OTPAuth = await import('otpauth');
+      const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits: 6, period: 30 });
+      const validCode = totp.generate();
+      const confirmRes = await admin.post('/api/v1/admin/mfa/confirm').send({ code: validCode });
+      expect(confirmRes.status).toBe(200);
+
+      // Subsequent login without code requires MFA
+      const firstStep = await request(app).post('/api/v1/admin/login').send({ email: 'mfa-admin@example.com', password: 'AdminPassword123!' });
+      expect(firstStep.status).toBe(200);
+      expect(firstStep.body.data.requiresMfa).toBe(true);
+
+      // Login with wrong code fails
+      const badMfa = await request(app).post('/api/v1/admin/login').send({ email: 'mfa-admin@example.com', password: 'AdminPassword123!', code: '999999' });
+      expect(badMfa.status).toBe(401);
+
+      // Login with valid code succeeds
+      const goodMfa = await request(app).post('/api/v1/admin/login').send({ email: 'mfa-admin@example.com', password: 'AdminPassword123!', code: totp.generate() });
+      expect(goodMfa.status).toBe(200);
+      expect(goodMfa.body.data.email).toBe('mfa-admin@example.com');
+      expect(goodMfa.body.data.totpEnabled).toBe(true);
+    });
+
+    it('provides real live analytics metrics and 90-second heartbeat presence tracking', async () => {
+      const admin = await adminAgent();
+      const member = await registerAgent('presence-user@example.com', 'Online Member');
+
+      // Heartbeat marks user online
+      const hb = await member.agent.post('/api/v1/presence/heartbeat');
+      expect(hb.status).toBe(200);
+      expect(hb.body.online).toBe(true);
+
+      const analytics = await admin.get('/api/v1/admin/analytics?days=7');
+      expect(analytics.status).toBe(200);
+      const { metrics, trends } = analytics.body.data;
+
+      expect(metrics.totalUsers).toBeGreaterThan(0);
+      expect(metrics.onlineNow).toBeGreaterThanOrEqual(1);
+      expect(metrics.activeUsers24h).toBeGreaterThanOrEqual(1);
+      expect(metrics.newToday).toBeGreaterThanOrEqual(1);
+      expect(metrics.newThisWeek).toBeGreaterThanOrEqual(1);
+      expect(trends.days).toBe(7);
+      expect(trends.registrations.length).toBe(7);
+      expect(trends.messages.length).toBe(7);
+    });
+
+    it('maintains a searchable, tamper-evident audit trail of administrative actions', async () => {
+      const superAdmin = await adminAgent();
+      const member = await registerAgent('audit-target@example.com', 'Audit Target');
+
+      await superAdmin.post(`/api/v1/admin/users/${member.id}/status`).send({ active: false, reason: 'Abuse investigation' });
+
+      const audit = await superAdmin.get('/api/v1/admin/audit-logs?q=Abuse');
+      expect(audit.status).toBe(200);
+      expect(audit.body.data.logs.length).toBeGreaterThanOrEqual(1);
+      const entry = audit.body.data.logs[0];
+      expect(entry.action).toBe('disabled');
+      expect(entry.detail).toBe('Abuse investigation');
+      expect(entry.actor.email).toBeTruthy();
     });
   });
 

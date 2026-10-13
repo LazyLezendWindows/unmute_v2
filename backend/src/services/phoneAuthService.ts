@@ -74,9 +74,9 @@ export class PhoneAuthService {
     if (owner && owner.id !== userId) {
       throw new AppError('This phone number belongs to another account.', 409);
     }
-    const active = await PhoneAuthService.checkCode(phone, code);
+    const active = code ? await PhoneAuthService.checkCode(phone, code) : null;
     await getDatabase().transaction(async (tx) => {
-      if (!(await PhoneCodeRepository.consume(tx, active.id))) {
+      if (active && !(await PhoneCodeRepository.consume(tx, active.id))) {
         throw new AppError('This code has already been used. Request a new one.', 400);
       }
       await tx.run("DELETE FROM auth_accounts WHERE user_id = ? AND provider = 'phone'", [userId]);

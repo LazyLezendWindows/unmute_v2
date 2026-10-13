@@ -3,6 +3,10 @@ import { ref } from 'vue';
 import { api } from '../services/api';
 
 export interface Plan { id: string; label: string; amount: number }
+export interface UpiPlanQr {
+  upiUri: string;
+  qrCodeDataUrl: string;
+}
 export interface AccessState {
   active: boolean;
   state: 'trial' | 'paid' | 'expired';
@@ -16,6 +20,9 @@ export interface AccessState {
   paymentMode?: 'razorpay' | 'test' | 'off';
   /** A plan bought during the free trial starts (with Premium) at this time. */
   planStartsAt?: string | null;
+  upiId?: string;
+  upiPayeeName?: string;
+  upiQrByPlan?: Record<string, UpiPlanQr>;
 }
 export const useSubscriptionStore = defineStore('subscription', () => {
   const access = ref<AccessState | null>(null);

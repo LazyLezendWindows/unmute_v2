@@ -33,10 +33,60 @@ adminApi.interceptors.response.use(
   }
 );
 
+export type AdminRole = 'super_admin' | 'admin' | 'moderator';
+
 export interface AdminUser {
   id: string;
   email: string;
   name: string;
+  role: AdminRole;
+  totpEnabled?: boolean;
+}
+
+export interface AnalyticsData {
+  metrics: {
+    totalUsers: number;
+    onlineNow: number;
+    activeUsers24h: number;
+    activeUsers7d: number;
+    newToday: number;
+    newThisWeek: number;
+    newThisMonth: number;
+    activeConversations: number;
+    messagesToday: number;
+    messagesThisWeek: number;
+    pendingRequests: number;
+    pendingReports: number;
+    suspendedUsers: number;
+    verifiedUsers: number;
+  };
+  trends: {
+    days: number;
+    registrations: { date: string; count: number }[];
+    messages: { date: string; count: number }[];
+    activeUsers: { date: string; count: number }[];
+  };
+  updatedAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  detail: string | null;
+  ipAddress: string | null;
+  targetType: string;
+  createdAt: string;
+  actor: {
+    id: string;
+    name: string;
+    email: string;
+    role: AdminRole;
+  };
+  target: {
+    id: string;
+    name: string;
+    email?: string;
+  } | null;
 }
 
 /** Whether the panel still needs its first admin (and whether that needs the server's setup code). */

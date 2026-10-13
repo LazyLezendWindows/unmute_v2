@@ -329,9 +329,19 @@ export const useChatStore = defineStore('chat', () => {
 
     // Listen for new matches
     socket.off('new_match');
-    socket.on('new_match', () => {
+    socket.on('new_match', (data?: { conversationId?: string; matchedUser?: { id: string; displayName: string; age: number; avatarUrl?: string | null } }) => {
       loadMatches();
       loadConversations();
+      if (data?.matchedUser) {
+        useToastStore().success(`It's a Match! You and ${data.matchedUser.displayName} liked each other! 🎉`);
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+          new Notification("It's a Match! 🎉", {
+            body: `You and ${data.matchedUser.displayName} liked each other! Tap to chat.`,
+            icon: data.matchedUser.avatarUrl || '/pwa-192x192.png',
+            tag: `match-${data.conversationId || 'new'}`,
+          });
+        }
+      }
     });
   }
 
