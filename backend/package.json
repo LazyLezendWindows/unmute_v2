@@ -28,7 +28,7 @@
     "google-auth-library": "^9.15.1",
     "helmet": "^8.0.0",
     "mysql2": "^3.24.4",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^10.1.0",
     "otpauth": "^9.5.2",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
