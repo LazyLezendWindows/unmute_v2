@@ -177,4 +177,106 @@ describe('Schema migrations', () => {
       await pConn.end();
     }
   });
+
+  it('safely applies migration 011 across incompatible collations, duplicate relationships, and repeated runs', async () => {
+    // Test on a database created with a collation different from table collation (utf8mb4_general_ci vs utf8mb4_unicode_ci)
+    // to simulate the MySQL 8 utf8mb4_0900_ai_ci production collation conflict.
+    const COLLATION_DB = config.mariadb.database.replace(/_test_db$/, '_collation_test_db');
+    const admin = await mysql.createConnection(mariaConnectionOptions({ withDatabase: false }));
+    await admin.query(`DROP DATABASE IF EXISTS \`${COLLATION_DB}\``);
+    await admin.query(`CREATE DATABASE \`${COLLATION_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`);
+    await admin.end();
+
+    const cConn = await mysql.createConnection({
+      ...mariaConnectionOptions(),
+      database: COLLATION_DB,
+      multipleStatements: true,
+    });
+
+    try {
+      // Run migrations 001 through 010 first
+      await cConn.query(
+        `CREATE TABLE schema_migrations (version VARCHAR(255) PRIMARY KEY, applied_at DATETIME NOT NULL);`
+      );
+      const earlyMigrations = [
+        '001_baseline.sql',
+        '002_server_sessions.sql',
+        '003_password_credentials_to_auth_accounts.sql',
+        '004_drop_legacy_user_credentials.sql',
+        '005_index_cleanup.sql',
+        '006_places_and_education.sql',
+        '007_profile_details.sql',
+        '008_education_level_profession_field.sql',
+        '009_notifications.sql',
+        '010_phone_sign_in.sql',
+      ];
+      for (const m of earlyMigrations) {
+        const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, m), 'utf-8');
+        await cConn.query(sql);
+        await cConn.query('INSERT INTO schema_migrations VALUES (?, UTC_TIMESTAMP())', [m]);
+      }
+
+      // Populate test users and interests:
+      // u1: has old interest 'Reading & Books' (should merge into 'Reading')
+      // u2: already has BOTH old 'Writing & Poetry' AND target 'Reading' (should deduplicate without error)
+      // u3: has old interest 'Design & UI/UX' (should merge into 'Art')
+      await cConn.query(`
+        INSERT INTO users (id, email, is_active, created_at) VALUES
+          ('u1', 'u1@example.com', 1, '2025-01-01T00:00:00.000Z'),
+          ('u2', 'u2@example.com', 1, '2025-01-01T00:00:00.000Z'),
+          ('u3', 'u3@example.com', 1, '2025-01-01T00:00:00.000Z');
+
+        INSERT INTO interests (id, name, category, icon) VALUES
+          ('i-rb', 'Reading & Books', 'Culture', 'BookOpen'),
+          ('i-wp', 'Writing & Poetry', 'Culture', 'BookOpen'),
+          ('i-r-new', 'Reading', 'Culture', 'BookOpen'),
+          ('i-des', 'Design & UI/UX', 'Arts', 'Palette');
+
+        INSERT INTO user_interests (user_id, interest_id) VALUES
+          ('u1', 'i-rb'),
+          ('u2', 'i-wp'),
+          ('u2', 'i-r-new'),
+          ('u3', 'i-des');
+      `);
+
+      // Run migration 011 via runMigrations (must not throw ER_CANT_AGGREGATE_2COLLATIONS)
+      await runMigrations({ database: COLLATION_DB });
+
+      // Verify migration 011 was recorded in schema_migrations
+      const [applied011] = await cConn.query(
+        'SELECT version FROM schema_migrations WHERE version = "011_merge_duplicate_interests.sql"'
+      );
+      expect((applied011 as any[]).length).toBe(1);
+
+      // Verify user interests after merge
+      const [u1Interests] = await cConn.query<any[]>(
+        'SELECT i.name FROM user_interests ui JOIN interests i ON i.id = ui.interest_id WHERE ui.user_id = "u1"'
+      );
+      expect(u1Interests.map((r) => r.name)).toEqual(['Reading']);
+
+      const [u2Interests] = await cConn.query<any[]>(
+        'SELECT i.name FROM user_interests ui JOIN interests i ON i.id = ui.interest_id WHERE ui.user_id = "u2"'
+      );
+      // u2 must have exactly 1 'Reading' entry without duplicates
+      expect(u2Interests.map((r) => r.name)).toEqual(['Reading']);
+
+      const [u3Interests] = await cConn.query<any[]>(
+        'SELECT i.name FROM user_interests ui JOIN interests i ON i.id = ui.interest_id WHERE ui.user_id = "u3"'
+      );
+      expect(u3Interests.map((r) => r.name)).toEqual(['Art']);
+
+      // Verify old interests are removed
+      const [oldInterests] = await cConn.query<any[]>(
+        'SELECT name FROM interests WHERE name IN ("Reading & Books", "Writing & Poetry", "Design & UI/UX")'
+      );
+      expect(oldInterests.length).toBe(0);
+
+      // Verify repeated run is completely idempotent
+      await expect(runMigrations({ database: COLLATION_DB })).resolves.not.toThrow();
+    } finally {
+      await cConn.query(`DROP DATABASE IF EXISTS \`${COLLATION_DB}\``).catch(() => undefined);
+      await cConn.end();
+    }
+  });
 });
+
