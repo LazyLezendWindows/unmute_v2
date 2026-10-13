@@ -46,6 +46,9 @@
         </form>
       </section>
 
+      <!-- Authenticator-app Two-Factor Authentication (TOTP) -->
+      <TwoFactorSettingsCard />
+
       <!-- Pause -->
       <section class="a-card" aria-labelledby="pause-title">
         <label class="a-switch-row">
@@ -95,6 +98,7 @@ import { computed, onMounted, ref } from 'vue';
 import SectionShell from '../components/layout/SectionShell.vue';
 import PageHeader from '../components/layout/PageHeader.vue';
 import SettingsMenu from '../components/settings/SettingsMenu.vue';
+import TwoFactorSettingsCard from '../components/settings/TwoFactorSettingsCard.vue';
 import UInput from '../components/ui/UInput.vue';
 import UButton from '../components/ui/UButton.vue';
 import UModal from '../components/ui/UModal.vue';

@@ -10,7 +10,7 @@ import { useChatStore } from './chat';
 import { useDiscoverStore } from './discover';
 import { useSubscriptionStore } from './subscription';
 import { unregisterPush } from '../services/push';
-import { User, Profile, LocationPrecision } from '../types';
+import { User, Profile, LocationPrecision, TwoFactorStatus, TwoFactorSetupData } from '../types';
 
 /**
  * UNKNOWN: nothing checked yet. CHECKING_SESSION: asking the backend.
@@ -18,11 +18,19 @@ import { User, Profile, LocationPrecision } from '../types';
  */
 export type AuthStatus = 'UNKNOWN' | 'CHECKING_SESSION' | 'AUTHENTICATED' | 'UNAUTHENTICATED';
 
-export type GoogleAuthOutcome =
-  | { requiresDob: true; profile: { email: string; displayName: string; avatarUrl: string } }
-  | { requiresDob: false; isNewUser: boolean };
+export type PasswordLoginOutcome =
+  | { requiresTwoFactor: false }
+  | { requiresTwoFactor: true; pendingToken: string; expiresIn: number };
 
-export type PhoneAuthOutcome = { requiresProfile: true } | { requiresProfile: false; isNewUser: boolean };
+export type GoogleAuthOutcome =
+  | { requiresDob: true; requiresTwoFactor?: false; profile: { email: string; displayName: string; avatarUrl: string } }
+  | { requiresDob: false; requiresTwoFactor: true; pendingToken: string; expiresIn: number }
+  | { requiresDob: false; requiresTwoFactor?: false; isNewUser: boolean };
+
+export type PhoneAuthOutcome =
+  | { requiresProfile: true; requiresTwoFactor?: false }
+  | { requiresProfile: false; requiresTwoFactor: true; pendingToken: string; expiresIn: number }
+  | { requiresProfile: false; requiresTwoFactor?: false; isNewUser: boolean };
 
 export const useAuthStore = defineStore('auth', () => {
   const status = ref<AuthStatus>('UNKNOWN');
@@ -137,10 +145,19 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  function login(credentials: { email: string; password: string }) {
+  function login(credentials: { email: string; password: string }): Promise<PasswordLoginOutcome> {
     return run(async () => {
       const res = await api.post('/auth/login', credentials);
-      setAuthenticated(res.data.data.user);
+      const result = res.data.data;
+      if (result.requiresTwoFactor) {
+        return {
+          requiresTwoFactor: true,
+          pendingToken: result.pendingToken,
+          expiresIn: result.expiresIn,
+        };
+      }
+      setAuthenticated(result.user);
+      return { requiresTwoFactor: false };
     });
   }
 
@@ -151,6 +168,14 @@ export const useAuthStore = defineStore('auth', () => {
       const result = res.data.data;
       if (result.requiresDob) {
         return { requiresDob: true, profile: result.profile };
+      }
+      if (result.requiresTwoFactor) {
+        return {
+          requiresDob: false,
+          requiresTwoFactor: true,
+          pendingToken: result.pendingToken,
+          expiresIn: result.expiresIn,
+        };
       }
       setAuthenticated(result.user);
       return { requiresDob: false, isNewUser: result.isNewUser };
@@ -169,9 +194,67 @@ export const useAuthStore = defineStore('auth', () => {
       const res = await api.post('/auth/phone/verify', payload);
       const result = res.data.data;
       if (result.requiresProfile) return { requiresProfile: true };
+      if (result.requiresTwoFactor) {
+        return {
+          requiresProfile: false,
+          requiresTwoFactor: true,
+          pendingToken: result.pendingToken,
+          expiresIn: result.expiresIn,
+        };
+      }
       setAuthenticated(result.user);
       return { requiresProfile: false, isNewUser: result.isNewUser };
     });
+  }
+
+  /** Completes a pending 2FA sign-in with a 6-digit TOTP code or one-time recovery code. */
+  function verifyTwoFactorLogin(payload: {
+    pendingToken: string;
+    code: string;
+  }): Promise<{ isNewUser: boolean; usedRecoveryCode: boolean }> {
+    return run(async () => {
+      const res = await api.post('/auth/2fa/verify', payload);
+      const result = res.data.data;
+      setAuthenticated(result.user);
+      return {
+        isNewUser: Boolean(result.isNewUser),
+        usedRecoveryCode: Boolean(result.usedRecoveryCode),
+      };
+    });
+  }
+
+  /** Fetches the current 2FA status and remaining recovery code count. */
+  async function fetchTwoFactorStatus(): Promise<TwoFactorStatus> {
+    const res = await api.get('/auth/2fa/status');
+    return res.data.data;
+  }
+
+  /** Initiates TOTP 2FA setup (returns QR code Data URL and manual Base32 setup key). */
+  async function startTwoFactorSetup(): Promise<TwoFactorSetupData> {
+    const res = await api.post('/auth/2fa/setup');
+    return res.data.data;
+  }
+
+  /** Verifies the first 6-digit authenticator code, enables 2FA, and returns one-time recovery codes. */
+  async function enableTwoFactor(code: string): Promise<{ enabled: true; recoveryCodes: string[] }> {
+    const res = await api.post('/auth/2fa/enable', { code });
+    if (user.value) user.value.twoFactorEnabled = true;
+    return res.data.data;
+  }
+
+  /** Disables 2FA after reauthenticating with password and/or authenticator code. */
+  async function disableTwoFactor(payload: { password?: string; code?: string }): Promise<void> {
+    await api.post('/auth/2fa/disable', payload);
+    if (user.value) user.value.twoFactorEnabled = false;
+  }
+
+  /** Generates a new set of 8 one-time recovery codes after reauthentication. */
+  async function regenerateRecoveryCodes(payload: {
+    password?: string;
+    code?: string;
+  }): Promise<{ recoveryCodes: string[] }> {
+    const res = await api.post('/auth/2fa/recovery-codes/regenerate', payload);
+    return res.data.data;
   }
 
   /** Adds a confirmed phone number to the signed-in account. */
@@ -286,6 +369,12 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     requestPhoneCode,
     loginWithPhone,
+    verifyTwoFactorLogin,
+    fetchTwoFactorStatus,
+    startTwoFactorSetup,
+    enableTwoFactor,
+    disableTwoFactor,
+    regenerateRecoveryCodes,
     linkPhone,
     fetchMe,
     refreshProfile,

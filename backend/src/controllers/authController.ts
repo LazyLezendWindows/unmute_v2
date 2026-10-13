@@ -5,6 +5,7 @@ import { config } from '../config/env';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
 import { PhoneAuthService } from '../services/phoneAuthService';
+import { TotpService } from '../services/totpService';
 import { smsAvailable } from '../services/auth/smsSender';
 import { SessionService } from '../services/sessionService';
 import { AuthRequest } from '../middleware/auth';
@@ -57,6 +58,15 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = await AuthService.login(req.body);
+      if (await TotpService.isEnabled(userId)) {
+        const pending = await TotpService.createPendingLogin(userId, {
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          isNewUser: false,
+        });
+        res.status(200).json({ success: true, data: pending });
+        return;
+      }
       const user = await startSession(req, res, userId);
       res.status(200).json({ success: true, data: { user } });
     } catch (err) {
@@ -70,6 +80,15 @@ export class AuthController {
       const result = await AuthService.googleAuth(req.body);
       if (result.requiresDob) {
         res.status(200).json({ success: true, data: result });
+        return;
+      }
+      if (!result.isNewUser && (await TotpService.isEnabled(result.userId))) {
+        const pending = await TotpService.createPendingLogin(result.userId, {
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          isNewUser: false,
+        });
+        res.status(200).json({ success: true, data: { requiresDob: false, ...pending } });
         return;
       }
       let user = await startSession(req, res, result.userId);
@@ -105,6 +124,15 @@ export class AuthController {
         res.status(200).json({ success: true, data: { requiresProfile: true } });
         return;
       }
+      if (!result.isNewUser && (await TotpService.isEnabled(result.userId))) {
+        const pending = await TotpService.createPendingLogin(result.userId, {
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+          isNewUser: false,
+        });
+        res.status(200).json({ success: true, data: { requiresProfile: false, ...pending } });
+        return;
+      }
       let user = await startSession(req, res, result.userId);
       if (result.isNewUser && req.body.referralCode) {
         await applyReferral(result.userId, req.body.referralCode);
@@ -124,6 +152,73 @@ export class AuthController {
       await ReferralService.rewardIfReady(req.user!.userId).catch((err) => console.warn('[Referral] Reward failed:', err.message));
       const user = await AuthService.getCurrentUser(req.user!.userId);
       res.status(200).json({ success: true, data: { user } });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Returns the current 2FA status for the signed-in account (never exposes secrets or codes). */
+  static async twoFactorStatus(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await TotpService.status(req.user!.userId);
+      res.status(200).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Generates a pending TOTP secret and returns the QR code Data URL and manual setup key. */
+  static async twoFactorSetup(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await TotpService.initiateSetup(req.user!.userId);
+      res.status(200).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Verifies the first 6-digit TOTP code, enables 2FA, and returns one-time recovery codes. */
+  static async twoFactorEnable(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await TotpService.verifyAndEnable(req.user!.userId, req.body.code);
+      res.status(200).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Completes a pending sign-in once a valid 6-digit TOTP code or recovery code is supplied. */
+  static async twoFactorVerify(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId, isNewUser, usedRecoveryCode } = await TotpService.verifyPendingLogin(
+        req.body.pendingToken,
+        req.body.code
+      );
+      const user = await startSession(req, res, userId);
+      res.status(200).json({
+        success: true,
+        data: { user, isNewUser, usedRecoveryCode },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Disables 2FA after reauthentication with the member's password and/or authenticator code. */
+  static async twoFactorDisable(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await TotpService.disable(req.user!.userId, req.body);
+      res.status(200).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Replaces existing recovery codes with a fresh set after reauthentication. */
+  static async twoFactorRegenerateRecovery(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await TotpService.regenerateRecoveryCodes(req.user!.userId, req.body);
+      res.status(200).json({ success: true, data });
     } catch (err) {
       next(err);
     }

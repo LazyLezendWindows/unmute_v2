@@ -2,13 +2,18 @@
   <AuthStage title="Create your account" subtitle="Let's get to know you better" back="/welcome" logo-size="4rem">
     <template #header><SetupProgress :step="0" compact class="register-steps" /></template>
     <div class="auth-body d-flex flex-column gap-4">
+      <div class="d-flex flex-column gap-2">
+        <GoogleSignIn text="continue_with" :referral-code="referralCode" @authenticated="onGoogleAuthenticated" />
+      </div>
+
+      <div class="auth-divider" role="separator">or sign up with email</div>
 
       <form class="d-flex flex-column gap-3" @submit.prevent="handleRegister">
         <UInput v-model="displayName" type="text" required placeholder="Full name" icon="ri-user-line" autocomplete="name" />
         <UInput v-model="email" type="email" required placeholder="Email address" icon="ri-mail-line" autocomplete="email" />
 
-        <!-- Optional; confirmed by SMS before it's saved, then usable for phone sign-in -->
-        <div class="phone-field">
+        <!-- Optional; only shown when SMS delivery is enabled, confirmed by SMS before it's saved -->
+        <div v-if="phoneSignInAvailable" class="phone-field">
           <i class="ri-phone-line phone-icon" aria-hidden="true"></i>
           <span class="country">
             <span class="country-flag" aria-hidden="true">{{ country.flag }}</span>
@@ -23,7 +28,7 @@
             type="tel"
             inputmode="tel"
             autocomplete="tel-national"
-            placeholder="Phone number"
+            placeholder="Phone number (optional)"
             aria-label="Phone number (optional)"
             maxlength="15"
           />
@@ -101,16 +106,19 @@ import { useRoute, useRouter } from 'vue-router';
 import UInput from '../components/ui/UInput.vue';
 import UModal from '../components/ui/UModal.vue';
 import AuthStage from '../components/auth/AuthStage.vue';
+import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
 import LegalDocumentView from '../components/legal/LegalDocumentView.vue';
 import { PRIVACY, TERMS } from '../content/legal';
 import UButton from '../components/ui/UButton.vue';
 import PhoneCodeDialog from '../components/auth/PhoneCodeDialog.vue';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
+import { usePhoneSignInAvailable } from '../composables/useGoogleIdentity';
 import SetupProgress from '../components/layout/SetupProgress.vue';
 import { ONBOARDING_START } from '../onboarding';
 
 const legalOpen = ref<'terms' | 'privacy' | null>(null);
+const phoneSignInAvailable = usePhoneSignInAvailable();
 
 const COUNTRIES = [
   { code: '+91', flag: '🇮🇳', name: 'India' },
@@ -154,6 +162,10 @@ const maxDateFor18 = computed(() => {
 // Only flagged once the second field has something in it, so it doesn't nag while typing the first.
 const passwordMismatch = computed(() => Boolean(confirmPassword.value) && confirmPassword.value !== password.value);
 
+function onGoogleAuthenticated(isNewUser: boolean) {
+  router.push(isNewUser ? ONBOARDING_START : '/discover');
+}
+
 function details(code?: string) {
   return {
     displayName: displayName.value,
@@ -175,7 +187,7 @@ function registrationError(err: any): string {
 }
 
 async function handleRegister() {
-  if (passwordMismatch.value) return;
+  if (loading.value || passwordMismatch.value) return;
   loading.value = true;
   try {
     const outcome = await authStore.register(details());
@@ -184,7 +196,9 @@ async function handleRegister() {
       codeOpen.value = true;
       return;
     }
-    router.push(ONBOARDING_START);
+    await authStore.logout();
+    useToastStore().success('Account created! Please sign in to continue.');
+    router.push('/login');
   } catch (err: any) {
     useToastStore().error(registrationError(err));
   } finally {
@@ -193,12 +207,15 @@ async function handleRegister() {
 }
 
 async function finishWithCode(code: string) {
+  if (loading.value) return;
   loading.value = true;
   codeError.value = null;
   try {
     await authStore.register(details(code));
     codeOpen.value = false;
-    router.push(ONBOARDING_START);
+    await authStore.logout();
+    useToastStore().success('Account created! Please sign in to continue.');
+    router.push('/login');
   } catch (err: any) {
     codeError.value = registrationError(err);
   } finally {

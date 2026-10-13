@@ -6,9 +6,25 @@ export interface User {
   phone?: string | null;
   /** False for phone- or Google-only accounts (deleting one is confirmed by typing DELETE). */
   hasPassword?: boolean;
+  /** Whether authenticator-app (TOTP) two-factor authentication is enabled on the account. */
+  twoFactorEnabled?: boolean;
   /** Hidden from Discover while paused (Settings → Pause my profile). */
   isPaused?: boolean;
   profile: Profile | null;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  enabledAt: string | null;
+  recoveryCodesRemaining: number;
+}
+
+export interface TwoFactorSetupData {
+  qrCodeDataUrl: string;
+  manualEntryKey: string;
+  otpauthUrl: string;
+  issuer: string;
+  accountName: string;
 }
 
 export interface Interest {

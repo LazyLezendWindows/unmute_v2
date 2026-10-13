@@ -106,6 +106,10 @@
         <i class="ri-notification-3-line" aria-hidden="true"></i><span>Notifications</span><em></em>
         <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
       </button>
+      <button type="button" class="row is-signout" :disabled="signingOut" @click="handleSignOut">
+        <i class="ri-logout-box-r-line" aria-hidden="true"></i><span>{{ signingOut ? 'Signing out…' : 'Sign out' }}</span><em></em>
+        <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      </button>
     </nav>
 
     <!-- Alerts while Unmute is closed (push notifications on this device) -->
@@ -151,6 +155,7 @@
 import ReferralBanner from '../components/referral/ReferralBanner.vue';
 import PremiumBadge from '../components/premium/PremiumBadge.vue';
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import ScreenBar from '../components/layout/ScreenBar.vue';
 import UAvatar from '../components/ui/UAvatar.vue';
 import { useAuthStore } from '../stores/auth';
@@ -170,11 +175,25 @@ import { disablePush, enablePush, pushState, pushSubscribed } from '../services/
 /** Photos in the strip; the last one shows how many more there are. */
 const STRIP = 6;
 
+const router = useRouter();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
 const discoverStore = useDiscoverStore();
 const strength = useProfileStrength();
 const sub = useSubscriptionStore();
+const signingOut = ref(false);
+
+async function handleSignOut() {
+  if (signingOut.value) return;
+  signingOut.value = true;
+  try {
+    await authStore.logout();
+    router.push('/login');
+  } finally {
+    signingOut.value = false;
+  }
+}
+
 onMounted(() => sub.fetchStatus().catch(() => undefined));
 
 const dateText = (iso: string | null | undefined) =>
@@ -569,6 +588,14 @@ $soft: var(--unmute-text-secondary);
 
     &.is-ok {
       color: var(--unmute-success-text);
+    }
+  }
+
+  &.is-signout {
+    color: var(--unmute-danger, #dc2626);
+
+    > i {
+      color: var(--unmute-danger, #dc2626);
     }
   }
 }

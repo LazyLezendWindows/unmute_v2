@@ -39,6 +39,18 @@ export const phoneVerifyRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/** Authenticator-app (TOTP) and recovery-code verification attempts; per-user lockout also applies in TotpService. */
+export const totpVerifyRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: Number(process.env.TOTP_RATE_LIMIT) || 30,
+  message: {
+    success: false,
+    error: 'Too many verification attempts. Please try again in 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 /**
  * General API limit, per signed-in session (per IP address for visitors). Many people can share
  * one public IP (mobile carriers, offices, colleges), so a per-IP limit alone would slow everyone

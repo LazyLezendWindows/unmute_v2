@@ -8,12 +8,13 @@ import { ModerationService } from '../services/moderationService';
  * (development), and what still needs keys in backend/.env (see .env.example).
  */
 export function readinessReport(): string[] {
-  const { email, sms, ice, push } = config;
+  const { email, sms, ice, push, totp } = config;
   const preview = (provider: string) => (provider === 'console' ? 'development preview (codes printed in this terminal, nothing sent)' : null);
   const billing = BillingService.mode();
   return [
     `Email codes:   ${email.provider === 'smtp' && email.smtp.host && email.smtp.from ? `SMTP via ${email.smtp.host}` : preview(email.provider) ?? 'NOT SET: set EMAIL_PROVIDER=smtp and SMTP_*'}`,
     `SMS codes:     ${sms.provider === 'twilio' && sms.twilio.accountSid && sms.twilio.from ? 'Twilio' : preview(sms.provider) ?? 'NOT SET: set SMS_PROVIDER=twilio and TWILIO_*'}`,
+    `2FA (TOTP):    ${totp.encryptionKey ? 'on (AES-256-GCM key set)' : config.isProduction ? 'NOT SET: set TOTP_ENCRYPTION_KEY' : 'on (development key; set TOTP_ENCRYPTION_KEY in production)'}`,
     `Google login:  ${config.googleClientId ? 'on' : 'off (button hidden in the app): set GOOGLE_CLIENT_ID to turn it on'}`,
     `Payments:      ${billing === 'razorpay' ? 'Razorpay' : billing === 'test' ? 'test mode (plans activate with no charge): set RAZORPAY_*' : 'off: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET'}`,
     `Push:          ${push.publicKey && push.privateKey ? 'on' : config.isProduction ? 'off: set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY' : 'development keys (data/vapid.json)'}`,

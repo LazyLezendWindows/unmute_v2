@@ -21,9 +21,9 @@
         <span>A friend invited you! Sign up with code <strong>{{ inviteCode }}</strong> and you both get <strong>2 weeks free</strong>.</span>
       </p>
       <div class="auth-divider" role="separator">or continue with</div>
-      <div class="social-row" :class="{ 'is-single': !googleAvailable }">
-        <GoogleSignIn v-if="googleAvailable" text="continue_with" @authenticated="onSignedIn" />
-        <PhoneSignIn @authenticated="onSignedIn" />
+      <div class="social-row" :class="{ 'is-single': !phoneSignInAvailable }">
+        <GoogleSignIn text="continue_with" :referral-code="inviteCode" @authenticated="onSignedIn" />
+        <PhoneSignIn v-if="phoneSignInAvailable" @authenticated="onSignedIn" />
       </div>
 
       <p class="text-center small mb-0 u-text-muted">
@@ -41,14 +41,13 @@ import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
 import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
 import { ONBOARDING_START } from '../onboarding';
-import { useGoogleAvailable } from '../composables/useGoogleIdentity';
+import { usePhoneSignInAvailable } from '../composables/useGoogleIdentity';
 import couplePhoto from '../assets/welcome-couple.webp';
 
 const router = useRouter();
 // Invite links look like /welcome?ref=asha4821.
 const inviteCode = typeof useRoute().query.ref === 'string' ? String(useRoute().query.ref).replace(/[^A-Za-z0-9]/g, '').slice(0, 30) : '';
-// Google sign-in appears once GOOGLE_CLIENT_ID is set on the server.
-const googleAvailable = useGoogleAvailable();
+const phoneSignInAvailable = usePhoneSignInAvailable();
 
 function onSignedIn(isNewUser: boolean) {
   router.push(isNewUser ? ONBOARDING_START : '/discover');
@@ -115,6 +114,7 @@ function onSignedIn(isNewUser: boolean) {
 .social-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 0.75rem;
 
   &:has(.is-gis),

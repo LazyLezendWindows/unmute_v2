@@ -23,6 +23,23 @@ export class AuthAccountRepository {
     return row?.phone ?? null;
   }
 
+  /** The Google subject (`sub`) linked to a user, if any. */
+  static async googleSubOf(userId: string): Promise<string | null> {
+    const row = await getDatabase().get<{ sub: string }>(
+      "SELECT provider_account_id AS sub FROM auth_accounts WHERE user_id = ? AND provider = 'google'",
+      [userId]
+    );
+    return row?.sub ?? null;
+  }
+
+  static async updateGoogleSub(db: IDatabase, userId: string, newSub: string): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run(
+      "UPDATE auth_accounts SET provider_account_id = ?, updated_at = ? WHERE user_id = ? AND provider = 'google'",
+      [newSub, now, userId]
+    );
+  }
+
   static async hasPassword(userId: string): Promise<boolean> {
     const row = await getDatabase().get<{ id: string }>(
       "SELECT id FROM auth_accounts WHERE user_id = ? AND provider = 'password' AND password_hash IS NOT NULL",

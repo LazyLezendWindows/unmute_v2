@@ -103,3 +103,34 @@ export const changePasswordSchema = z
     newPassword: z.string().min(8, 'Password must be at least 8 characters long').max(100, 'Password is too long'),
   })
   .strict();
+
+const totpOrRecoveryCode = z
+  .string()
+  .trim()
+  .refine((val) => /^\d{6}$/.test(val) || /^[A-Za-z0-9]{4}-?[A-Za-z0-9]{4}$/.test(val), {
+    message: 'Enter a valid 6-digit authenticator code or 8-character recovery code',
+  });
+
+export const totpEnableSchema = z
+  .object({
+    code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code from your authenticator app'),
+  })
+  .strict();
+
+export const totpVerifyLoginSchema = z
+  .object({
+    pendingToken: z.string().trim().min(20, 'Pending authentication token is required').max(128),
+    code: totpOrRecoveryCode,
+  })
+  .strict();
+
+export const totpReauthSchema = z
+  .object({
+    password: z.string().min(1).max(100).optional(),
+    code: totpOrRecoveryCode.optional(),
+  })
+  .strict()
+  .refine((data) => Boolean(data.password || data.code), {
+    message: 'Please confirm with your authenticator code or password',
+  });
+

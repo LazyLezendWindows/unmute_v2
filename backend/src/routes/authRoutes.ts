@@ -2,9 +2,22 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/authController';
 import { PasswordResetService } from '../services/passwordResetService';
 import { validateBody } from '../middleware/validate';
-import { authRateLimiter, phoneVerifyRateLimiter, smsRateLimiter } from '../middleware/rateLimiter';
+import { authRateLimiter, phoneVerifyRateLimiter, smsRateLimiter, totpVerifyRateLimiter } from '../middleware/rateLimiter';
 import { requireAuth } from '../middleware/auth';
-import { registerSchema, loginSchema, googleAuthSchema, forgotPasswordSchema, resetPasswordSchema, phoneLinkSchema, phoneStartSchema, phoneVerifySchema, changePasswordSchema } from '../validators/authValidator';
+import {
+  registerSchema,
+  loginSchema,
+  googleAuthSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  phoneLinkSchema,
+  phoneStartSchema,
+  phoneVerifySchema,
+  changePasswordSchema,
+  totpEnableSchema,
+  totpVerifyLoginSchema,
+  totpReauthSchema,
+} from '../validators/authValidator';
 import { AccountService } from '../services/accountService';
 import { AuthRequest } from '../middleware/auth';
 
@@ -16,6 +29,18 @@ router.post('/google', authRateLimiter, validateBody(googleAuthSchema), AuthCont
 router.post('/phone/start', smsRateLimiter, validateBody(phoneStartSchema), AuthController.phoneStart);
 router.post('/phone/verify', phoneVerifyRateLimiter, validateBody(phoneVerifySchema), AuthController.phoneVerify);
 router.post('/phone/link', requireAuth, phoneVerifyRateLimiter, validateBody(phoneLinkSchema), AuthController.phoneLink);
+router.get('/2fa/status', requireAuth, AuthController.twoFactorStatus);
+router.post('/2fa/setup', requireAuth, authRateLimiter, AuthController.twoFactorSetup);
+router.post('/2fa/enable', requireAuth, totpVerifyRateLimiter, validateBody(totpEnableSchema), AuthController.twoFactorEnable);
+router.post('/2fa/verify', totpVerifyRateLimiter, validateBody(totpVerifyLoginSchema), AuthController.twoFactorVerify);
+router.post('/2fa/disable', requireAuth, totpVerifyRateLimiter, validateBody(totpReauthSchema), AuthController.twoFactorDisable);
+router.post(
+  '/2fa/recovery-codes/regenerate',
+  requireAuth,
+  totpVerifyRateLimiter,
+  validateBody(totpReauthSchema),
+  AuthController.twoFactorRegenerateRecovery
+);
 router.post('/password/forgot', smsRateLimiter, validateBody(forgotPasswordSchema), async (req, res, next) => {
   try {
     res.status(200).json({ success: true, data: await PasswordResetService.start(req.body.email) });

@@ -11,6 +11,7 @@ import { InterestRepository } from '../repositories/interestRepository';
 import { verifyGoogleCredential } from './auth/googleIdentity';
 import { PhoneAuthService } from './phoneAuthService';
 import { PhoneCodeRepository } from '../repositories/phoneCodeRepository';
+import { TotpService } from './totpService';
 import { RegisterInput, LoginInput, GoogleAuthInput } from '../validators/authValidator';
 
 export type GoogleAuthResult =
@@ -95,6 +96,7 @@ export class AuthService {
     const linked = await AuthAccountRepository.findUser('google', identity.subject);
     if (linked) {
       if (!linked.is_active) throw new AppError('Your account has been deactivated', 403);
+      await BanService.assertAllowed({ email: identity.email });
       return { requiresDob: false, isNewUser: false, userId: linked.id };
     }
 
@@ -103,16 +105,30 @@ export class AuthService {
       throw new AppError('Your Google email address is not verified', 403);
     }
 
-    // 2. Existing Unmute account with the same email: link Google to it.
+    await BanService.assertAllowed({ email: identity.email });
+
+    // 2. Existing Unmute account with the same verified email: safely link Google to it
+    // unless it is already bound to a different Google subject.
     const existing = await UserRepository.findByEmail(identity.email);
     if (existing) {
       if (!existing.is_active) throw new AppError('Your account has been deactivated', 403);
-      await AuthAccountRepository.insert(db, { userId: existing.id, provider: 'google', providerAccountId: identity.subject });
-      console.info(`[Auth] Linked Google account to existing user ${existing.id}`);
+      const existingSub = await AuthAccountRepository.googleSubOf(existing.id);
+      if (existingSub && existingSub !== identity.subject) {
+        const isDevPlaceholder =
+          existingSub === `dev-google-${identity.email}` ||
+          existingSub === `google-${identity.email}`;
+        if (isDevPlaceholder) {
+          await AuthAccountRepository.updateGoogleSub(db, existing.id, identity.subject);
+        } else {
+          throw new AppError('This account is already linked to a different Google account', 409);
+        }
+      } else if (!existingSub) {
+        await AuthAccountRepository.insert(db, { userId: existing.id, provider: 'google', providerAccountId: identity.subject });
+        console.info(`[Auth] Linked Google account to existing user ${existing.id}`);
+      }
       return { requiresDob: false, isNewUser: false, userId: existing.id };
     }
 
-    await BanService.assertAllowed({ email: identity.email });
     await beforeCreate?.();
     // 3. New user: the 18+ policy requires a date of birth before an account is created.
     if (!input.dateOfBirth) {
@@ -125,18 +141,25 @@ export class AuthService {
       throw new AppError('You must be at least 18 years of age to join Unmute', 400);
     }
 
-    const userId = await db.transaction(async (tx) => {
-      const id = await createUserWithProfile(tx, {
-        email: identity.email,
-        displayName: (identity.name || identity.email.split('@')[0]).slice(0, 50),
-        dateOfBirth: input.dateOfBirth!,
-        avatarUrl: identity.picture,
+    try {
+      const userId = await db.transaction(async (tx) => {
+        const id = await createUserWithProfile(tx, {
+          email: identity.email,
+          displayName: (identity.name || identity.email.split('@')[0]).slice(0, 50),
+          dateOfBirth: input.dateOfBirth!,
+          avatarUrl: identity.picture,
+        });
+        await AuthAccountRepository.insert(tx, { userId: id, provider: 'google', providerAccountId: identity.subject });
+        return id;
       });
-      await AuthAccountRepository.insert(tx, { userId: id, provider: 'google', providerAccountId: identity.subject });
-      return id;
-    });
-    console.info(`[Auth] Created account ${userId} via Google`);
-    return { requiresDob: false, isNewUser: true, userId };
+      console.info(`[Auth] Created account ${userId} via Google`);
+      return { requiresDob: false, isNewUser: true, userId };
+    } catch (err: any) {
+      if (err?.code === 'ER_DUP_ENTRY') {
+        throw new AppError('An account with this email address already exists', 409);
+      }
+      throw err;
+    }
   }
 
   static async getCurrentUser(userId: string) {
@@ -144,17 +167,19 @@ export class AuthService {
     if (!user || !user.is_active) {
       throw new AppError('User not found or inactive', 404);
     }
-    const [profile, interests, phone, hasPassword] = await Promise.all([
+    const [profile, interests, phone, hasPassword, twoFactorEnabled] = await Promise.all([
       ProfileRepository.findByUserId(userId),
       InterestRepository.forUser(userId),
       AuthAccountRepository.phoneOf(userId),
       AuthAccountRepository.hasPassword(userId),
+      TotpService.isEnabled(userId),
     ]);
     return {
       id: user.id,
       email: user.email,
       phone,
       hasPassword,
+      twoFactorEnabled,
       isPaused: Boolean(user.paused_at),
       profile: profile ? toOwnProfile(profile, interests) : null,
     };

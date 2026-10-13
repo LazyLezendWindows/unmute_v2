@@ -102,6 +102,11 @@ export const config = {
     // SameSite=None cookies are rejected by browsers unless Secure.
     secure: isProduction || cookieSameSite === 'none',
   },
+  /** Server-side encryption key (AES-256-GCM) for authenticator-app (TOTP) secrets at rest. */
+  totp: {
+    encryptionKey: process.env.TOTP_ENCRYPTION_KEY || '',
+    issuer: process.env.TOTP_ISSUER || 'Unmute',
+  },
   /** Where uploaded profile photos are stored (served back at /api/v1/media/<file>). */
   uploadDir: process.env.UPLOAD_DIR || path.resolve(__dirname, '../../data/uploads'),
   mariadb: {

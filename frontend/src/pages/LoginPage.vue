@@ -1,7 +1,6 @@
 <template>
   <AuthStage title="Welcome back" subtitle="Sign in to continue your conversations" tagline logo-size="5.5rem">
     <div class="auth-body d-flex flex-column gap-4">
-
       <form class="d-flex flex-column gap-3" @submit.prevent="handleLogin">
         <UInput v-model="email" type="email" required placeholder="Email address" icon="ri-mail-line" autocomplete="email" />
         <UInput v-model="password" type="password" required placeholder="Password" icon="ri-lock-line" autocomplete="current-password" />
@@ -11,10 +10,11 @@
         </UButton>
       </form>
 
-      <div class="auth-divider" role="separator">or continue with</div>
+      <div class="auth-divider" role="separator">OR</div>
+
       <div class="d-flex flex-column gap-2">
-        <GoogleSignIn v-if="googleAvailable" text="continue_with" @authenticated="onSignedIn" />
-        <PhoneSignIn @authenticated="onSignedIn" />
+        <GoogleSignIn ref="googleSignInRef" text="signin_with" @authenticated="onSignedIn" />
+        <PhoneSignIn v-if="phoneSignInAvailable" @authenticated="onSignedIn" />
       </div>
 
       <p class="text-center small mb-0 u-text-muted">
@@ -44,6 +44,13 @@
         </UButton>
       </template>
     </UModal>
+
+    <TwoFactorVerifyModal
+      :is-open="twoFactorOpen"
+      :pending-token="pendingTwoFactorToken"
+      @authenticated="onTwoFactorSignedIn"
+      @close="closeTwoFactor"
+    />
   </AuthStage>
 </template>
 
@@ -56,21 +63,24 @@ import AuthStage from '../components/auth/AuthStage.vue';
 import UButton from '../components/ui/UButton.vue';
 import GoogleSignIn from '../components/auth/GoogleSignIn.vue';
 import PhoneSignIn from '../components/auth/PhoneSignIn.vue';
+import TwoFactorVerifyModal from '../components/auth/TwoFactorVerifyModal.vue';
 import { useAuthStore } from '../stores/auth';
 import { useToastStore } from '../stores/toast';
 import { api } from '../services/api';
 import { ONBOARDING_START } from '../onboarding';
-import { useGoogleAvailable } from '../composables/useGoogleIdentity';
+import { usePhoneSignInAvailable } from '../composables/useGoogleIdentity';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-// Google sign-in appears once GOOGLE_CLIENT_ID is set on the server.
-const googleAvailable = useGoogleAvailable();
+const phoneSignInAvailable = usePhoneSignInAvailable();
 
+const googleSignInRef = ref<InstanceType<typeof GoogleSignIn> | null>(null);
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
+const twoFactorOpen = ref(false);
+const pendingTwoFactorToken = ref<string | null>(null);
 const forgotOpen = ref(false);
 const forgotEmail = ref('');
 const forgotLoading = ref(false);
@@ -87,6 +97,16 @@ function closeForgot() {
   resetError.value = null;
 }
 
+function closeTwoFactor() {
+  twoFactorOpen.value = false;
+  pendingTwoFactorToken.value = null;
+}
+
+function onTwoFactorSignedIn(isNewUser: boolean) {
+  closeTwoFactor();
+  onSignedIn(isNewUser);
+}
+
 function postLoginPath(): string {
   const target = route.query.redirect;
   return typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') ? target : '/discover';
@@ -99,9 +119,18 @@ function onSignedIn(isNewUser: boolean) {
 async function handleLogin() {
   loading.value = true;
   try {
-    await authStore.login({ email: email.value, password: password.value });
+    const outcome = await authStore.login({ email: email.value, password: password.value });
+    if (outcome.requiresTwoFactor) {
+      pendingTwoFactorToken.value = outcome.pendingToken;
+      twoFactorOpen.value = true;
+      return;
+    }
     router.push(postLoginPath());
   } catch (err: any) {
+    if (typeof err?.message === 'string' && /continue with google/i.test(err.message)) {
+      await googleSignInRef.value?.startSignIn();
+      return;
+    }
     useToastStore().error(err.message || 'Login failed');
   } finally {
     loading.value = false;
@@ -128,8 +157,14 @@ async function handleReset() {
   resetError.value = null;
   try {
     await api.post('/auth/password/reset', { email: forgotEmail.value, code: resetCode.value.trim(), password: resetPassword.value });
-    await authStore.login({ email: forgotEmail.value, password: resetPassword.value });
+    const outcome = await authStore.login({ email: forgotEmail.value, password: resetPassword.value });
     closeForgot();
+    if (outcome.requiresTwoFactor) {
+      useToastStore().success('Password changed. Enter your 2FA code to sign in.');
+      pendingTwoFactorToken.value = outcome.pendingToken;
+      twoFactorOpen.value = true;
+      return;
+    }
     useToastStore().success('Password changed. You are signed in.');
     router.push(postLoginPath());
   } catch (err: any) {

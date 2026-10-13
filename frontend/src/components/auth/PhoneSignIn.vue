@@ -67,6 +67,13 @@
       </UButton>
     </template>
   </UModal>
+
+  <TwoFactorVerifyModal
+    :is-open="twoFactorOpen"
+    :pending-token="pendingTwoFactorToken"
+    @authenticated="onTwoFactorAuthenticated"
+    @close="closeTwoFactor"
+  />
 </template>
 
 <script setup lang="ts">
@@ -74,6 +81,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import UModal from '../ui/UModal.vue';
 import UInput from '../ui/UInput.vue';
 import UButton from '../ui/UButton.vue';
+import TwoFactorVerifyModal from './TwoFactorVerifyModal.vue';
 import { useAuthStore } from '../../stores/auth';
 
 const emit = defineEmits<{ (e: 'authenticated', isNewUser: boolean): void }>();
@@ -97,6 +105,8 @@ const referralCode = ref(new URLSearchParams(window.location.search).get('ref')?
 const busy = ref(false);
 const error = ref<string | null>(null);
 const resendIn = ref(0);
+const twoFactorOpen = ref(false);
+const pendingTwoFactorToken = ref<string | null>(null);
 /** Shown on screen when the backend runs locally without an SMS provider. */
 const phoneInput = ref<HTMLInputElement | null>(null);
 const codeInput = ref<HTMLInputElement | null>(null);
@@ -141,6 +151,16 @@ function open() {
 function close() {
   isOpen.value = false;
   clearInterval(resendTimer);
+}
+
+function closeTwoFactor() {
+  twoFactorOpen.value = false;
+  pendingTwoFactorToken.value = null;
+}
+
+function onTwoFactorAuthenticated(isNewUser: boolean) {
+  closeTwoFactor();
+  emit('authenticated', isNewUser);
 }
 
 function startResendTimer(seconds: number) {
@@ -195,6 +215,12 @@ async function verify(withProfile = false) {
     });
     if (outcome.requiresProfile) {
       step.value = 'profile';
+      return;
+    }
+    if (outcome.requiresTwoFactor) {
+      close();
+      pendingTwoFactorToken.value = outcome.pendingToken;
+      twoFactorOpen.value = true;
       return;
     }
     close();

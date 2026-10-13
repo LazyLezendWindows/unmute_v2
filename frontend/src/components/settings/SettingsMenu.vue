@@ -41,6 +41,11 @@
     </nav>
 
     <div class="menu-list">
+      <button type="button" class="menu-row" :disabled="signingOut" @click="handleSignOut">
+        <i class="ri-logout-box-r-line" aria-hidden="true"></i>
+        <span class="menu-text"><span class="menu-title">{{ signingOut ? 'Signing out…' : 'Sign out' }}</span><span class="menu-sub">Sign out of your account on this device</span></span>
+        <i class="ri-arrow-right-s-line menu-chevron" aria-hidden="true"></i>
+      </button>
       <button type="button" class="menu-row is-danger" @click="deleteOpen = true">
         <i class="ri-delete-bin-6-line" aria-hidden="true"></i>
         <span class="menu-text"><span class="menu-title">Delete account</span><span class="menu-sub">Permanently remove your profile and data</span></span>
@@ -90,12 +95,24 @@ const authStore = useAuthStore();
 
 const modeLabel = computed(() => ({ light: 'Light', dark: 'Dark', system: 'System' })[themeStore.mode]);
 
+const signingOut = ref(false);
 const deleteOpen = ref(false);
 const deletePassword = ref('');
 const deleteWord = ref('');
 const deleting = ref(false);
 const deleteError = ref<string | null>(null);
 const canDelete = computed(() => (authStore.user?.hasPassword ? deletePassword.value.length > 0 : deleteWord.value.trim() === 'DELETE'));
+
+async function handleSignOut() {
+  if (signingOut.value) return;
+  signingOut.value = true;
+  try {
+    await authStore.logout();
+    router.push('/login');
+  } finally {
+    signingOut.value = false;
+  }
+}
 
 function closeDelete() {
   if (deleting.value) return;
