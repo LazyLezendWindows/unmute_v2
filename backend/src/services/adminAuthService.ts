@@ -175,6 +175,20 @@ export class AdminAuthService {
   }
 
   static async announceSetup(): Promise<void> {
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminName = process.env.ADMIN_NAME || 'Super Admin';
+
+    if (adminEmail && adminPassword && (await this.count()) === 0) {
+      try {
+        await this.createAdmin(adminEmail, adminName, adminPassword, 'super_admin');
+        console.log(`[Unmute] Provisioned initial Super Admin from environment: ${adminEmail}`);
+        return;
+      } catch (err: any) {
+        console.error(`[Unmute] Failed to auto-provision initial admin:`, err?.message);
+      }
+    }
+
     if ((await this.count()) > 0) return;
     if (this.setupRequiresCode()) {
       this.setupCode = (process.env.ADMIN_SETUP_CODE || '').trim() || this.DEFAULT_SETUP_CODE;
