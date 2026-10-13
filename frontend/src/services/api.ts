@@ -62,12 +62,16 @@ api.interceptors.response.use(
     // No answer at all (offline, no internet, server down or timed out): show the offline screen.
     if (!error.response && error.code !== 'ERR_CANCELED') markUnreachable();
     else if (error.response) markReachable();
-    // Server faults carry no useful detail for users; client errors (4xx) explain what to fix.
+    // Server faults carry no useful detail for users unless a specific reason was returned; client errors (4xx) explain what to fix.
+    const serverError = error.response?.data?.error || error.response?.data?.message;
     const message = !error.response
       ? 'Unable to reach Unmute. Check your connection.'
-      : status !== undefined && status >= 500
-        ? 'Something went wrong on our side. Please try again.'
-        : error.response.data?.error || error.response.data?.message || 'Something went wrong. Please try again.';
+      : serverError && serverError !== 'Internal server error'
+        ? serverError
+        : status !== undefined && status >= 500
+          ? 'Something went wrong on our side. Please try again.'
+          : 'Something went wrong. Please try again.';
+
 
     if (status === 401 && !String(error.config?.url || '').startsWith('/auth/')) {
       unauthorizedHandler?.();

@@ -278,5 +278,114 @@ describe('Schema migrations', () => {
       await cConn.end();
     }
   });
+
+  it('safely applies migration 012 on fresh and partially migrated messages schema, preserving records and idempotency', async () => {
+    const MSG_DB = config.mariadb.database.replace(/_test_db$/, '_msg_migration_test_db');
+    const admin = await mysql.createConnection(mariaConnectionOptions({ withDatabase: false }));
+    await admin.query(`DROP DATABASE IF EXISTS \`${MSG_DB}\``);
+    await admin.query(`CREATE DATABASE \`${MSG_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+    await admin.end();
+
+    const mConn = await mysql.createConnection({
+      ...mariaConnectionOptions(),
+      database: MSG_DB,
+      multipleStatements: true,
+    });
+
+    try {
+      await mConn.query(
+        `CREATE TABLE schema_migrations (version VARCHAR(255) PRIMARY KEY, applied_at DATETIME NOT NULL);`
+      );
+
+      // Run migrations 001 through 011
+      const earlyMigrations = [
+        '001_baseline.sql',
+        '002_server_sessions.sql',
+        '003_password_credentials_to_auth_accounts.sql',
+        '004_drop_legacy_user_credentials.sql',
+        '005_index_cleanup.sql',
+        '006_places_and_education.sql',
+        '007_profile_details.sql',
+        '008_education_level_profession_field.sql',
+        '009_notifications.sql',
+        '010_phone_sign_in.sql',
+        '011_merge_duplicate_interests.sql',
+      ];
+      for (const m of earlyMigrations) {
+        const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, m), 'utf-8');
+        await mConn.query(sql);
+        await mConn.query('INSERT INTO schema_migrations VALUES (?, UTC_TIMESTAMP())', [m]);
+      }
+
+      // Insert test user, conversation, and message before migration 012
+      await mConn.query(`
+        INSERT INTO users (id, email, is_active, created_at) VALUES
+          ('u-caller', 'caller@example.com', 1, '2025-01-01T00:00:00.000Z'),
+          ('u-callee', 'callee@example.com', 1, '2025-01-01T00:00:00.000Z');
+        INSERT INTO conversations (id, user_a_id, user_b_id, created_at) VALUES
+          ('c-1', 'u-caller', 'u-callee', '2025-01-01T00:00:00.000Z');
+        INSERT INTO messages (id, conversation_id, sender_id, content, status, created_at) VALUES
+          ('m-existing', 'c-1', 'u-caller', 'Hey there!', 'sent', '2025-01-01T00:00:00.000Z');
+
+      `);
+
+      // Simulate partial execution:
+      // 'kind' and 'call_mode' were added previously, but 'call_outcome' and 'call_seconds' are missing
+      await mConn.query(`
+        ALTER TABLE messages
+          ADD COLUMN kind VARCHAR(16) NOT NULL DEFAULT 'text',
+          ADD COLUMN call_mode VARCHAR(8) NULL DEFAULT NULL;
+        UPDATE messages SET kind = 'call', call_mode = 'video' WHERE id = 'm-existing';
+      `);
+
+      // Verify partial state before running migration 012
+      const [colsBefore] = await mConn.query<any[]>(
+        'SELECT column_name AS name FROM information_schema.columns WHERE table_schema = ? AND table_name = "messages"',
+        [MSG_DB]
+      );
+      const namesBefore = colsBefore.map((c) => c.name);
+      expect(namesBefore).toContain('kind');
+      expect(namesBefore).toContain('call_mode');
+      expect(namesBefore).not.toContain('call_outcome');
+      expect(namesBefore).not.toContain('call_seconds');
+
+      // Now run migrations - migration 012 must succeed without ER_DUP_FIELDNAME or ER_PARSE_ERROR
+      await runMigrations({ database: MSG_DB });
+
+      // Verify migration 012 is recorded in schema_migrations
+      const [applied012] = await mConn.query<any[]>(
+        'SELECT version FROM schema_migrations WHERE version = "012_call_messages.sql"'
+      );
+      expect(applied012.length).toBe(1);
+
+      // Verify all 4 columns now exist
+      const [colsAfter] = await mConn.query<any[]>(
+        'SELECT column_name AS name FROM information_schema.columns WHERE table_schema = ? AND table_name = "messages"',
+        [MSG_DB]
+      );
+      const namesAfter = colsAfter.map((c) => c.name);
+      expect(namesAfter).toContain('kind');
+      expect(namesAfter).toContain('call_mode');
+      expect(namesAfter).toContain('call_outcome');
+      expect(namesAfter).toContain('call_seconds');
+
+      // Verify existing row data was preserved
+      const [msgRows] = await mConn.query<any[]>(
+        'SELECT kind, call_mode, call_outcome, call_seconds, content FROM messages WHERE id = "m-existing"'
+      );
+      expect(msgRows[0].kind).toBe('call');
+      expect(msgRows[0].call_mode).toBe('video');
+      expect(msgRows[0].call_outcome).toBeNull();
+      expect(msgRows[0].call_seconds).toBeNull();
+      expect(msgRows[0].content).toBe('Hey there!');
+
+      // Verify repeated run is completely idempotent
+      await expect(runMigrations({ database: MSG_DB })).resolves.not.toThrow();
+    } finally {
+      await mConn.query(`DROP DATABASE IF EXISTS \`${MSG_DB}\``).catch(() => undefined);
+      await mConn.end();
+    }
+  });
 });
+
 

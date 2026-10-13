@@ -1,6 +1,16 @@
 -- Email verification codes, and photo (selfie) / government ID checks reviewed by moderators.
-ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at DATETIME NULL DEFAULT NULL;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS id_verified TINYINT(1) NOT NULL DEFAULT 0;
+-- MySQL & MariaDB compatible idempotent schema update using information_schema checks.
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE users ADD COLUMN email_verified_at DATETIME NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'email_verified_at');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN id_verified TINYINT(1) NOT NULL DEFAULT 0', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'id_verified');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 
 -- One-time email codes (verification and password reset); only a hash is stored, as for SMS codes.
 CREATE TABLE IF NOT EXISTS email_codes (

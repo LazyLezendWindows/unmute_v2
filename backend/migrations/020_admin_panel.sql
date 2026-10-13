@@ -31,5 +31,13 @@ CREATE TABLE IF NOT EXISTS admin_actions (
   INDEX idx_admin_actions_time (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled_reason VARCHAR(200) NULL DEFAULT NULL;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled_at DATETIME NULL DEFAULT NULL;
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE users ADD COLUMN disabled_reason VARCHAR(200) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'disabled_reason');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE users ADD COLUMN disabled_at DATETIME NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'disabled_at');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+

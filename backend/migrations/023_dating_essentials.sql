@@ -3,22 +3,60 @@
 -- Re-runnable: every statement checks whether it already ran.
 
 -- Profile: prompts (JSON [{ "q": "<question key>", "a": "<answer>" }]) and details people filter by.
-ALTER TABLE profiles
-  ADD COLUMN IF NOT EXISTS prompts TEXT NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS religion VARCHAR(16) NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS mother_tongue VARCHAR(16) NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS languages TEXT NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS diet VARCHAR(16) NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS marital_status VARCHAR(16) NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS family_plans VARCHAR(24) NULL DEFAULT NULL;
+-- MySQL & MariaDB compatible idempotent schema update using information_schema checks.
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN prompts TEXT NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'prompts');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN religion VARCHAR(16) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'religion');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN mother_tongue VARCHAR(16) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'mother_tongue');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN languages TEXT NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'languages');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN diet VARCHAR(16) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'diet');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN marital_status VARCHAR(16) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'marital_status');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE profiles ADD COLUMN family_plans VARCHAR(24) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'profiles' AND COLUMN_NAME = 'family_plans');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- A paused member is hidden from Discover; their matches and chats carry on.
-ALTER TABLE users ADD COLUMN IF NOT EXISTS paused_at DATETIME NULL DEFAULT NULL;
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE users ADD COLUMN paused_at DATETIME NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'paused_at');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Chat: reply to a message, and unsend (the row stays so the conversation reads in order).
-ALTER TABLE messages
-  ADD COLUMN IF NOT EXISTS reply_to_id VARCHAR(64) NULL DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL DEFAULT NULL;
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE messages ADD COLUMN reply_to_id VARCHAR(64) NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'messages' AND COLUMN_NAME = 'reply_to_id');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE messages ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'messages' AND COLUMN_NAME = 'deleted_at');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 
 -- One reaction per member per message.
 CREATE TABLE IF NOT EXISTS message_reactions (

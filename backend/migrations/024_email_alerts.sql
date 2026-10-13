@@ -1,7 +1,13 @@
 -- Email alerts for new matches and messages while a member isn't using the app.
 -- `email_alerts` is the member's on/off switch; `email_alert_log` throttles to one email per
 -- conversation every few hours. Re-runnable.
-ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS email_alerts TINYINT(1) NOT NULL DEFAULT 1;
+-- MySQL & MariaDB compatible idempotent schema update using information_schema checks.
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE notification_preferences ADD COLUMN email_alerts TINYINT(1) NOT NULL DEFAULT 1', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notification_preferences' AND COLUMN_NAME = 'email_alerts');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 
 CREATE TABLE IF NOT EXISTS email_alert_log (
   user_id VARCHAR(64) NOT NULL,
