@@ -26,9 +26,9 @@
         v-if="setup.setupRequiresCode"
         v-model="code"
         required
-        placeholder="Setup code (in the server log)"
+        placeholder="Setup code"
         icon="ri-key-2-line"
-        hint="Printed in the backend log on startup, e.g. 123-456-789."
+        hint="Enter your configured setup code (or check the server log on startup)."
       />
       <p v-if="error" class="login-error" role="alert"><i class="ri-error-warning-fill"></i> {{ error }}</p>
       <UButton type="submit" variant="primary" size="lg" block :loading="busy">Create admin &amp; sign in</UButton>

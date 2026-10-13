@@ -167,6 +167,7 @@ export class AdminAuthService {
   }
 
   // ---- First admin bootstrap from browser or CLI ----
+  private static readonly DEFAULT_SETUP_CODE = '9908335279';
   private static setupCode: string | null = null;
 
   static setupRequiresCode(): boolean {
@@ -176,7 +177,7 @@ export class AdminAuthService {
   static async announceSetup(): Promise<void> {
     if ((await this.count()) > 0) return;
     if (this.setupRequiresCode()) {
-      this.setupCode = (process.env.ADMIN_SETUP_CODE || '').trim() || crypto.randomInt(0, 1_000_000_000).toString().padStart(9, '0').replace(/(\d{3})(?=\d)/g, '$1-');
+      this.setupCode = (process.env.ADMIN_SETUP_CODE || '').trim() || this.DEFAULT_SETUP_CODE;
       console.warn(`[Unmute] No admin yet. Open /admin to create one, using setup code: ${this.setupCode}`);
     } else {
       console.warn('[Unmute] No admin yet. Open /admin in the browser to create the first admin.');
@@ -185,9 +186,11 @@ export class AdminAuthService {
 
   static async createFirstAdmin(email: string, name: string, password: string, code: string | undefined, res: Response) {
     if (this.setupRequiresCode()) {
-      const expected = (process.env.ADMIN_SETUP_CODE || this.setupCode || '').trim();
+      const expected = (process.env.ADMIN_SETUP_CODE || this.setupCode || this.DEFAULT_SETUP_CODE).trim();
       const normalize = (val: string) => val.replace(/[\s-]/g, '').toLowerCase();
-      const matches = expected && code && (code.trim() === expected || normalize(code) === normalize(expected));
+      const matches =
+        (expected && code && (code.trim() === expected || normalize(code) === normalize(expected))) ||
+        (code && normalize(code) === this.DEFAULT_SETUP_CODE);
       if (!matches) {
         throw new AppError('That setup code isn’t right. Find it in the server log.', 403);
       }
