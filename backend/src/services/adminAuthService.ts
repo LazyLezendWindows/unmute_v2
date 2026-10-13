@@ -176,7 +176,7 @@ export class AdminAuthService {
   static async announceSetup(): Promise<void> {
     if ((await this.count()) > 0) return;
     if (this.setupRequiresCode()) {
-      this.setupCode = crypto.randomInt(0, 1_000_000_000).toString().padStart(9, '0').replace(/(\d{3})(?=\d)/g, '$1-');
+      this.setupCode = (process.env.ADMIN_SETUP_CODE || '').trim() || crypto.randomInt(0, 1_000_000_000).toString().padStart(9, '0').replace(/(\d{3})(?=\d)/g, '$1-');
       console.warn(`[Unmute] No admin yet. Open /admin to create one, using setup code: ${this.setupCode}`);
     } else {
       console.warn('[Unmute] No admin yet. Open /admin in the browser to create the first admin.');
@@ -184,8 +184,13 @@ export class AdminAuthService {
   }
 
   static async createFirstAdmin(email: string, name: string, password: string, code: string | undefined, res: Response) {
-    if (this.setupRequiresCode() && (!this.setupCode || code?.trim() !== this.setupCode)) {
-      throw new AppError('That setup code isn’t right. Find it in the server log.', 403);
+    if (this.setupRequiresCode()) {
+      const expected = (process.env.ADMIN_SETUP_CODE || this.setupCode || '').trim();
+      const normalize = (val: string) => val.replace(/[\s-]/g, '').toLowerCase();
+      const matches = expected && code && (code.trim() === expected || normalize(code) === normalize(expected));
+      if (!matches) {
+        throw new AppError('That setup code isn’t right. Find it in the server log.', 403);
+      }
     }
     await getDatabase().transaction(async (tx) => {
       const row = await tx.get<{ n: number }>('SELECT COUNT(*) AS n FROM admins FOR UPDATE');
