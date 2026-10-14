@@ -111,6 +111,7 @@ export interface ModerationRequest {
   action: 'suspend' | 'disable' | 'ban' | 'reactivate';
   durationHours?: number;
   until?: string;
+  suspendedUntil?: string;
   reason: string;
   notes?: string;
 }

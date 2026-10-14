@@ -33,10 +33,9 @@ export class AuthAccountRepository {
   }
 
   static async updateGoogleSub(db: IDatabase, userId: string, newSub: string): Promise<void> {
-    const now = new Date().toISOString();
     await db.run(
-      "UPDATE auth_accounts SET provider_account_id = ?, updated_at = ? WHERE user_id = ? AND provider = 'google'",
-      [newSub, now, userId]
+      "UPDATE auth_accounts SET provider_account_id = ?, updated_at = UTC_TIMESTAMP() WHERE user_id = ? AND provider = 'google'",
+      [newSub, userId]
     );
   }
 
@@ -64,18 +63,15 @@ export class AuthAccountRepository {
     db: IDatabase,
     account: { userId: string; provider: AuthProvider; providerAccountId?: string; passwordHash?: string }
   ): Promise<void> {
-    const now = new Date().toISOString();
     await db.run(
       `INSERT INTO auth_accounts (id, user_id, provider, provider_account_id, password_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
       [
         crypto.randomUUID(),
         account.userId,
         account.provider,
         account.providerAccountId ?? account.userId,
         account.passwordHash ?? null,
-        now,
-        now,
       ]
     );
   }

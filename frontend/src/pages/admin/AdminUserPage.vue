@@ -458,6 +458,7 @@ async function submitModeration() {
     const updated = await moderateUser(u.value.id, {
       action: modAction.value,
       durationHours,
+      suspendedUntil: until,
       until,
       reason: modReason.value.trim() || 'Account reactivated by Superadmin',
       notes: modNotes.value.trim() || undefined,

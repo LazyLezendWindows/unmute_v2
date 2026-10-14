@@ -245,17 +245,19 @@ router.post(
       reason: z.string().max(200).optional(),
       durationHours: z.coerce.number().int().min(1).max(87600).optional(),
       suspendedUntil: z.string().optional(),
+      until: z.string().optional(),
       notes: z.string().max(1000).optional(),
-    }).strict()
+    })
   ),
   handle(async (req) => {
-    const { action, reason, durationHours, suspendedUntil, notes } = req.body;
+    const { action, reason, durationHours, suspendedUntil, until: rawUntil, notes } = req.body;
     const ip = getClientIp(req);
+    const effectiveUntil = suspendedUntil || rawUntil;
     if (action === 'suspend') {
       if (!reason?.trim()) throw new AppError('A reason is required to suspend an account.', 400);
       let until: Date;
-      if (suspendedUntil) {
-        until = new Date(suspendedUntil);
+      if (effectiveUntil) {
+        until = new Date(effectiveUntil);
         if (isNaN(until.getTime()) || until <= new Date()) {
           throw new AppError('Suspension end time must be a valid future date.', 400);
         }
