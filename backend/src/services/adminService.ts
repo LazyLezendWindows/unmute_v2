@@ -15,12 +15,14 @@ import { freeEndSql, SubscriptionService } from './subscriptionService';
 import { VerificationService } from './verificationService';
 import { BanService } from './banService';
 
-export type UserFilter = 'all' | 'active' | 'disabled' | 'verified' | 'unverified' | 'paid' | 'trial' | 'reported';
+export type UserFilter = 'all' | 'active' | 'disabled' | 'suspended' | 'banned' | 'verified' | 'unverified' | 'paid' | 'trial' | 'reported';
 
 const FILTERS: Record<UserFilter, string> = {
   all: '1 = 1',
   active: 'u.is_active = 1',
-  disabled: 'u.is_active = 0',
+  disabled: 'u.is_active = 0 AND (u.suspended_until IS NULL OR u.suspended_until <= UTC_TIMESTAMP())',
+  suspended: 'u.is_active = 0 AND u.suspended_until > UTC_TIMESTAMP()',
+  banned: 'EXISTS (SELECT 1 FROM banned_identities b WHERE b.user_id = u.id)',
   verified: 'p.is_verified = 1',
   unverified: 'COALESCE(p.is_verified, 0) = 0',
   paid: 's.plan_expires_at > UTC_TIMESTAMP() AND s.plan_started_at <= UTC_TIMESTAMP()',
@@ -212,8 +214,8 @@ export class AdminService {
     const term = q.trim();
     if (term) {
       const like = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-      where.push(`(p.display_name LIKE ? OR u.email LIKE ? OR ph.provider_account_id LIKE ?)`);
-      params.push(like, like, like);
+      where.push(`(p.display_name LIKE ? OR u.email LIKE ? OR ph.provider_account_id LIKE ? OR u.id = ?)`);
+      params.push(like, like, like, term);
     }
     const from = `FROM users u
       LEFT JOIN profiles p ON p.user_id = u.id
@@ -224,7 +226,7 @@ export class AdminService {
     const size = 25;
     const [rows, count] = await Promise.all([
       db.query<any>(
-        `SELECT u.id, u.email, u.is_active, u.created_at, u.disabled_reason, p.display_name, p.avatar_url, p.date_of_birth, p.is_verified,
+        `SELECT u.id, u.email, u.is_active, u.created_at, u.disabled_reason, u.suspended_until, p.display_name, p.avatar_url, p.date_of_birth, p.is_verified,
                 ph.provider_account_id AS phone,
                 IF(s.plan_expires_at > UTC_TIMESTAMP() AND s.plan_started_at <= UTC_TIMESTAMP(), s.plan, NULL) AS plan,
                 (SELECT COUNT(*) FROM reports r WHERE r.reported_id = u.id) AS reports
@@ -254,6 +256,8 @@ export class AdminService {
         avatarUrl: r.avatar_url || '',
         age: age(r.date_of_birth),
         isActive: Boolean(r.is_active),
+        isSuspended: Boolean(r.suspended_until && new Date(r.suspended_until) > new Date()),
+        suspendedUntil: r.suspended_until || null,
         isOnline: onlineIds.has(r.id),
         disabledReason: r.disabled_reason,
         isVerified: Boolean(r.is_verified),
@@ -267,7 +271,10 @@ export class AdminService {
   /** Everything about one member. */
   static async userDetail(userId: string) {
     const db = getDatabase();
-    const user = await db.get<any>('SELECT id, email, is_active, paused_at, created_at, email_verified_at, disabled_reason, disabled_at FROM users WHERE id = ?', [userId]);
+    const user = await db.get<any>(
+      'SELECT id, email, is_active, paused_at, created_at, email_verified_at, disabled_reason, disabled_at, suspended_until, moderation_notes FROM users WHERE id = ?',
+      [userId]
+    );
     if (!user) throw new AppError('User not found', 404);
     const [row, interests, phone, providers, subscription, verification, reports, counts, lastSeen, actions] = await Promise.all([
       ProfileRepository.findByUserId(userId),
@@ -315,6 +322,9 @@ export class AdminService {
       isPaused: Boolean(user.paused_at),
       disabledReason: user.disabled_reason,
       disabledAt: user.disabled_at,
+      isSuspended: Boolean(user.suspended_until && new Date(user.suspended_until) > new Date()),
+      suspendedUntil: user.suspended_until || null,
+      moderationNotes: user.moderation_notes || null,
       joinedAt: user.created_at,
       lastActiveAt: lastSeen?.at ?? null,
       profile: row ? { ...toOwnProfile(row, interests), dateOfBirth: row.date_of_birth } : null,
@@ -377,7 +387,8 @@ export class AdminService {
         `SELECT r.id, r.reason_category, r.details, r.status, r.created_at, r.reporter_id, r.reported_id,
                 rp.display_name AS reporter_name, tp.display_name AS reported_name, tp.avatar_url AS reported_avatar,
                 tu.is_active AS reported_active,
-                (SELECT COUNT(*) FROM reports x WHERE x.reported_id = r.reported_id) AS reported_total
+                (SELECT COUNT(*) FROM reports x WHERE x.reported_id = r.reported_id) AS reported_total,
+                (SELECT c.id FROM conversations c WHERE (c.user_a_id = r.reporter_id AND c.user_b_id = r.reported_id) OR (c.user_a_id = r.reported_id AND c.user_b_id = r.reporter_id) LIMIT 1) AS conversation_id
          FROM reports r
          LEFT JOIN profiles rp ON rp.user_id = r.reporter_id
          LEFT JOIN profiles tp ON tp.user_id = r.reported_id
@@ -401,6 +412,7 @@ export class AdminService {
         createdAt: r.created_at,
         reporter: { id: r.reporter_id, name: r.reporter_name },
         reported: { id: r.reported_id, name: r.reported_name, avatarUrl: r.reported_avatar || '', isActive: Boolean(r.reported_active), totalReports: Number(r.reported_total) },
+        conversationId: r.conversation_id || null,
       })),
     };
   }
@@ -437,6 +449,221 @@ export class AdminService {
     await BanService.unbanUser(userId);
     await logAdminAction(adminId, userId, 'unbanned', undefined, ipAddress);
     return this.setActive(adminId, userId, true, undefined, ipAddress);
+  }
+
+  /** Suspends a user temporarily until a given timestamp with reason and internal notes. */
+  static async suspendUser(
+    adminId: string,
+    userId: string,
+    suspendedUntil: Date,
+    reason: string,
+    notes?: string,
+    ipAddress?: string
+  ) {
+    const db = getDatabase();
+    const untilSql = suspendedUntil.toISOString().replace('T', ' ').slice(0, 19);
+    const { changes } = await db.run(
+      'UPDATE users SET is_active = 0, suspended_until = ?, disabled_reason = ?, moderation_notes = ?, disabled_at = UTC_TIMESTAMP() WHERE id = ?',
+      [untilSql, reason.trim().slice(0, 200), notes?.trim() || null, userId]
+    );
+    if (!changes) throw new AppError('User not found', 404);
+    await db.run('UPDATE sessions SET revoked_at = UTC_TIMESTAMP() WHERE user_id = ? AND revoked_at IS NULL', [userId]);
+    getSocketServer()?.in(`user:${userId}`).disconnectSockets(true);
+    await logAdminAction(adminId, userId, 'user_suspended', `Until ${untilSql} UTC: ${reason}`, ipAddress, 'moderation');
+    return this.userDetail(userId);
+  }
+
+  /** Disables an account indefinitely with a required reason and internal notes. */
+  static async disableUser(adminId: string, userId: string, reason: string, notes?: string, ipAddress?: string) {
+    const db = getDatabase();
+    const { changes } = await db.run(
+      'UPDATE users SET is_active = 0, suspended_until = NULL, disabled_reason = ?, moderation_notes = ?, disabled_at = UTC_TIMESTAMP() WHERE id = ?',
+      [reason.trim().slice(0, 200), notes?.trim() || null, userId]
+    );
+    if (!changes) throw new AppError('User not found', 404);
+    await db.run('UPDATE sessions SET revoked_at = UTC_TIMESTAMP() WHERE user_id = ? AND revoked_at IS NULL', [userId]);
+    getSocketServer()?.in(`user:${userId}`).disconnectSockets(true);
+    await logAdminAction(adminId, userId, 'user_disabled', reason, ipAddress, 'moderation');
+    return this.userDetail(userId);
+  }
+
+  /** Permanently bans an account and records their email/phone hashes in banned_identities. */
+  static async banUserAccount(adminId: string, userId: string, reason: string, notes?: string, ipAddress?: string) {
+    await BanService.banUser(userId, adminId, reason);
+    const db = getDatabase();
+    const { changes } = await db.run(
+      'UPDATE users SET is_active = 0, suspended_until = NULL, disabled_reason = ?, moderation_notes = ?, disabled_at = UTC_TIMESTAMP() WHERE id = ?',
+      [reason.trim().slice(0, 200), notes?.trim() || null, userId]
+    );
+    if (!changes) throw new AppError('User not found', 404);
+    await db.run('UPDATE sessions SET revoked_at = UTC_TIMESTAMP() WHERE user_id = ? AND revoked_at IS NULL', [userId]);
+    getSocketServer()?.in(`user:${userId}`).disconnectSockets(true);
+    await logAdminAction(adminId, userId, 'user_banned', reason, ipAddress, 'moderation');
+    return this.userDetail(userId);
+  }
+
+  /** Reactivates a suspended or disabled user, lifting bans if any. */
+  static async reactivateUser(adminId: string, userId: string, reason?: string, ipAddress?: string) {
+    const db = getDatabase();
+    await BanService.unbanUser(userId);
+    const { changes } = await db.run(
+      'UPDATE users SET is_active = 1, suspended_until = NULL, disabled_reason = NULL, moderation_notes = NULL, disabled_at = NULL WHERE id = ?',
+      [userId]
+    );
+    if (!changes) throw new AppError('User not found', 404);
+    await logAdminAction(adminId, userId, 'user_reactivated', reason || 'Account restored by Superadmin', ipAddress, 'moderation');
+    return this.userDetail(userId);
+  }
+
+  /** Lists all conversations involving a user for Superadmin investigation. */
+  static async listUserConversations(userId: string) {
+    const db = getDatabase();
+    const user = await db.get<{ id: string }>('SELECT id FROM users WHERE id = ?', [userId]);
+    if (!user) throw new AppError('User not found', 404);
+
+    const rows = await db.query<any>(
+      `SELECT c.id, c.created_at, c.last_message_at, c.match_id,
+              IF(c.user_a_id = ?, c.user_b_id, c.user_a_id) AS partner_id,
+              p.display_name AS partner_name, p.avatar_url AS partner_avatar,
+              pu.is_active AS partner_active,
+              (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) AS message_count,
+              (SELECT COUNT(*) FROM reports r WHERE (r.reported_id = ? AND r.reporter_id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id)) OR (r.reporter_id = ? AND r.reported_id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id))) AS report_count
+       FROM conversations c
+       LEFT JOIN users pu ON pu.id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id)
+       LEFT JOIN profiles p ON p.user_id = pu.id
+       WHERE c.user_a_id = ? OR c.user_b_id = ?
+       ORDER BY c.last_message_at DESC, c.created_at DESC`,
+      [userId, userId, userId, userId, userId, userId, userId, userId]
+    );
+
+    return rows.map((r) => ({
+      id: r.id,
+      matchId: r.match_id,
+      createdAt: r.created_at,
+      lastMessageAt: r.last_message_at,
+      messageCount: Number(r.message_count ?? 0),
+      reportCount: Number(r.report_count ?? 0),
+      partner: {
+        id: r.partner_id,
+        name: r.partner_name || '(no profile)',
+        avatarUrl: r.partner_avatar || '',
+        isActive: Boolean(r.partner_active),
+      },
+    }));
+  }
+
+  /**
+   * Read-only inspection of a conversation between users for Superadmin investigation.
+   * Paginated in chronological order. Logs an audit entry.
+   */
+  static async inspectConversation(
+    adminId: string,
+    conversationId: string,
+    page: number = 1,
+    pageSize: number = 50,
+    reportId?: string,
+    reason?: string,
+    ipAddress?: string
+  ) {
+    const db = getDatabase();
+    const conv = await db.get<any>(
+      `SELECT c.id, c.user_a_id, c.user_b_id, c.match_id, c.created_at, c.last_message_at,
+              ua.email AS user_a_email, ua.is_active AS user_a_active, ua.suspended_until AS user_a_suspended_until,
+              ub.email AS user_b_email, ub.is_active AS user_b_active, ub.suspended_until AS user_b_suspended_until,
+              pa.display_name AS user_a_name, pa.avatar_url AS user_a_avatar,
+              pb.display_name AS user_b_name, pb.avatar_url AS user_b_avatar
+       FROM conversations c
+       LEFT JOIN users ua ON ua.id = c.user_a_id
+       LEFT JOIN users ub ON ub.id = c.user_b_id
+       LEFT JOIN profiles pa ON pa.user_id = c.user_a_id
+       LEFT JOIN profiles pb ON pb.user_id = c.user_b_id
+       WHERE c.id = ?`,
+      [conversationId]
+    );
+    if (!conv) throw new AppError('Conversation not found', 404);
+
+    const safePage = Math.max(1, page);
+    const safePageSize = Math.min(100, Math.max(10, pageSize));
+    const offset = (safePage - 1) * safePageSize;
+
+    const [msgRows, countRow, reports] = await Promise.all([
+      db.query<any>(
+        `SELECT m.id, m.conversation_id, m.sender_id, m.content, m.status, m.created_at,
+                m.kind, m.call_mode, m.call_outcome, m.call_seconds, m.reply_to_id, m.deleted_at,
+                p.display_name AS sender_name, p.avatar_url AS sender_avatar,
+                rm.content AS reply_to_content
+         FROM messages m
+         LEFT JOIN profiles p ON p.user_id = m.sender_id
+         LEFT JOIN messages rm ON rm.id = m.reply_to_id
+         WHERE m.conversation_id = ?
+         ORDER BY m.created_at ASC
+         LIMIT ? OFFSET ?`,
+        [conversationId, safePageSize, offset]
+      ),
+      db.get<{ n: number }>('SELECT COUNT(*) AS n FROM messages WHERE conversation_id = ?', [conversationId]),
+      db.query<any>(
+        `SELECT r.id, r.reason_category, r.details, r.status, r.created_at, r.reporter_id, r.reported_id
+         FROM reports r
+         WHERE (r.reporter_id = ? AND r.reported_id = ?) OR (r.reporter_id = ? AND r.reported_id = ?)
+         ORDER BY r.created_at DESC`,
+        [conv.user_a_id, conv.user_b_id, conv.user_b_id, conv.user_a_id]
+      ),
+    ]);
+
+    // Log the inspection action in audit trail
+    const auditDetail = `Inspected conversation between ${conv.user_a_name || conv.user_a_id} and ${conv.user_b_name || conv.user_b_id}${reportId ? ` (Report: ${reportId})` : ''}${reason ? ` - ${reason}` : ''}`;
+    await logAdminAction(adminId, conversationId, 'chat_inspected', auditDetail, ipAddress, 'conversation');
+
+    return {
+      conversation: {
+        id: conv.id,
+        matchId: conv.match_id,
+        createdAt: conv.created_at,
+        lastMessageAt: conv.last_message_at,
+        userA: {
+          id: conv.user_a_id,
+          name: conv.user_a_name || '(no profile)',
+          avatarUrl: conv.user_a_avatar || '',
+          isActive: Boolean(conv.user_a_active),
+          isSuspended: Boolean(conv.user_a_suspended_until && new Date(conv.user_a_suspended_until) > new Date()),
+        },
+        userB: {
+          id: conv.user_b_id,
+          name: conv.user_b_name || '(no profile)',
+          avatarUrl: conv.user_b_avatar || '',
+          isActive: Boolean(conv.user_b_active),
+          isSuspended: Boolean(conv.user_b_suspended_until && new Date(conv.user_b_suspended_until) > new Date()),
+        },
+      },
+      totalMessages: Number(countRow?.n ?? 0),
+      page: safePage,
+      pageSize: safePageSize,
+      messages: msgRows.map((m) => ({
+        id: m.id,
+        senderId: m.sender_id,
+        senderName: m.sender_name || 'Member',
+        senderAvatar: m.sender_avatar || '',
+        content: m.content,
+        kind: m.kind || 'text',
+        callMode: m.call_mode,
+        callOutcome: m.call_outcome,
+        callSeconds: m.call_seconds != null ? Number(m.call_seconds) : null,
+        replyToId: m.reply_to_id,
+        replyToContent: m.reply_to_content,
+        status: m.status,
+        createdAt: m.created_at,
+        deletedAt: m.deleted_at,
+      })),
+      relatedReports: reports.map((r) => ({
+        id: r.id,
+        category: r.reason_category,
+        details: r.details,
+        status: r.status,
+        createdAt: r.created_at,
+        reporterId: r.reporter_id,
+        reportedId: r.reported_id,
+      })),
+    };
   }
 
   static async resolveReport(adminId: string, reportId: string, ipAddress?: string) {

@@ -11,17 +11,29 @@ export class SessionRepository {
   }
 
   /** A live session: not revoked, not expired, and belonging to an active user. */
-  static findLiveByTokenHash(tokenHash: string): Promise<{ id: string; user_id: string } | null> {
-    return getDatabase().get(
-      `SELECT s.id, s.user_id
+  static async findLiveByTokenHash(tokenHash: string): Promise<{ id: string; user_id: string } | null> {
+    const db = getDatabase();
+    const row = await db.get<{ id: string; user_id: string; is_active: number; suspended_until: string | null }>(
+      `SELECT s.id, s.user_id, u.is_active, u.suspended_until
        FROM sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = ?
          AND s.revoked_at IS NULL
-         AND s.expires_at > UTC_TIMESTAMP()
-         AND u.is_active = 1`,
+         AND s.expires_at > UTC_TIMESTAMP()`,
       [tokenHash]
     );
+    if (!row) return null;
+    if (row.is_active === 1) return { id: row.id, user_id: row.user_id };
+
+    // Auto-restore expired temporary suspension
+    if (row.suspended_until && new Date(row.suspended_until) <= new Date()) {
+      await db.run(
+        'UPDATE users SET is_active = 1, suspended_until = NULL, disabled_reason = NULL, moderation_notes = NULL, disabled_at = NULL WHERE id = ?',
+        [row.user_id]
+      );
+      return { id: row.id, user_id: row.user_id };
+    }
+    return null;
   }
 
   /** Throttled activity stamp: at most one write per session every 5 minutes. */

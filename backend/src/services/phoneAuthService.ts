@@ -9,6 +9,7 @@ import { ProfileRepository } from '../repositories/profileRepository';
 import { PhoneCodeRepository } from '../repositories/phoneCodeRepository';
 import { revealCodesToClient, sendSms } from './auth/smsSender';
 import { PhoneLinkInput, PhoneStartInput, PhoneVerifyInput } from '../validators/authValidator';
+import { assertUserNotSuspendedOrDeactivated } from '../utils/moderationGuard';
 
 const CODE_TTL_SECONDS = 10 * 60;
 /** Wait before another code can be sent to the same number. */
@@ -96,7 +97,7 @@ export class PhoneAuthService {
     const db = getDatabase();
     const linked = await AuthAccountRepository.findUser('phone', phone);
     if (linked) {
-      if (!linked.is_active) throw new AppError('Your account has been deactivated', 403);
+      await assertUserNotSuspendedOrDeactivated(linked);
       if (!(await PhoneCodeRepository.consume(db, active.id))) {
         throw new AppError('This code has already been used. Request a new one.', 400);
       }

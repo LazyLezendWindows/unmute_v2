@@ -12,6 +12,7 @@ import { verifyGoogleCredential } from './auth/googleIdentity';
 import { PhoneAuthService } from './phoneAuthService';
 import { PhoneCodeRepository } from '../repositories/phoneCodeRepository';
 import { TotpService } from './totpService';
+import { assertUserNotSuspendedOrDeactivated } from '../utils/moderationGuard';
 import { RegisterInput, LoginInput, GoogleAuthInput } from '../validators/authValidator';
 
 export type GoogleAuthResult =
@@ -42,11 +43,12 @@ export class AuthService {
     }
 
     const email = input.email.toLowerCase();
+    await BanService.assertAllowed({ email, phone: input.phone });
+
     const db = getDatabase();
     if (await UserRepository.findByEmail(email)) {
       throw new AppError('An account with this email address already exists', 409);
     }
-    await BanService.assertAllowed({ email, phone: input.phone });
 
     const { phone, code } = input;
     if (phone) {
@@ -78,9 +80,10 @@ export class AuthService {
       throw new AppError('This account uses Google sign-in. Please continue with Google.', 400);
     }
     const passwordMatches = await bcrypt.compare(input.password, user?.password_hash || DUMMY_PASSWORD_HASH);
-    if (!user || !user.is_active || !passwordMatches) {
+    if (!user || !passwordMatches) {
       throw new AppError('Invalid email or password', 401);
     }
+    await assertUserNotSuspendedOrDeactivated(user);
     return user.id;
   }
 
@@ -95,7 +98,7 @@ export class AuthService {
     // 1. Returning Google user, matched by the stable Google subject.
     const linked = await AuthAccountRepository.findUser('google', identity.subject);
     if (linked) {
-      if (!linked.is_active) throw new AppError('Your account has been deactivated', 403);
+      await assertUserNotSuspendedOrDeactivated(linked);
       await BanService.assertAllowed({ email: identity.email });
       return { requiresDob: false, isNewUser: false, userId: linked.id };
     }
@@ -111,7 +114,7 @@ export class AuthService {
     // unless it is already bound to a different Google subject.
     const existing = await UserRepository.findByEmail(identity.email);
     if (existing) {
-      if (!existing.is_active) throw new AppError('Your account has been deactivated', 403);
+      await assertUserNotSuspendedOrDeactivated(existing);
       const existingSub = await AuthAccountRepository.googleSubOf(existing.id);
       if (existingSub && existingSub !== identity.subject) {
         const isDevPlaceholder =

@@ -10,7 +10,7 @@
     <div class="toolbar">
       <label class="search-box">
         <i class="ri-search-line" aria-hidden="true"></i>
-        <input v-model="q" type="search" placeholder="Search name, email or phone…" aria-label="Search users" @input="debouncedLoad" />
+        <input v-model="q" type="search" placeholder="Search name, email, phone or user ID…" aria-label="Search users" @input="debouncedLoad" />
       </label>
       <div class="filter-pills" role="group" aria-label="Filter users">
         <button v-for="f in FILTERS" :key="f.value" type="button" :aria-pressed="filter === f.value" @click="setFilter(f.value)">{{ f.label }}</button>
@@ -50,7 +50,9 @@
               <span v-else class="badge is-grey">Free</span>
             </td>
             <td>
-              <span class="badge" :class="u.isActive ? 'is-ok' : 'is-off'">{{ u.isActive ? 'Active' : 'Disabled' }}</span>
+              <span v-if="u.isBanned" class="badge is-off"><i class="ri-forbid-2-line" aria-hidden="true"></i> Banned</span>
+              <span v-else-if="u.isSuspended" class="badge is-warn" :title="u.suspendedUntil ? `Until ${dateText(u.suspendedUntil)}` : ''"><i class="ri-timer-line" aria-hidden="true"></i> Suspended</span>
+              <span v-else class="badge" :class="u.isActive ? 'is-ok' : 'is-off'">{{ u.isActive ? 'Active' : 'Disabled' }}</span>
               <span v-if="u.reports" class="badge is-warn ms-1" :title="`${u.reports} reports`">
                 <i class="ri-flag-fill" aria-hidden="true"></i>{{ u.reports }}
               </span>
@@ -89,7 +91,9 @@ import { adminApi } from '../../services/adminApi';
 const FILTERS = [
   { value: 'all',        label: 'All' },
   { value: 'active',     label: 'Active' },
+  { value: 'suspended',  label: 'Suspended' },
   { value: 'disabled',   label: 'Disabled' },
+  { value: 'banned',     label: 'Banned' },
   { value: 'verified',   label: 'Verified' },
   { value: 'unverified', label: 'Unverified' },
   { value: 'paid',       label: 'Paid' },
@@ -97,7 +101,22 @@ const FILTERS = [
   { value: 'reported',   label: 'Reported' },
 ];
 
-interface Row { id: string; name: string; email: string | null; phone: string | null; avatarUrl: string; age: number | null; isActive: boolean; isVerified: boolean; plan: string | null; reports: number; joinedAt: string }
+interface Row {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string;
+  age: number | null;
+  isActive: boolean;
+  isSuspended?: boolean;
+  suspendedUntil?: string | null;
+  isBanned?: boolean;
+  isVerified: boolean;
+  plan: string | null;
+  reports: number;
+  joinedAt: string;
+}
 
 const route = useRoute();
 const router = useRouter();

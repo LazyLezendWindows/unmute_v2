@@ -115,6 +115,7 @@ const router = createRouter({
     { path: '/admin/reports', name: 'admin-reports', component: () => import('../pages/admin/AdminReportsPage.vue'), meta: { admin: true } },
     { path: '/admin/verifications', name: 'admin-verifications', component: () => import('../pages/admin/AdminVerificationsPage.vue'), meta: { admin: true } },
     { path: '/admin/audit-logs', name: 'admin-audit-logs', component: () => import('../pages/admin/AdminAuditLogsPage.vue'), meta: { admin: true } },
+    { path: '/admin/conversations/:id', name: 'admin-conversation-inspect', component: () => import('../pages/admin/AdminChatInspectPage.vue'), meta: { admin: true, superAdminOnly: true } },
     {
       path: '/verify',
       name: 'verify',
@@ -193,7 +194,9 @@ router.beforeEach(async (to) => {
   if (to.meta.admin) {
     const admin = await adminSession();
     if (to.meta.adminPublic) return admin ? '/admin' : true;
-    return admin ? true : { path: '/admin/login', query: to.fullPath !== '/admin' ? { redirect: to.fullPath } : {} };
+    if (!admin) return { path: '/admin/login', query: to.fullPath !== '/admin' ? { redirect: to.fullPath } : {} };
+    if (to.meta.superAdminOnly && admin.role !== 'super_admin') return '/admin';
+    return true;
   }
 
   const authStore = useAuthStore();

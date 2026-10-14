@@ -5,9 +5,9 @@ export type AuthProvider = 'google' | 'password' | 'phone';
 
 export class AuthAccountRepository {
   /** The user linked to an external identity (e.g. a Google `sub`). */
-  static findUser(provider: AuthProvider, providerAccountId: string): Promise<{ id: string; is_active: number } | null> {
+  static findUser(provider: AuthProvider, providerAccountId: string): Promise<{ id: string; is_active: number; suspended_until: string | null; disabled_reason: string | null } | null> {
     return getDatabase().get(
-      `SELECT u.id, u.is_active FROM auth_accounts a
+      `SELECT u.id, u.is_active, u.suspended_until, u.disabled_reason FROM auth_accounts a
        JOIN users u ON u.id = a.user_id
        WHERE a.provider = ? AND a.provider_account_id = ?`,
       [provider, providerAccountId]
@@ -49,9 +49,9 @@ export class AuthAccountRepository {
   }
 
   /** Email lookup for password sign-in; password_hash is null when the account has no password. */
-  static findPasswordLogin(email: string): Promise<{ id: string; is_active: number; password_hash: string | null } | null> {
+  static findPasswordLogin(email: string): Promise<{ id: string; is_active: number; suspended_until: string | null; disabled_reason: string | null; password_hash: string | null } | null> {
     return getDatabase().get(
-      `SELECT u.id, u.is_active, a.password_hash
+      `SELECT u.id, u.is_active, u.suspended_until, u.disabled_reason, a.password_hash
        FROM users u
        LEFT JOIN auth_accounts a ON a.user_id = u.id AND a.provider = 'password'
        WHERE u.email = ?`,

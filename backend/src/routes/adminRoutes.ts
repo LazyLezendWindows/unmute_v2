@@ -219,7 +219,7 @@ router.get(
 );
 
 // User Management
-const FILTERS = ['all', 'active', 'disabled', 'verified', 'unverified', 'paid', 'trial', 'reported'] as const;
+const FILTERS = ['all', 'active', 'disabled', 'suspended', 'banned', 'verified', 'unverified', 'paid', 'trial', 'reported'] as const;
 router.get(
   '/users',
   validateQuery(z.object({ q: z.string().max(100).optional(), filter: z.enum(FILTERS).optional(), page: z.coerce.number().int().min(1).max(10000).optional() })),
@@ -227,6 +227,84 @@ router.get(
 );
 
 router.get('/users/:id', validateParams(idParamsSchema), handle((req) => AdminService.userDetail(req.params.id)));
+
+router.get(
+  '/users/:id/conversations',
+  requireRole('super_admin'),
+  validateParams(idParamsSchema),
+  handle((req) => AdminService.listUserConversations(req.params.id))
+);
+
+router.post(
+  '/users/:id/moderate',
+  requireRole('super_admin'),
+  validateParams(idParamsSchema),
+  validateBody(
+    z.object({
+      action: z.enum(['suspend', 'disable', 'ban', 'reactivate']),
+      reason: z.string().max(200).optional(),
+      durationHours: z.coerce.number().int().min(1).max(87600).optional(),
+      suspendedUntil: z.string().optional(),
+      notes: z.string().max(1000).optional(),
+    }).strict()
+  ),
+  handle(async (req) => {
+    const { action, reason, durationHours, suspendedUntil, notes } = req.body;
+    const ip = getClientIp(req);
+    if (action === 'suspend') {
+      if (!reason?.trim()) throw new AppError('A reason is required to suspend an account.', 400);
+      let until: Date;
+      if (suspendedUntil) {
+        until = new Date(suspendedUntil);
+        if (isNaN(until.getTime()) || until <= new Date()) {
+          throw new AppError('Suspension end time must be a valid future date.', 400);
+        }
+      } else if (durationHours) {
+        until = new Date(Date.now() + durationHours * 3600 * 1000);
+      } else {
+        throw new AppError('Specify either durationHours or suspendedUntil for temporary suspension.', 400);
+      }
+      return AdminService.suspendUser(req.admin!.id, req.params.id, until, reason, notes, ip);
+    }
+    if (action === 'disable') {
+      if (!reason?.trim()) throw new AppError('A reason is required to disable an account.', 400);
+      return AdminService.disableUser(req.admin!.id, req.params.id, reason, notes, ip);
+    }
+    if (action === 'ban') {
+      if (!reason?.trim()) throw new AppError('A reason is required to ban an account.', 400);
+      return AdminService.banUserAccount(req.admin!.id, req.params.id, reason, notes, ip);
+    }
+    if (action === 'reactivate') {
+      return AdminService.reactivateUser(req.admin!.id, req.params.id, reason, ip);
+    }
+    throw new AppError('Invalid moderation action', 400);
+  })
+);
+
+router.get(
+  '/conversations/:id',
+  requireRole('super_admin'),
+  validateParams(idParamsSchema),
+  validateQuery(
+    z.object({
+      page: z.coerce.number().int().min(1).max(10000).optional(),
+      pageSize: z.coerce.number().int().min(1).max(100).optional(),
+      reportId: z.string().max(64).optional(),
+      reason: z.string().max(200).optional(),
+    })
+  ),
+  handle((req) =>
+    AdminService.inspectConversation(
+      req.admin!.id,
+      req.params.id,
+      Number(req.query.page ?? 1),
+      Number(req.query.pageSize ?? 50),
+      req.query.reportId as string | undefined,
+      req.query.reason as string | undefined,
+      getClientIp(req)
+    )
+  )
+);
 
 router.post(
   '/users/:id/status',

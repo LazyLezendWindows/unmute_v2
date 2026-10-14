@@ -106,3 +106,98 @@ export async function adminSession(): Promise<AdminUser | null> {
     return null;
   }
 }
+
+export interface ModerationRequest {
+  action: 'suspend' | 'disable' | 'ban' | 'reactivate';
+  durationHours?: number;
+  until?: string;
+  reason: string;
+  notes?: string;
+}
+
+export interface UserConversationItem {
+  id: string;
+  matchId: string | null;
+  createdAt: string;
+  lastMessageAt: string | null;
+  messageCount: number;
+  reportCount: number;
+  partner: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+    isActive: boolean;
+  };
+}
+
+export interface InspectedMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  content: string;
+  kind: string;
+  callMode: string | null;
+  callOutcome: string | null;
+  callSeconds: number | null;
+  replyToId: string | null;
+  replyToContent: string | null;
+  status: string;
+  createdAt: string;
+  deletedAt: string | null;
+}
+
+export interface InspectionData {
+  conversation: {
+    id: string;
+    matchId: string | null;
+    createdAt: string;
+    lastMessageAt: string | null;
+    userA: {
+      id: string;
+      name: string;
+      avatarUrl: string;
+      isActive: boolean;
+      isSuspended: boolean;
+    };
+    userB: {
+      id: string;
+      name: string;
+      avatarUrl: string;
+      isActive: boolean;
+      isSuspended: boolean;
+    };
+  };
+  totalMessages: number;
+  page: number;
+  pageSize: number;
+  messages: InspectedMessage[];
+  relatedReports: Array<{
+    id: string;
+    category: string;
+    details: string | null;
+    status: string;
+    createdAt: string;
+    reporterId: string;
+    reportedId: string;
+  }>;
+}
+
+export async function moderateUser(userId: string, data: ModerationRequest) {
+  const res = await adminApi.post(`/users/${userId}/moderate`, data);
+  return res.data.data;
+}
+
+export async function getUserConversations(userId: string): Promise<UserConversationItem[]> {
+  const res = await adminApi.get(`/users/${userId}/conversations`);
+  return res.data.data;
+}
+
+export async function inspectConversation(
+  conversationId: string,
+  params?: { page?: number; pageSize?: number; reportId?: string; reason?: string }
+): Promise<InspectionData> {
+  const res = await adminApi.get(`/conversations/${conversationId}`, { params });
+  return res.data.data;
+}
+

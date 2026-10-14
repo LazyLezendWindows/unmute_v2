@@ -7,6 +7,7 @@ import { ChatService } from '../services/chatService';
 import { markConnected, markDisconnected, recordHeartbeat } from './presence';
 import { registerCallSignals } from './callSignals';
 import { isAllowedOrigin } from '../middleware/originCheck';
+import { UserRepository } from '../repositories/userRepository';
 
 let ioInstance: SocketIOServer | null = null;
 
@@ -47,10 +48,21 @@ export function initSocketServer(server: HttpServer): SocketIOServer {
 
   ioInstance.on('connection', (socket: Socket) => {
     const userId: string = socket.data.userId;
-    // Check each inbound action, and disconnect at expiry even if the socket stays idle.
+    // Check each inbound action, and disconnect at expiry or suspension even if the socket stays idle.
     socket.use(async (_packet, next) => {
-      try { await SubscriptionService.requireAccess(userId); next(); }
-      catch { socket.emit('subscription:expired'); socket.disconnect(true); }
+      try {
+        const isActive = await UserRepository.isActive(userId);
+        if (!isActive) {
+          socket.emit('account:restricted', { reason: 'Your account has been suspended or deactivated.' });
+          socket.disconnect(true);
+          return;
+        }
+        await SubscriptionService.requireAccess(userId);
+        next();
+      } catch {
+        socket.emit('subscription:expired');
+        socket.disconnect(true);
+      }
     });
     let expiryTimer: ReturnType<typeof setTimeout>;
     const scheduleExpiry = async () => {

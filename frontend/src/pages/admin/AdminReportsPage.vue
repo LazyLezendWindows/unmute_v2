@@ -44,6 +44,13 @@
 
       <div class="report-actions">
         <router-link :to="`/admin/users/${r.reported.id}`" class="action-btn is-plain"><i class="ri-user-search-line" aria-hidden="true"></i> Review member</router-link>
+        <router-link
+          v-if="me?.role === 'super_admin' && r.conversationId"
+          :to="`/admin/conversations/${r.conversationId}?reportId=${r.id}`"
+          class="action-btn is-inspect"
+        >
+          <i class="ri-chat-search-line" aria-hidden="true"></i> Inspect chat
+        </router-link>
         <button v-if="r.status === 'pending'" type="button" class="action-btn is-ok" :disabled="busy === r.id" @click="resolve(r.id)">
           <i class="ri-check-line" aria-hidden="true"></i> Mark resolved
         </button>
@@ -61,7 +68,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import UAvatar from '../../components/ui/UAvatar.vue';
-import { adminApi } from '../../services/adminApi';
+import { adminApi, adminSession, AdminUser } from '../../services/adminApi';
 import { useToastStore } from '../../stores/toast';
 
 type Status = 'pending' | 'resolved' | 'all';
@@ -77,10 +84,12 @@ interface Report {
   details: string | null;
   status: 'pending' | 'resolved';
   createdAt: string;
+  conversationId?: string | null;
   reporter: { id: string | null; name: string | null };
   reported: { id: string; name: string | null; avatarUrl: string; isActive: boolean; totalReports: number };
 }
 
+const me = ref<AdminUser | null>(null);
 const status = ref<Status>('pending');
 const page = ref(1);
 const data = ref<{ total: number; page: number; pageSize: number; reports: Report[] } | null>(null);
@@ -112,7 +121,10 @@ function when(iso: string) {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 }
 
-onMounted(load);
+onMounted(async () => {
+  me.value = await adminSession();
+  load();
+});
 </script>
 
 <style scoped lang="scss">
@@ -217,6 +229,7 @@ onMounted(load);
   &:disabled { opacity: 0.55; }
   &.is-plain { background: #f4f0fa; color: #1d1633; }
   &.is-ok { background: #137a3a; color: #fff; }
+  &.is-inspect { background: #6c5ce7; color: #fff; }
 }
 
 .badge {
